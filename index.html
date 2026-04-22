@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="訓練記錄">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0F1318">
+<title>訓練記錄</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600&display=swap');
+:root{
+  --bg:#0F1318;--bg2:#171C24;--bg3:#1E242F;--bg4:#252C3A;
+  --border:#2A3244;--border2:#364058;
+  --text:#EEF0F5;--text2:#8A96B0;--text3:#505870;
+  --acc:#3B82F6;--acc-bg:#0D1A30;--acc-light:#60A5FA;
+  --green:#34D399;--green-bg:#052E1C;--green-b:#0D5C38;
+  --amber:#FBBF24;--amber-bg:#2D1A00;--amber-b:#6B4000;
+  --red:#F87171;--red-bg:#2D0808;--red-b:#6B1414;
+  --purple:#A78BFA;--purple-bg:#1A0D40;--purple-b:#3D2080;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh}
+.app{max-width:430px;margin:0 auto}
+.screen{display:none;min-height:100vh}.screen.active{display:block}
+.home-hdr{padding:1.5rem 1.2rem .8rem;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'DM Mono',monospace;font-size:12px;color:var(--acc-light);letter-spacing:.12em}
+.home-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)}
+.home-body{padding:0 1.2rem 6rem}
+.h-title{font-size:24px;font-weight:600;margin-bottom:3px}
+.h-sub{font-size:13px;color:var(--text2);margin-bottom:1.3rem}
+.new-btn{width:100%;padding:13px;border-radius:12px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:1.2rem}
+.new-btn:active{opacity:.8}
+.sec-lbl{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px}
+.nb-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:10px;cursor:pointer;transition:border-color .12s}
+.nb-card:active{border-color:var(--acc)}
+.nb-row{display:flex;align-items:flex-start;justify-content:space-between}
+.nb-info{flex:1}
+.nb-name{font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px}
+.nb-meta{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:5px}
+.nb-exs{font-size:12px;color:var(--text2);line-height:1.6}
+.tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;margin-right:4px;margin-bottom:4px}
+.tag-prep{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b)}
+.tag-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
+.nb-actions{display:flex;gap:6px;align-items:flex-start;padding-top:2px}
+.icon-btn{font-size:18px;color:var(--text3);cursor:pointer;padding:3px 5px;border-radius:6px;line-height:1;user-select:none}
+.icon-btn:active{background:var(--bg4)}
+.empty{text-align:center;padding:3rem 1rem;color:var(--text3);font-size:13px;line-height:1.9}
+.ed-hdr{padding:.9rem 1.2rem;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:20}
+.back{font-size:22px;color:var(--text2);cursor:pointer;line-height:1;padding:2px 4px}
+.ed-title-wrap{flex:1;min-width:0}
+.ed-title{font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+.save-btn{padding:8px 14px;border-radius:10px;background:var(--acc);color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif;flex-shrink:0}
+.ed-body{padding:0 1.2rem 5rem}
+.tabs{display:flex;gap:0;margin:.9rem 0;background:var(--bg3);border-radius:10px;padding:3px}
+.tab{flex:1;padding:8px 0;text-align:center;font-size:13px;color:var(--text3);cursor:pointer;border-radius:8px;transition:all .15s;font-family:'Noto Sans TC',sans-serif}
+.tab.on{background:var(--bg2);color:var(--text);font-weight:500;border:1px solid var(--border)}
+.tc{display:none}.tc.on{display:block}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:.9rem 1rem;margin-bottom:10px}
+.sec{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.lbl{font-size:13px;color:var(--text);font-weight:500;margin-bottom:5px}
+.flabel{font-size:13px;color:var(--text2);font-weight:500;margin-bottom:5px}
+.opt{font-size:11px;color:var(--text3);font-weight:400;margin-left:4px}
+input[type=text],textarea,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:15px;color:var(--text);font-family:'Noto Sans TC',sans-serif;line-height:1.5;resize:none;-webkit-appearance:none}
+input:focus,textarea:focus{outline:none;border-color:var(--acc)}
+::placeholder{color:var(--text3);font-size:13px}
+.chip-group{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.chip{padding:7px 13px;border-radius:22px;border:1px solid var(--border2);font-size:13px;color:var(--text2);cursor:pointer;background:var(--bg3);transition:all .12s;user-select:none;font-family:'Noto Sans TC',sans-serif;line-height:1}
+.chip.sel{background:var(--acc-bg);border-color:var(--acc);color:var(--acc-light)}
+.achips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+.achips .chip{padding:6px 12px;font-size:12px;opacity:.35}.achips .chip.on{opacity:1}
+.ok{border-color:var(--green-b)!important;color:var(--green)!important;background:var(--green-bg)!important}
+.wn{border-color:var(--amber-b)!important;color:var(--amber)!important;background:var(--amber-bg)!important}
+.bd{border-color:var(--red-b)!important;color:var(--red)!important;background:var(--red-bg)!important}
+.ai{margin-bottom:11px}
+.anote{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);font-family:'Noto Sans TC',sans-serif;resize:none}
+.anote:focus{outline:none;border-color:var(--acc)}
+.star-row{display:flex;gap:12px;margin:4px 0 6px}
+.star{font-size:28px;cursor:pointer;color:var(--border2);transition:color .12s;user-select:none;line-height:1}
+.star.on{color:var(--acc-light)}
+.star-lbl{font-size:13px;color:var(--text2);min-height:18px;font-weight:500}
+.msc{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:9px;scrollbar-width:none}
+.msc::-webkit-scrollbar{display:none}
+.mbtn{flex-shrink:0;padding:7px 13px;border-radius:22px;border:1px solid var(--border2);font-size:13px;color:var(--text2);cursor:pointer;background:var(--bg3);white-space:nowrap;font-family:'Noto Sans TC',sans-serif;transition:all .12s}
+.mbtn.on{background:var(--acc-bg);border-color:var(--acc);color:var(--acc-light)}
+.mbtn .cnt{font-size:10px;margin-left:3px;color:var(--green);font-family:'DM Mono',monospace}
+.ex-list{border-radius:10px;border:1px solid var(--border);max-height:240px;overflow-y:auto;margin-top:8px}
+.ex-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;transition:background .1s}
+.ex-item:last-child{border-bottom:none}
+.ex-item:active{background:var(--bg4)}
+.ex-item.added{color:var(--acc-light);background:var(--acc-bg)}
+.ex-ico{font-size:18px;color:var(--text3);flex-shrink:0;margin-left:8px}
+.ex-item.added .ex-ico{color:var(--green)}
+.hist-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace;margin-left:5px;vertical-align:middle}
+.hist-best{background:var(--purple-bg);border:1px solid var(--purple-b);color:var(--purple)}
+.hist-none{background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
+.perf-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:11px;font-weight:500;vertical-align:middle}
+.perf-up{background:var(--green-bg);border:1px solid var(--green-b);color:var(--green)}
+.perf-same{background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
+.perf-down{background:var(--red-bg);border:1px solid var(--red-b);color:var(--red)}
+.perf-new{background:var(--amber-bg);border:1px solid var(--amber-b);color:var(--amber)}
+.group-block{margin-bottom:12px}
+.group-lbl{font-size:11px;font-family:'DM Mono',monospace;color:var(--acc-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px;padding:3px 8px;background:var(--acc-bg);border-radius:6px;display:inline-block}
+.wlog{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.85rem .95rem;margin-bottom:7px}
+.wlog-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
+.wlog-name{font-size:13px;color:var(--text);font-weight:500;flex:1;line-height:1.5}
+.wlog-del{font-size:16px;color:var(--text3);cursor:pointer;padding:0 4px;flex-shrink:0}.wlog-del:active{color:var(--red)}
+.wlog-hist{font-size:11px;color:var(--text3);margin-bottom:7px;padding:5px 8px;background:var(--bg3);border-radius:7px;border:1px solid var(--border);line-height:1.6}
+.wlog-hist strong{color:var(--purple)}
+.set-labels{display:grid;grid-template-columns:20px 1fr 1fr 1fr 20px;gap:5px;margin-bottom:3px}
+.set-label{font-size:10px;color:var(--text3);text-align:center;font-family:'DM Mono',monospace}
+.set-row{display:grid;grid-template-columns:20px 1fr 1fr 1fr 20px;gap:5px;align-items:center;margin-bottom:5px}
+.set-num{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center}
+.set-inp{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 4px;font-size:14px;color:var(--text);text-align:center;width:100%;font-family:'Noto Sans TC',sans-serif;-webkit-appearance:none}
+.set-inp:focus{outline:none;border-color:var(--acc)}
+.set-del{font-size:14px;color:var(--text3);cursor:pointer;text-align:center}.set-del:active{color:var(--red)}
+.add-set{width:100%;padding:7px;border-radius:7px;background:transparent;border:1px dashed var(--border2);color:var(--text3);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:2px}
+.add-set:active{background:var(--bg4)}
+.wlog-note{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12px;color:var(--text2);font-family:'Noto Sans TC',sans-serif;resize:none;margin-top:6px}
+.wlog-note:focus{outline:none;border-color:var(--acc)}
+.pbox{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem;font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.9;word-break:break-all;font-family:'Noto Sans TC',sans-serif}
+.cbtn{width:100%;padding:13px;border-radius:12px;background:var(--acc);color:#fff;border:none;font-size:16px;font-weight:600;cursor:pointer;margin-top:10px;font-family:'Noto Sans TC',sans-serif}
+.cbtn:active{opacity:.8}
+.hint{text-align:center;font-size:12px;color:var(--text3);margin-top:8px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;z-index:100}
+.modal-bg.hidden{display:none}
+.modal{background:var(--bg2);border-radius:20px 20px 0 0;padding:1.4rem 1.2rem 2rem;width:100%;max-width:430px;margin:0 auto}
+.modal-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:1rem}
+.modal-lbl{font-size:13px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.modal-inp{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-size:15px;color:var(--text);font-family:'Noto Sans TC',sans-serif;-webkit-appearance:none;margin-bottom:12px}
+.modal-inp:focus{outline:none;border-color:var(--acc)}
+.modal-row{display:flex;gap:10px;margin-top:4px}
+.m-cancel{flex:1;padding:13px;border-radius:12px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);font-size:15px;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.m-ok{flex:1;padding:13px;border-radius:12px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.hist-body{padding:1rem 1.2rem 5rem}
+.hist-ex-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.9rem;margin-bottom:10px}
+.hist-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.hist-row:last-child{border-bottom:none}
+.hist-date{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;min-width:60px}
+.hist-val{font-size:13px;color:var(--text);flex:1;padding:0 8px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="screen active" id="s-home">
+  <div class="home-hdr">
+    <span class="logo">TRAINING · LOG</span>
+    <span class="home-date" id="home-date"></span>
+  </div>
+  <div class="home-body">
+    <div class="h-title">訓練筆記本</div>
+    <div class="h-sub">備課 → 上課 → 歷史對比</div>
+    <button class="new-btn" onclick="openNewModal()">＋ 新增訓練筆記本</button>
+    <div class="sec-lbl">所有筆記本</div>
+    <div id="nb-list"></div>
+  </div>
+</div>
+
+<div class="screen" id="s-editor">
+  <div class="ed-hdr">
+    <div class="back" onclick="goHome()">←</div>
+    <div class="ed-title-wrap">
+      <div class="ed-title" id="ed-title">筆記本</div>
+      <div class="ed-sub" id="ed-sub"></div>
+    </div>
+    <button class="save-btn" onclick="saveAndHome()">完成課程</button>
+  </div>
+  <div class="ed-body">
+    <div class="tabs">
+      <div class="tab on" onclick="switchTab('plan')">備課</div>
+      <div class="tab" onclick="switchTab('class')">上課</div>
+      <div class="tab" onclick="switchTab('report')">報告</div>
+    </div>
+
+    <div class="tc on" id="tc-plan">
+      <div class="card">
+        <div class="flabel">課程名稱</div>
+        <input type="text" id="nb-name-inp" placeholder="例：小明 腿日 第3堂">
+      </div>
+      <div class="card">
+        <div class="flabel">學員姓名</div>
+        <input type="text" id="f-student" placeholder="學員姓名（用於查詢歷史紀錄）" oninput="onStudentChange()">
+      </div>
+      <div class="card">
+        <div class="flabel">訓練類型 <span class="opt">可複選</span></div>
+        <div class="chip-group" id="g-type">
+          <div class="chip" onclick="togM(this)">胸 / 三頭</div>
+          <div class="chip" onclick="togM(this)">背 / 二頭</div>
+          <div class="chip" onclick="togM(this)">肩</div>
+          <div class="chip" onclick="togM(this)">腿 / 臀</div>
+          <div class="chip" onclick="togM(this)">全身</div>
+          <div class="chip" onclick="togM(this)">上半身</div>
+          <div class="chip" onclick="togM(this)">下半身</div>
+          <div class="chip" onclick="togM(this)">核心 / 活化</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec">選擇動作</div>
+        <div class="msc" id="msc"></div>
+        <input type="text" id="ex-search" placeholder="搜尋動作…" oninput="renderExList()" style="margin-bottom:0">
+        <div class="ex-list" id="ex-list"></div>
+      </div>
+      <div id="plan-log-section">
+        <div class="sec-lbl" style="margin-top:6px">已加入動作（點名稱查歷史）</div>
+        <div id="plan-log"></div>
+      </div>
+      <div class="card">
+        <div class="flabel">備課備註</div>
+        <textarea id="plan-note" rows="2" placeholder="備課提醒、訓練方向等"></textarea>
+      </div>
+    </div>
+
+    <div class="tc" id="tc-class">
+      <div class="card">
+        <div class="flabel">今日狀態</div>
+        <div class="star-row" id="star-row"></div>
+        <div class="star-lbl" id="starlbl">點選評分</div>
+      </div>
+      <div class="card">
+        <div class="sec">今日生活狀況</div>
+        <div class="ai"><div class="lbl">昨晚睡眠</div>
+          <div class="achips" id="ac-sleep">
+            <div class="chip ok" onclick="togA(this)">好睡，精神佳</div>
+            <div class="chip wn" onclick="togA(this)">普通</div>
+            <div class="chip bd" onclick="togA(this)">睡眠不足</div>
+          </div>
+        </div>
+        <div class="ai"><div class="lbl">飲食 / 水分</div>
+          <div class="achips" id="ac-food">
+            <div class="chip ok" onclick="togA(this)">充足正常</div>
+            <div class="chip wn" onclick="togA(this)">略不足</div>
+            <div class="chip bd" onclick="togA(this)">明顯不足</div>
+          </div>
+        </div>
+        <div class="ai"><div class="lbl">身體狀態</div>
+          <div class="achips" id="ac-body">
+            <div class="chip ok" onclick="togA(this)">狀態良好</div>
+            <div class="chip wn" onclick="togA(this)">輕微痠痛</div>
+            <div class="chip wn" onclick="togA(this)">疲憊</div>
+            <div class="chip bd" onclick="togA(this)">不適 / 疼痛</div>
+          </div>
+        </div>
+        <textarea class="anote" id="f-condition" rows="1" placeholder="身體備註（選填）"></textarea>
+      </div>
+      <div class="card">
+        <div class="sec">訓練記錄</div>
+        <div id="class-log"></div>
+        <div id="class-log-empty" style="font-size:13px;color:var(--text3);padding:6px 0">先在備課頁加入動作</div>
+      </div>
+      <div class="card">
+        <div class="sec">訓練強度</div>
+        <div class="ai"><div class="lbl">整體強度</div>
+          <div class="achips" id="ac-int">
+            <div class="chip ok" onclick="togA(this)">輕鬆，留有餘力</div>
+            <div class="chip ok" onclick="togA(this)">適中，狀態不錯</div>
+            <div class="chip wn" onclick="togA(this)">偏重，有點吃力</div>
+            <div class="chip bd" onclick="togA(this)">過重，需調整</div>
+          </div>
+        </div>
+        <div class="ai"><div class="lbl">與上次相比</div>
+          <div class="achips" id="ac-prog">
+            <div class="chip ok" onclick="togA(this)">有進步</div>
+            <div class="chip ok" onclick="togA(this)">維持</div>
+            <div class="chip wn" onclick="togA(this)">略退步</div>
+            <div class="chip wn" onclick="togA(this)">首次動作</div>
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="flabel">表現亮點</div><textarea id="f-good" rows="2" placeholder="例：深蹲深度比上次進步"></textarea></div>
+      <div class="card"><div class="flabel">需要加強</div><textarea id="f-improve" rows="2" placeholder="例：硬舉起始位置腰椎仍有屈曲"></textarea></div>
+      <div class="card"><div class="flabel">教練觀察 <span class="opt">選填</span></div><textarea id="f-obs" rows="2" placeholder="例：今天整體狀態受睡眠影響較大"></textarea></div>
+      <div class="card"><div class="flabel">下一堂方向</div><textarea id="f-next" rows="2" placeholder="例：接下來兩週持續漸進增重"></textarea></div>
+      <div class="card"><div class="flabel">飲食 / 恢復提醒 <span class="opt">選填</span></div><textarea id="f-diet" rows="2" placeholder="例：訓練後 30 分鐘內補充蛋白質"></textarea></div>
+      <div class="card"><div class="flabel">給學員的話</div><textarea id="f-msg" rows="2" placeholder="個人化，針對今天這堂課寫"></textarea></div>
+      <div class="card">
+        <div class="flabel">上課頻率建議</div>
+        <div class="chip-group" id="g-freq">
+          <div class="chip sel" onclick="togS(this,'g-freq')">彈性單堂</div>
+          <div class="chip" onclick="togS(this,'g-freq')">每週 1 次</div>
+          <div class="chip" onclick="togS(this,'g-freq')">每週 2 次</div>
+          <div class="chip" onclick="togS(this,'g-freq')">每週 3 次</div>
+        </div>
+      </div>
+      <div class="card"><div class="flabel">下次預約 <span class="opt">選填</span></div><input type="text" id="f-nextbook" placeholder="例：下週六早上"></div>
+    </div>
+
+    <div class="tc" id="tc-report">
+      <div style="margin:0 0 .6rem;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase">預覽報告</div>
+      <div class="pbox" id="preview"></div>
+      <button class="cbtn" id="copybtn" onclick="doCopy()">複製 Line 訊息</button>
+      <p class="hint">複製後直接貼到 Line 傳給學員</p>
+      <div style="height:2rem"></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="s-hist">
+  <div class="ed-hdr">
+    <div class="back" onclick="closeHist()">←</div>
+    <div class="ed-title-wrap">
+      <div class="ed-title" id="hist-title">歷史紀錄</div>
+      <div class="ed-sub" id="hist-sub"></div>
+    </div>
+  </div>
+  <div class="hist-body" id="hist-body"></div>
+</div>
+
+<div class="modal-bg hidden" id="modal">
+  <div class="modal">
+    <div class="modal-title">新增訓練筆記本</div>
+    <div class="modal-lbl">課程名稱</div>
+    <input class="modal-inp" id="modal-name" placeholder="例：小明 腿日 第3堂">
+    <div class="modal-lbl">學員姓名</div>
+    <input class="modal-inp" id="modal-student" placeholder="學員姓名">
+    <div class="modal-row">
+      <button class="m-cancel" onclick="closeModal()">取消</button>
+      <button class="m-ok" onclick="createNB()">建立</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const EX={
+  "胸大肌":["BB Incline Bench Press（槓鈴上斜臥推）","DB Incline Bench Press 30°（啞鈴上斜臥推 30 度）","DB Incline Bench Press 45°（啞鈴上斜臥推 45 度）","BB Incline Bench Press 45°（槓鈴上斜臥推 45 度）","Machine Incline Press（機械上斜胸推）","BB Floor Press（槓鈴地板臥推）","BB Bench Press（槓鈴平板臥推）","DB Bench Press（啞鈴平板臥推）","Machine Pec Deck（機械夾胸）","Single Arm DB Bench Press（單臂啞鈴臥推）","TRX Push Up（TRX 伏地挺身）","Incline Push Up On Bar（槓上上斜伏地挺身）","機械式胸推","Dip（雙槓撐體）","Machine Decline Press（機械下斜胸推）","Cable Low Chest Press（低位繩索胸推）"],
+  "闊背肌":["Assisted Pull Up（輔助引體向上）","Neutral Grip Pull Up（正握引體向上）","Reverse Grip Chin Up（反握引體向上）","Wide Grip Pull Up（寬握引體向上）","Lat Pull Down（高位下拉）","Mag Grip Pull Down（Mag 握把下拉）","Straight Arm Pulldown（直臂下壓）","Close Grip Lat Pulldown（窄握高位下拉）","Wide Grip Lat Pulldown（寬握高位下拉）","Single Arm Lat Pulldown（單臂高位下拉）","Inverted Row With Barbell（槓鈴反式划船）","BB Bent Over Row（槓鈴俯身划船）","Reverse Grip Bent Over Row（反握俯身划船）","Machine Low Row（機械低位划船）","1 Arm DB Row（單臂啞鈴划船）","Wide Grip Cable Row（寬握繩索划船）","T Bar Row（T 槓划船）","Half Kneeling 1 Arm Cable Row（半跪姿單臂繩索划船）","Chest Supported 1 Arm Cable Row（胸支撐單臂繩索划船）","Seated Cable Row（坐姿繩索划船）","TRX Row（TRX 划船）","TRX Inverted Row（TRX 反式划船）","Front Pull Down（前拉下拉）","Half Kneeling 45° Single Arm Row（半跪 45 度單臂划船）","Cable 直臂下壓（繩索直臂下壓）","TRX Kneeling Pull Over（TRX 跪姿過頭下壓）"],
+  "三角肌":["Seated DB Shoulder Press（坐姿啞鈴肩推）","Half Kneeling DB Shoulder Press（半跪姿啞鈴肩推）","Standing BB Shoulder Press（站姿槓鈴肩推）","EZ Bar Upright Row（EZ 槓直立划船）","Single Arm Cable Front Raise（單臂繩索前平舉）","Straight Bar Cable Upright Row（直槓繩索直立划船）","Plate Front Raise（槓片前平舉）","Dumbbell Front Raise（啞鈴前平舉）","High Incline Smith Shoulder Press（史密斯高斜肩推）","Machine Shoulder Press（機械肩推）","Standing DB Press（站姿啞鈴肩推）","Standing DB Lateral Raise（站姿啞鈴側平舉）","Seated DB Lateral Raise（坐姿啞鈴側平舉）","Lying Side Raise（側臥側平舉）","Incline Prone Laterals（俯臥斜板側平舉）","Cable 1 Arm Lateral Raise（單臂繩索側平舉）","Leaning Cable Lateral Raise 背後式（背後繩索側平舉）","Leaning Cable Lateral Raise（傾身繩索側平舉）","Machine Lateral Raise（機械側平舉）","Cable Face Pull（繩索面拉）","Standing Cable Rear Delt Fly（站姿繩索後三角飛鳥）","Single Arm Cable Rear Delt（單臂繩索後三角）","Bent Over DB Rear Delt（俯身啞鈴後三角飛鳥）","Machine Rear Delt（機械反向飛鳥）","Hammer Strength Wide Grip Row（寬握錘式划船）","TRX Rear Delt（TRX 後三角）"],
+  "三頭肌":["Straight Bar Triceps Pushdown（直槓三頭下壓）","Single Arm Triceps Pushdown（單臂三頭下壓）","Triceps Rope Pushdown（繩索三頭下壓）","Single Arm Cable Tricep Pushdown（單臂繩索三頭下壓）","EZ Bar Skull Crushers（EZ 槓過頭三頭伸展）","DB Skull Crushers（啞鈴三頭伸展）","Machine Triceps Ext.（機械三頭伸展）","TRX Triceps Press（TRX 三頭推）","Overhead Cable Tricep Extension（頭頂繩索三頭伸展）","Seated Single-Arm DB Tricep Extension（坐姿單臂啞鈴三頭伸展）","1 Arm Overhead Rope Tricep Ext.（單臂過頭繩索三頭伸展）","Cross Body Triceps Push Down（跨體三頭下壓）","Cable Triceps Kick Back（繩索三頭後踢）","Close Grip Bench Press（窄握臥推）","Kettle Bell Close Grip Push Up（壺鈴窄距伏地挺身）","Narrow Push Up（窄距伏地挺身）","Machine Tricep Dips（機械三頭撐體）"],
+  "二頭肌":["Seated DB Curl（坐姿啞鈴彎舉）","Incline DB Curl（上斜板啞鈴彎舉）","Standing Straight Bar Cable Curl（站姿直槓繩索彎舉）","Single Arm DB Preacher Curl（單臂啞鈴牧師彎舉）","Machine Preacher Curl（機械牧師彎舉）","TRX Biceps Curl（TRX 二頭彎舉）","High Cable Curl（高位繩索彎舉）","Single Arm Machine Preacher Curl（單臂機械牧師彎舉）","TRX Hercules Curl（TRX 大力士彎舉）","Standing Face Away Curl（面背式站姿彎舉）"],
+  "斜方肌":["Chest Support DB Y Raise（胸支撐啞鈴 Y 舉）","Straight Bar Cable Front Raise Low Trap（直槓繩索前平舉/下斜方）","Cable Y Raise（繩索 Y 舉）","Cable Rope Facepull（繩索面拉）","Single Arm Cross Body Y Raise（單臂跨體 Y 舉）","TRX Y Raise（TRX Y 舉）"],
+  "腹肌":["AB Crunch Bench（仰臥起坐椅捲腹）","Kneeling Rope Crunch（跪姿繩索捲腹）","Kneeling Cable Oblique Crunch（跪姿繩索斜腹捲腹）","Hanging Leg Raise（懸吊抬腿）","TRX Body Saw with Crunch（TRX 身體鋸式捲腹）","Machine Torso Rotation（機械軀幹旋轉）","Captain's Chair Alternating Crunch（船長椅交替捲腹）","Cable Woodchop（繩索伐木）"],
+  "股四頭肌":["BB Squat（槓鈴深蹲）","BB Back Squat Heels Elevated（槓鈴背蹲/腳跟墊高）","BB Front Squat（槓鈴前蹲）","BB Front Rack RFESS（前架式單腳蹲）","DB Bulgarian Split Squat RFESS（啞鈴保加利亞分腿蹲）","Smith Machine Split Squat（史密斯分腿蹲）","BB Front Rack Back Lunge（前架式後弓步）","BB Back Lunge（槓鈴後弓步）","Walking Lunges（行走弓箭步）","SSB Squat（安全槓深蹲）","Zercher Squat（澤奇深蹲）","Goblet Squat（高腳杯深蹲）","Box Squat（箱式深蹲）","DB Reverse Lunge（啞鈴後弓步）","DB Walking Lunge（啞鈴行走弓步）","Hack Squat（哈克深蹲）","Leg Press（腿推舉）","Single Leg Press（單腿推舉）","Goblet Squat Heels Elevated（高腳杯深蹲/腳跟墊高）","Machine Seated Leg Extension（坐姿腿伸展）","Reverse Nordic Progression（反向北歐彎舉）","Bodyweight Sissy Squat（徒手西西深蹲）","Bodyweight Kneeling Sissy Squat（跪姿西西深蹲）","TRX Kneeling Sissy Squat（TRX 跪姿西西深蹲）","Machine Leg Press Knee Dominant（膝主導機械腿推）","DB Sumo Squat（啞鈴相撲深蹲）"],
+  "臀部":["BB Deadlift（槓鈴硬舉）","BB RDL（槓鈴羅馬尼亞硬舉）","DB RDL（啞鈴羅馬尼亞硬舉）","DB Single Leg RDL（啞鈴單腳羅馬尼亞硬舉）","BB B Stance RDL（槓鈴 B-Stance RDL）","DB B Stance RDL（啞鈴 B-Stance RDL）","SSB Good Morning（安全槓早安式）","High Bar Good Morning（高槓早安式）","Sumo Deadlift（相撲硬舉）","Trap Bar Deadlift（六角槓硬舉）","BB SRDL（槓鈴直腿硬舉）","Reverse Deficit Lunge（反向跨步蹲）","Roman Chair Hip Ext（羅馬椅髖伸展）","45° Hip Extension（45 度髖伸展）","Machine Hip Thrust（機械臀推）","Glute Hyperextension（45 度山羊挺身）","Glute Focus Dumbbell RDL（臀部主導啞鈴 RDL）","Cable Straight Kick Back（繩索直腿後踢）","Barbell Hip Thrust（槓鈴臀推）","Kas Glute Bridge（KAS 臀橋）","B-Stance Hip Thrust（B-Stance 臀推）","Smith Machine Hip Thrust（史密斯臀推）","DB Bulgarian Split Squat Hip Focus（啞鈴保加利亞分腿蹲/臀部主導）","Smith Bulgarian Split Squat（史密斯保加利亞分腿蹲）","Smith Machine Kneeling Squat（史密斯跪姿深蹲）","Single Leg Machine Hip Thrust（單腿機械臀推）","Frog Pumps（蛙式臀推）","Hand Supported Single Leg DB RDL（手扶單腳啞鈴 RDL）","Smith Single Leg Kick Back（史密斯單腳後踢）","Bench Support Cable Kickback（俯臥繩索後踢）","Cable Standing Hip Abduction（站姿繩索髖外展）","Glute Medius Cable Kickback（臀中肌繩索後踢）","Machine Kick Back（機械後踢）","Abduction Machine 前傾（機械外展/前傾）","Abduction Machine 直立（機械外展/直立）","Side Lying Raise（側臥抬腿）"],
+  "大腿後側":["Machine Seated Leg Curl（坐姿腿彎舉）","Machine Prone Leg Curl（趴姿腿彎舉）","Barbell Stiff Leg Deadlift（槓鈴直腿硬舉）","Deficit RDL（站高處 RDL）","Smith Machine RDL（史密斯 RDL）","Good Morning Barbell（槓鈴早安式）"],
+  "小腿":["Calf Press on Leg Press（腿推機小腿推）","Machine Standing Calf Raises（站姿機械提踵）","Machine Seated Calf Raise（坐姿機械提踵）"],
+  "內收肌":["Side Lying Straight Leg Adductor Bench Lift（側臥直腿內收抬腿）","Adductor Machine（機械內收）"],
+  "活化 / 動控":["Cable Shoulder Internal Rotation（繩索肩內旋）","Cable Shoulder External Rotation（繩索肩外旋）","DB External Rotation Elbow on Knee（啞鈴外旋/手肘靠膝）","中下斜方肌訓練","YTWL 矯正運動","Cable Spine Rotation（繩索脊椎旋轉）","Seated T Spine Extension（坐姿胸椎伸展）","Swiss Ball T-Spine Ext.（瑞士球胸椎伸展）","TRX Core Rotation（TRX 核心旋轉）","前側呼吸訓練","創造腹內壓 IAP","腹內壓 + 腳挑戰","鳥狗式","死蟲式","Side Plank（側棒式）","Turkish Get Up（土耳其起立）","Inchworm Walk（尺蠖爬行）","橋式 Bridge","Single Leg Bridge（單腳橋式）","Hip Airplane（髖飛機式）","Clam 蚌殼式","Sumo Walk（彈力帶相撲側走）","骨盆側傾練習","骨盆旋轉練習","骨盆前後傾練習","Vacuum（真空收腹）","Anterior Oblique Sling Deadbug（前斜向鏈死蟲式）","Side Bends on Roman Chair（羅馬椅側彎）","Serratus Anterior Activation（滾筒前鋸肌激活）","Cable Seated Hip Internal Rotation（坐姿繩索髖內旋）","Cable Seated Hip External Rotation（坐姿繩索髖外旋）","Hip Adduction Close Chain（閉鏈髖內收）","Lying Hip Abduction Open Chain（側臥開鏈髖外展）"],
+  "伸展 / 放鬆":["Psoas Stretch（腰肌伸展）","Psoas Release（腰肌放鬆）","Diaphragm Release（橫膈膜放鬆）"]
+};
+
+const SLAB=['','狀態不佳','有些疲憊','狀態普通','狀態良好','狀態極佳'];
+let notebooks=[],curNB=null,stars=0,selMuscle='';
+
+function load(){try{notebooks=JSON.parse(localStorage.getItem('tlog_v3')||'[]');}catch(e){notebooks=[];}}
+function persist(){try{localStorage.setItem('tlog_v3',JSON.stringify(notebooks));}catch(e){}}
+
+// ── HISTORY ──
+function getHistory(student,exName){
+  if(!student) return [];
+  return notebooks
+    .filter(nb=>nb.student===student&&nb.id!==curNB?.id&&nb.done)
+    .flatMap(nb=>{
+      const ex=(nb.exercises||[]).find(e=>e.name===exName);
+      if(!ex) return [];
+      const best=getBest(ex.sets||[]);
+      if(!best) return [];
+      return [{date:nb.date||'',best}];
+    }).sort((a,b)=>b.date.localeCompare(a.date));
+}
+function getBest(sets){
+  let best=null,bkg=-1;
+  sets.forEach(s=>{
+    const kg=parseFloat(s.weight)||0,reps=parseFloat(s.reps)||0,grps=parseFloat(s.sets)||1;
+    if(kg>bkg||(kg===bkg&&reps>(best?.reps||0))){bkg=kg;best={sets:grps,reps,weight:kg};}
+  });
+  return best;
+}
+function fmtBest(b){
+  if(!b) return '—';
+  const parts=[];
+  if(b.sets) parts.push(b.sets+'組');
+  if(b.reps) parts.push(b.reps+'下');
+  if(b.weight) parts.push(b.weight+'kg');
+  return parts.join(' × ')||'—';
+}
+function evalPerf(cur,prev){
+  if(!prev) return null;
+  const cw=parseFloat(cur.weight)||0,pw=parseFloat(prev.weight)||0;
+  const cr=parseFloat(cur.reps)||0,pr=parseFloat(prev.reps)||0;
+  if(cw>pw||(cw===pw&&cr>pr)) return 'up';
+  if(cw===pw&&cr===pr) return 'same';
+  return 'down';
+}
+function perfBadge(perf,isNew){
+  if(isNew) return `<span class="perf-badge perf-new">🔰 首次</span>`;
+  if(perf==='up') return `<span class="perf-badge perf-up">▲ 進步</span>`;
+  if(perf==='same') return `<span class="perf-badge perf-same">● 維持</span>`;
+  if(perf==='down') return `<span class="perf-badge perf-down">▼ 退步</span>`;
+  return '';
+}
+
+// ── HOME ──
+document.getElementById('home-date').textContent=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+function renderHome(){
+  const list=document.getElementById('nb-list');
+  if(!notebooks.length){list.innerHTML='<div class="empty">還沒有任何筆記本<br>點上方按鈕新增第一本</div>';return;}
+  list.innerHTML='';
+  [...notebooks].reverse().forEach((nb,ri)=>{
+    const i=notebooks.length-1-ri;
+    const exs=nb.exercises||[];
+    const prev=exs.slice(0,3).map(e=>e.name.split('（')[0]).join('、')+(exs.length>3?` +${exs.length-3}`:'');
+    const d=document.createElement('div');d.className='nb-card';
+    d.innerHTML=`<div class="nb-row"><div class="nb-info">
+      <div style="margin-bottom:4px"><span class="tag ${nb.done?'tag-done':'tag-prep'}">${nb.done?'已完成':'備課中'}</span></div>
+      <div class="nb-name">${nb.name||'未命名'}</div>
+      <div class="nb-meta">${nb.date||''}${nb.student?' · '+nb.student:''}${nb.type?' · '+nb.type:''}</div>
+      <div class="nb-exs">${prev||'尚未加入動作'}</div>
+    </div><div class="nb-actions"><div class="icon-btn" onclick="event.stopPropagation();deleteNB(${i})">🗑</div></div></div>`;
+    d.onclick=()=>openNB(i);
+    list.appendChild(d);
+  });
+}
+
+function openNewModal(){document.getElementById('modal').classList.remove('hidden');document.getElementById('modal-name').value='';document.getElementById('modal-student').value='';setTimeout(()=>document.getElementById('modal-name').focus(),100);}
+function closeModal(){document.getElementById('modal').classList.add('hidden');}
+function createNB(){
+  const name=document.getElementById('modal-name').value.trim()||'新筆記本';
+  const student=document.getElementById('modal-student').value.trim();
+  const nb={id:Date.now(),name,student,date:new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'}),type:'',done:false,exercises:[],planNote:'',stars:0,sleep:'',foodWater:'',bodyState:'',condition:'',intensity:'',progress:'',good:'',improve:'',obs:'',next:'',diet:'',msg:'',freq:'彈性單堂',nextbook:''};
+  notebooks.push(nb);persist();closeModal();openNB(notebooks.length-1);
+}
+function deleteNB(i){if(!confirm('確定刪除？此操作無法復原'))return;notebooks.splice(i,1);persist();renderHome();}
+function goHome(){saveNB();show('s-home');renderHome();}
+
+// ── EDITOR ──
+function openNB(i){
+  curNB=notebooks[i];show('s-editor');
+  document.getElementById('ed-title').textContent=curNB.name||'筆記本';
+  document.getElementById('ed-sub').textContent=(curNB.date||'')+(curNB.student?' · '+curNB.student:'');
+  loadUI();switchTab('plan');initMsc();renderExList();renderPlanLog();renderClassLog();
+}
+function loadUI(){
+  sv('nb-name-inp',curNB.name);sv('f-student',curNB.student);sv('plan-note',curNB.planNote);
+  sv('f-condition',curNB.condition);sv('f-good',curNB.good);sv('f-improve',curNB.improve);
+  sv('f-obs',curNB.obs);sv('f-next',curNB.next);sv('f-diet',curNB.diet);sv('f-msg',curNB.msg);sv('f-nextbook',curNB.nextbook);
+  stars=curNB.stars||0;renderStars();
+  restoreCG('g-type',curNB.type?curNB.type.split('、'):[]);
+  restoreCG('g-freq',[curNB.freq||'彈性單堂']);
+  restoreAC('ac-sleep',curNB.sleep);restoreAC('ac-food',curNB.foodWater);restoreAC('ac-body',curNB.bodyState);
+  restoreAC('ac-int',curNB.intensity);restoreAC('ac-prog',curNB.progress);
+}
+function sv(id,val){const e=document.getElementById(id);if(e)e.value=val||'';}
+function restoreAC(id,val){if(!val)return;document.querySelectorAll('#'+id+' .chip').forEach(c=>c.classList.toggle('on',c.textContent.trim()===val));}
+function restoreCG(gid,vals){document.querySelectorAll('#'+gid+' .chip').forEach(c=>c.classList.toggle('sel',vals.includes(c.textContent.trim())));}
+function saveNB(){
+  if(!curNB) return;
+  curNB.name=gv('nb-name-inp')||curNB.name;curNB.student=gv('f-student');
+  curNB.planNote=gv('plan-note');curNB.condition=gv('f-condition');
+  curNB.good=gv('f-good');curNB.improve=gv('f-improve');curNB.obs=gv('f-obs');
+  curNB.next=gv('f-next');curNB.diet=gv('f-diet');curNB.msg=gv('f-msg');curNB.nextbook=gv('f-nextbook');
+  curNB.stars=stars;curNB.type=chips('g-type');curNB.freq=chips('g-freq')||'彈性單堂';
+  curNB.sleep=acGet('ac-sleep');curNB.foodWater=acGet('ac-food');curNB.bodyState=acGet('ac-body');
+  curNB.intensity=acGet('ac-int');curNB.progress=acGet('ac-prog');
+  (curNB.exercises||[]).forEach((ex,gi)=>{const ne=document.getElementById('note-'+gi);if(ne)ex.note=ne.value;});
+  const idx=notebooks.findIndex(n=>n.id===curNB.id);
+  if(idx>=0)notebooks[idx]=curNB;persist();
+}
+function saveAndHome(){curNB.done=true;goHome();}
+function onStudentChange(){
+  const v=document.getElementById('f-student').value.trim();
+  if(curNB){curNB.student=v;document.getElementById('ed-sub').textContent=(curNB.date||'')+(v?' · '+v:'');}
+  renderPlanLog();renderClassLog();
+}
+const gv=id=>(document.getElementById(id)?.value||'').trim();
+const chips=gid=>[...document.querySelectorAll('#'+gid+' .chip.sel')].map(c=>c.textContent.trim()).join('、');
+const acGet=id=>{const e=document.querySelector('#'+id+' .chip.on');return e?e.textContent.trim():'';};
+
+// ── TABS ──
+function switchTab(t){
+  const ts=['plan','class','report'];
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('on',ts[i]===t));
+  document.querySelectorAll('.tc').forEach(el=>el.classList.remove('on'));
+  document.getElementById('tc-'+t).classList.add('on');
+  if(t==='report')buildPreview();
+  if(t==='class')renderClassLog();
+}
+
+// ── CHIPS ──
+function togM(el){el.classList.toggle('sel');}
+function togA(el){el.closest('.achips').querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
+function togS(el,gid){document.querySelectorAll('#'+gid+' .chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+function setStar(n){stars=n;if(curNB)curNB.stars=n;renderStars();}
+function renderStars(){
+  const row=document.getElementById('star-row');row.innerHTML='';
+  for(let i=1;i<=5;i++){const s=document.createElement('span');s.className='star'+(stars>=i?' on':'');s.textContent='★';s.onclick=()=>setStar(i);row.appendChild(s);}
+  document.getElementById('starlbl').textContent=SLAB[stars]||'點選評分';
+}
+
+// ── MUSCLE SCROLLER ──
+function initMsc(){
+  const sc=document.getElementById('msc');sc.innerHTML='';
+  const all=document.createElement('div');all.className='mbtn'+(selMuscle===''?' on':'');all.textContent='全部';
+  all.onclick=()=>{selMuscle='';initMsc();renderExList();};sc.appendChild(all);
+  Object.keys(EX).forEach(m=>{
+    const cnt=(curNB?.exercises||[]).filter(e=>e.muscle===m).length;
+    const b=document.createElement('div');b.className='mbtn'+(selMuscle===m?' on':'');
+    b.innerHTML=m+(cnt?`<span class="cnt">${cnt}</span>`:'');
+    b.onclick=()=>{selMuscle=m;initMsc();renderExList();};sc.appendChild(b);
+  });
+}
+
+function renderExList(){
+  const list=document.getElementById('ex-list');
+  const q=(document.getElementById('ex-search')?.value||'').toLowerCase();
+  let exs=[];
+  if(selMuscle)exs=EX[selMuscle].map(n=>({name:n,muscle:selMuscle}));
+  else Object.keys(EX).forEach(m=>EX[m].forEach(n=>exs.push({name:n,muscle:m})));
+  if(q)exs=exs.filter(e=>e.name.toLowerCase().includes(q));
+  list.innerHTML='';
+  exs.forEach(({name,muscle})=>{
+    const added=(curNB?.exercises||[]).some(e=>e.name===name);
+    const d=document.createElement('div');d.className='ex-item'+(added?' added':'');
+    d.innerHTML=`<span>${name}</span><span class="ex-ico">${added?'✓':'＋'}</span>`;
+    d.onclick=()=>toggleEx(name,muscle);list.appendChild(d);
+  });
+}
+
+function toggleEx(name,muscle){
+  if(!curNB)return;
+  const idx=(curNB.exercises||[]).findIndex(e=>e.name===name);
+  if(idx>=0)curNB.exercises.splice(idx,1);
+  else{if(!curNB.exercises)curNB.exercises=[];curNB.exercises.push({name,muscle,sets:[{sets:'',reps:'',weight:''}],note:'',planSets:''});}
+  persist();renderExList();renderPlanLog();renderClassLog();initMsc();
+}
+
+// ── PLAN LOG ──
+function renderPlanLog(){
+  const wrap=document.getElementById('plan-log');
+  const exs=curNB?.exercises||[];
+  if(!exs.length){wrap.innerHTML='<div style="font-size:13px;color:var(--text3);padding:6px 0">尚未加入動作</div>';return;}
+  const groups={};exs.forEach(ex=>{if(!groups[ex.muscle])groups[ex.muscle]=[];groups[ex.muscle].push(ex);});
+  wrap.innerHTML='';
+  Object.keys(groups).forEach(m=>{
+    const gb=document.createElement('div');gb.className='group-block';gb.innerHTML=`<div class="group-lbl">${m}</div>`;
+    groups[m].forEach(ex=>{
+      const gi=exs.indexOf(ex);
+      const hist=getHistory(curNB?.student,ex.name);
+      const lastBest=hist[0]?.best;
+      const histHtml=lastBest?`<span class="hist-badge hist-best">歷史最高 ${fmtBest(lastBest)}</span>`:`<span class="hist-badge hist-none">首次訓練</span>`;
+      const d=document.createElement('div');d.className='wlog';
+      d.innerHTML=`
+        <div class="wlog-top">
+          <div class="wlog-name">
+            <span style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--purple)" onclick="openHistScreen('${ex.name.replace(/'/g,"\\'")}')">
+              ${ex.name}
+            </span>${histHtml}
+          </div>
+          <div class="wlog-del" onclick="removeEx(${gi})">✕</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--text3);flex-shrink:0">預計：</span>
+          <input type="text" id="ps-${gi}" value="${ex.planSets||''}" placeholder="例：4×8×80kg" style="flex:1;padding:6px 9px;font-size:13px;border-radius:7px" oninput="updPS(${gi},this.value)">
+        </div>`;
+      gb.appendChild(d);
+    });
+    wrap.appendChild(gb);
+  });
+}
+function updPS(gi,val){if(curNB?.exercises?.[gi])curNB.exercises[gi].planSets=val;}
+function removeEx(gi){if(!curNB?.exercises)return;curNB.exercises.splice(gi,1);persist();renderExList();renderPlanLog();renderClassLog();initMsc();}
+
+// ── CLASS LOG ──
+function renderClassLog(){
+  const wrap=document.getElementById('class-log'),empty=document.getElementById('class-log-empty');
+  const exs=curNB?.exercises||[];
+  if(!exs.length){wrap.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const groups={};exs.forEach(ex=>{if(!groups[ex.muscle])groups[ex.muscle]=[];groups[ex.muscle].push(ex);});
+  wrap.innerHTML='';
+  Object.keys(groups).forEach(m=>{
+    const gb=document.createElement('div');gb.className='group-block';gb.innerHTML=`<div class="group-lbl">${m}</div>`;
+    groups[m].forEach(ex=>{
+      const gi=exs.indexOf(ex);
+      const hist=getHistory(curNB?.student,ex.name);
+      const lastBest=hist[0]?.best;
+      const curBest=getBest(ex.sets||[]);
+      const perf=curBest&&lastBest?evalPerf(curBest,lastBest):null;
+      const isNew=!lastBest;
+      const pHtml=curBest?perfBadge(perf,isNew):'';
+      const histLine=lastBest?`歷史最高：<strong>${fmtBest(lastBest)}</strong>　${hist[0]?.date||''}`:`首次進行此動作`;
+      const planHint=ex.planSets?`<span style="color:var(--text3);font-size:11px;margin-left:5px">預計 ${ex.planSets}</span>`:'';
+      const d=document.createElement('div');d.className='wlog';
+      d.innerHTML=`
+        <div class="wlog-top"><div class="wlog-name">${ex.name}${planHint} <span id="pb-${gi}">${pHtml}</span></div></div>
+        <div class="wlog-hist">${histLine}</div>
+        <div class="set-labels"><div class="set-label"></div><div class="set-label">組數</div><div class="set-label">次數</div><div class="set-label">重量kg</div><div class="set-label"></div></div>
+        <div id="sets-${gi}"></div>
+        <button class="add-set" onclick="addSet(${gi})">＋ 新增組數</button>
+        <textarea class="wlog-note" id="note-${gi}" rows="1" placeholder="備註（選填）" oninput="updNote(${gi})">${ex.note||''}</textarea>`;
+      gb.appendChild(d);
+    });
+    wrap.appendChild(gb);
+  });
+  exs.forEach((_,gi)=>renderSets(gi));
+}
+function renderSets(gi){
+  const c=document.getElementById('sets-'+gi);if(!c||!curNB?.exercises?.[gi])return;
+  const sets=curNB.exercises[gi].sets||[];c.innerHTML='';
+  sets.forEach((s,si)=>{
+    const row=document.createElement('div');row.className='set-row';
+    row.innerHTML=`<div class="set-num">${si+1}</div>
+      <input class="set-inp" type="text" value="${s.sets||''}" placeholder="組" oninput="updSet(${gi},${si},'sets',this.value)">
+      <input class="set-inp" type="text" value="${s.reps||''}" placeholder="次" oninput="updSet(${gi},${si},'reps',this.value)">
+      <input class="set-inp" type="text" value="${s.weight||''}" placeholder="kg" oninput="updSet(${gi},${si},'weight',this.value)">
+      <div class="set-del" onclick="delSet(${gi},${si})">✕</div>`;
+    c.appendChild(row);
+  });
+}
+function addSet(gi){if(!curNB?.exercises?.[gi])return;curNB.exercises[gi].sets.push({sets:'',reps:'',weight:''});renderSets(gi);}
+function delSet(gi,si){if(!curNB?.exercises?.[gi])return;if(curNB.exercises[gi].sets.length<=1)return;curNB.exercises[gi].sets.splice(si,1);renderSets(gi);}
+function updSet(gi,si,f,v){
+  if(curNB?.exercises?.[gi]?.sets?.[si])curNB.exercises[gi].sets[si][f]=v;
+  const ex=curNB.exercises[gi];
+  const hist=getHistory(curNB?.student,ex.name);
+  const lastBest=hist[0]?.best;
+  const curBest=getBest(ex.sets||[]);
+  const pb=document.getElementById('pb-'+gi);
+  if(pb)pb.innerHTML=curBest?perfBadge(curBest&&lastBest?evalPerf(curBest,lastBest):null,!lastBest):'';
+}
+function updNote(gi){const e=document.getElementById('note-'+gi);if(e&&curNB?.exercises?.[gi])curNB.exercises[gi].note=e.value;}
+
+// ── HISTORY SCREEN ──
+function openHistScreen(exName){
+  saveNB();
+  const student=curNB?.student||'';
+  const hist=getHistory(student,exName);
+  document.getElementById('hist-title').textContent=exName.split('（')[0];
+  document.getElementById('hist-sub').textContent=student?student+' 的所有歷史紀錄':'歷史紀錄';
+  const body=document.getElementById('hist-body');
+  if(!hist.length){body.innerHTML='<div class="empty">尚無此學員此動作的歷史紀錄<br>完成第一堂課後會出現在這裡</div>';show('s-hist');return;}
+  let html='<div class="hist-ex-card">';
+  hist.forEach((h,i)=>{
+    const prev=hist[i+1]?.best;
+    const perf=prev?evalPerf(h.best,prev):null;
+    const badge=i===hist.length-1?`<span class="perf-badge perf-new">初始</span>`:perfBadge(perf,false);
+    html+=`<div class="hist-row">
+      <span class="hist-date">${h.date}</span>
+      <span class="hist-val">${fmtBest(h.best)}</span>
+      <span>${badge}</span>
+    </div>`;
+  });
+  html+='</div>';
+  body.innerHTML=html;show('s-hist');
+}
+function closeHist(){show('s-editor');}
+
+// ── PREVIEW ──
+function buildPreview(){
+  if(!curNB)return;saveNB();
+  const name=curNB.student||'學員',type=curNB.type||'—';
+  const starStr=curNB.stars?'★'.repeat(curNB.stars)+'☆'.repeat(5-curNB.stars):'—';
+  let m=`🏋️ 訓練報告｜${name}\n日期：${curNB.date||''}　類型：${type}\n━━━━━━━━━━━━━━━━\n\n`;
+  m+=`📊 今日狀態　${starStr}　${SLAB[curNB.stars]||''}\n`;
+  if(curNB.sleep||curNB.foodWater||curNB.bodyState)m+=`  睡眠：${curNB.sleep||'—'}　飲食水分：${curNB.foodWater||'—'}\n  身體：${curNB.bodyState||'—'}\n`;
+  if(curNB.condition)m+=`  備註：${curNB.condition}\n`;
+  m+='\n';
+  const exs=curNB.exercises||[];
+  if(exs.length){
+    m+=`💪 今日課程\n`;
+    const groups={};exs.forEach(ex=>{if(!groups[ex.muscle])groups[ex.muscle]=[];groups[ex.muscle].push(ex);});
+    Object.keys(groups).forEach(mu=>{
+      m+=`\n  ▸ ${mu}\n`;
+      groups[mu].forEach(ex=>{
+        const hist=getHistory(curNB.student,ex.name);
+        const lastBest=hist[0]?.best,curBest=getBest(ex.sets||[]);
+        const perf=curBest&&lastBest?evalPerf(curBest,lastBest):null;
+        const perfTxt=curBest?(lastBest?({up:'▲ 進步',same:'● 維持',down:'▼ 退步'}[perf]||''):'🔰 首次'):'';
+        m+=`  ${ex.name}${perfTxt?' ['+perfTxt+']':''}\n`;
+        if(lastBest)m+=`    歷史最高：${fmtBest(lastBest)}\n`;
+        (ex.sets||[]).forEach((s,i)=>{
+          const sets=s.sets||'—',reps=s.reps||'—',weight=s.weight;
+          m+=`    組${i+1}：${sets}組 × ${reps}下${weight?' × '+weight+'kg':''}\n`;
+        });
+        if(ex.note)m+=`    備註：${ex.note}\n`;
+      });
+    });
+    m+='\n';
+  }
+  if(curNB.intensity||curNB.progress)m+=`⚡ 強度：${curNB.intensity||'—'}　進步：${curNB.progress||'—'}\n\n`;
+  if(curNB.good||curNB.improve||curNB.obs){
+    m+=`✅ 表現回饋\n`;
+    if(curNB.good)m+=`  亮點：${curNB.good}\n`;
+    if(curNB.improve)m+=`  加強：${curNB.improve}\n`;
+    if(curNB.obs)m+=`  觀察：${curNB.obs}\n`;
+    m+='\n';
+  }
+  if(curNB.next||curNB.diet){m+=`🗓 接下來\n`;if(curNB.next)m+=`${curNB.next}\n`;if(curNB.diet)m+=`\n🥗 飲食提醒\n${curNB.diet}\n`;m+='\n';}
+  m+=`━━━━━━━━━━━━━━━━\n📅 預約下一堂\n建議頻率：${curNB.freq||'彈性單堂'}\n`;
+  m+=curNB.nextbook?`下次時間：${curNB.nextbook}\n`:`有空的時間傳給我確認 ✅\nLine：wwsskkll\n`;
+  if(curNB.msg)m+=`\n💬 給 ${name}\n「${curNB.msg}」\n`;
+  m+=`\n下次見 💪`;
+  document.getElementById('preview').textContent=m;
+}
+
+function doCopy(){
+  navigator.clipboard.writeText(document.getElementById('preview').textContent).then(()=>{
+    const b=document.getElementById('copybtn');b.textContent='已複製！';setTimeout(()=>b.textContent='複製 Line 訊息',2200);
+  });
+}
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+load();renderHome();renderStars();
+</script>
+</body>
+</html>
