@@ -680,8 +680,6 @@ function renderHome(){
   });
 
   groups.forEach((nbs,student)=>{
-    // 預設第一個學員展開
-    if(expandedStudents.size===0) expandedStudents.add(student);
     const isExpanded=expandedStudents.has(student);
     const doneCount=nbs.filter(n=>n.done).length;
     const lastDate=nbs[0]?.date||'';
