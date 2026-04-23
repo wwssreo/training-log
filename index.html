@@ -662,24 +662,67 @@ function perfBadgeHtml(perf){
 
 // ── HOME ──
 document.getElementById('home-date').textContent=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+
+// 記錄展開狀態
+const expandedStudents=new Set();
+
 function renderHome(){
   const list=document.getElementById('nb-list');
   if(!notebooks.length){list.innerHTML='<div class="empty">還沒有任何筆記本<br>點上方按鈕新增第一本</div>';return;}
   list.innerHTML='';
-  // 依建立時間降序排列（最新在前）
+
+  // 按學員分組
+  const groups=new Map(); // student → notebooks[]
   [...notebooks].sort((a,b)=>(b.id||0)-(a.id||0)).forEach(nb=>{
-    const i=notebooks.findIndex(n=>n.id===nb.id);
-    const exs=nb.exercises||[];
-    const prev=exs.slice(0,3).map(e=>e.name.split('（')[0]).join('、')+(exs.length>3?` +${exs.length-3}`:'');
-    const d=document.createElement('div');d.className='nb-card';
-    d.innerHTML=`<div class="nb-row"><div class="nb-info">
-      <div style="margin-bottom:4px"><span class="tag ${nb.done?'tag-done':'tag-prep'}">${nb.done?'已完成':'備課中'}</span></div>
-      <div class="nb-name">${nb.name||'未命名'}</div>
-      <div class="nb-meta">${nb.date||''}${nb.student?' · '+nb.student:''}${nb.type?' · '+nb.type:''}</div>
-      <div class="nb-exs">${prev||'尚未加入動作'}</div>
-    </div><div><div class="nb-del" onclick="event.stopPropagation();deleteNB(${i})">🗑</div></div></div>`;
-    d.onclick=()=>openNB(i);
-    list.appendChild(d);
+    const key=(nb.student||'（未填學員）').trim();
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(nb);
+  });
+
+  groups.forEach((nbs,student)=>{
+    // 預設第一個學員展開
+    if(expandedStudents.size===0) expandedStudents.add(student);
+    const isExpanded=expandedStudents.has(student);
+    const doneCount=nbs.filter(n=>n.done).length;
+    const lastDate=nbs[0]?.date||'';
+
+    // 學員群組 header
+    const header=document.createElement('div');
+    header.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg3);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid var(--border)';
+    header.innerHTML=`
+      <div>
+        <div style="font-size:15px;font-weight:600;color:var(--text)">${student}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px">${nbs.length} 堂課 · ${doneCount} 已完成 · 最近 ${lastDate}</div>
+      </div>
+      <div style="font-size:18px;color:var(--text3);transition:transform .2s;transform:rotate(${isExpanded?'0':'180'}deg)">︿</div>`;
+    header.onclick=()=>{
+      if(expandedStudents.has(student)) expandedStudents.delete(student);
+      else expandedStudents.add(student);
+      renderHome();
+    };
+    list.appendChild(header);
+
+    if(!isExpanded) return;
+
+    // 該學員的所有筆記本
+    const nbWrap=document.createElement('div');
+    nbWrap.style.cssText='margin-bottom:12px;padding-left:8px;border-left:2px solid var(--border)';
+    nbs.forEach(nb=>{
+      const i=notebooks.findIndex(n=>n.id===nb.id);
+      const exs=nb.exercises||[];
+      const prev=exs.slice(0,3).map(e=>e.name.split('（')[0]).join('、')+(exs.length>3?` +${exs.length-3}`:'');
+      const d=document.createElement('div');d.className='nb-card';
+      d.style.marginBottom='7px';
+      d.innerHTML=`<div class="nb-row"><div class="nb-info">
+        <div style="margin-bottom:4px"><span class="tag ${nb.done?'tag-done':'tag-prep'}">${nb.done?'已完成':'備課中'}</span></div>
+        <div class="nb-name">${nb.name||'未命名'}</div>
+        <div class="nb-meta">${nb.date||''}${nb.type?' · '+nb.type:''}</div>
+        <div class="nb-exs">${prev||'尚未加入動作'}</div>
+      </div><div><div class="nb-del" onclick="event.stopPropagation();deleteNB(${i})">🗑</div></div></div>`;
+      d.onclick=()=>openNB(i);
+      nbWrap.appendChild(d);
+    });
+    list.appendChild(nbWrap);
   });
 }
 
