@@ -410,44 +410,48 @@ let notebooks=[], curNB=null, stars=0, selMuscle='';
 // ── STORAGE ──
 const STORE_KEY='tlog_v3';
 function load(){
-  try{
-    notebooks=JSON.parse(localStorage.getItem(STORE_KEY)||'[]');
-    // 同時嘗試讀舊版 key 合併（tlog_v4 是誤改的版本）
+  // 掃描所有可能的 key，全部合併
+  const allKeys=['tlog_v3','tlog_v4','tlog_nbs'];
+  let merged=[];
+  const seenIds=new Set();
+  allKeys.forEach(k=>{
     try{
-      const old4=JSON.parse(localStorage.getItem('tlog_v4')||'[]');
-      if(old4.length){
-        // 合併：以 id 去重
-        const ids=new Set(notebooks.map(n=>n.id));
-        old4.forEach(n=>{if(!ids.has(n.id))notebooks.push(n);});
-        localStorage.removeItem('tlog_v4');
+      const data=JSON.parse(localStorage.getItem(k)||'[]');
+      if(Array.isArray(data)){
+        data.forEach(nb=>{
+          if(nb&&nb.id&&!seenIds.has(nb.id)){
+            seenIds.add(nb.id);
+            merged.push(nb);
+          }
+        });
       }
     }catch(e){}
-  }catch(e){notebooks=[];}
-  // 資料遷移：舊格式 planSets/planReps/planKg → planRows
-  // 同時清除 sets 中次數>60 的異常資料（早期備課預計值誤存）
+  });
+  notebooks=merged;
+  // 統一存到 tlog_v3，清除其他 key
+  allKeys.slice(1).forEach(k=>{
+    if(localStorage.getItem(k)) localStorage.removeItem(k);
+  });
+  // 資料遷移：舊格式清理
   let migrated=false;
   notebooks.forEach(nb=>{
     (nb.exercises||[]).forEach(ex=>{
-      // 清除異常 sets
+      // 清除異常 sets（次數>60 是備課預計值誤存）
       if(ex.sets){
-        const cleaned=ex.sets.filter(s=>{
-          const reps=parseInt(s.reps)||0;
-          return reps===0||reps<=60; // 保留空的或合理次數
-        });
+        const cleaned=ex.sets.filter(s=>{const r=parseInt(s.reps)||0;return r===0||r<=60;});
         if(cleaned.length!==ex.sets.length){ex.sets=cleaned;migrated=true;}
         if(!ex.sets.length)ex.sets=[{sets:'',reps:'',weight:''}];
       }
+      // planRows 遷移
       if(!ex.planRows||!ex.planRows.length){
-        if(ex.planSets||ex.planReps||ex.planKg){
-          ex.planRows=[{reps:String(ex.planReps||''),kg:String(ex.planKg||'')}];
-        } else {
-          ex.planRows=[{reps:'',kg:''}];
-        }
+        ex.planRows=ex.planSets||ex.planReps||ex.planKg
+          ?[{reps:String(ex.planReps||''),kg:String(ex.planKg||'')}]
+          :[{reps:'',kg:''}];
         migrated=true;
       }
     });
   });
-  if(migrated) persist();
+  persist();
 }
 function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(notebooks));}catch(e){alert('儲存失敗，瀏覽器空間可能不足');}}
 
@@ -1315,9 +1319,6 @@ load();
 renderHome();
 renderStars();
 document.getElementById('home-date').textContent=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
-
-// ── 自我測試（console）──
-console.log('[tlog v4] loaded. notebooks:', notebooks.length);
 if(notebooks.length){
   const done=notebooks.filter(n=>n.done);
   console.log('[tlog v4] completed notebooks:', done.length);
