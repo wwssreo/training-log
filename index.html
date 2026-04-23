@@ -25,6 +25,8 @@
 html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh}
 .app{max-width:430px;margin:0 auto}
 .screen{display:none;min-height:100vh}.screen.active{display:block}
+
+/* HOME */
 .home-hdr{padding:1.5rem 1.2rem .8rem;display:flex;align-items:center;justify-content:space-between}
 .logo{font-family:'DM Mono',monospace;font-size:12px;color:var(--acc-light);letter-spacing:.12em}
 .home-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)}
@@ -44,10 +46,11 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;margin-right:4px;margin-bottom:4px}
 .tag-prep{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b)}
 .tag-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
-.nb-actions{display:flex;gap:6px;align-items:flex-start;padding-top:2px}
-.icon-btn{font-size:18px;color:var(--text3);cursor:pointer;padding:3px 5px;border-radius:6px;line-height:1;user-select:none}
-.icon-btn:active{background:var(--bg4)}
+.nb-del{font-size:18px;color:var(--text3);cursor:pointer;padding:3px 5px;border-radius:6px;line-height:1;user-select:none}
+.nb-del:active{color:var(--red)}
 .empty{text-align:center;padding:3rem 1rem;color:var(--text3);font-size:13px;line-height:1.9}
+
+/* EDITOR */
 .ed-hdr{padding:.9rem 1.2rem;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:20}
 .back{font-size:22px;color:var(--text2);cursor:pointer;line-height:1;padding:2px 4px}
 .ed-title-wrap{flex:1;min-width:0}
@@ -55,18 +58,24 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .ed-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
 .save-btn{padding:8px 14px;border-radius:10px;background:var(--acc);color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif;flex-shrink:0}
 .ed-body{padding:0 1.2rem 5rem}
+
+/* TABS */
 .tabs{display:flex;gap:0;margin:.9rem 0;background:var(--bg3);border-radius:10px;padding:3px}
 .tab{flex:1;padding:8px 0;text-align:center;font-size:13px;color:var(--text3);cursor:pointer;border-radius:8px;transition:all .15s;font-family:'Noto Sans TC',sans-serif}
 .tab.on{background:var(--bg2);color:var(--text);font-weight:500;border:1px solid var(--border)}
 .tc{display:none}.tc.on{display:block}
+
+/* CARD */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:.9rem 1rem;margin-bottom:10px}
 .sec{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border)}
 .lbl{font-size:13px;color:var(--text);font-weight:500;margin-bottom:5px}
 .flabel{font-size:13px;color:var(--text2);font-weight:500;margin-bottom:5px}
 .opt{font-size:11px;color:var(--text3);font-weight:400;margin-left:4px}
-input[type=text],textarea,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:15px;color:var(--text);font-family:'Noto Sans TC',sans-serif;line-height:1.5;resize:none;-webkit-appearance:none}
+input[type=text],input[type=number],textarea,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:15px;color:var(--text);font-family:'Noto Sans TC',sans-serif;line-height:1.5;resize:none;-webkit-appearance:none}
 input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 ::placeholder{color:var(--text3);font-size:13px}
+
+/* CHIPS */
 .chip-group{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
 .chip{padding:7px 13px;border-radius:22px;border:1px solid var(--border2);font-size:13px;color:var(--text2);cursor:pointer;background:var(--bg3);transition:all .12s;user-select:none;font-family:'Noto Sans TC',sans-serif;line-height:1}
 .chip.sel{background:var(--acc-bg);border-color:var(--acc);color:var(--acc-light)}
@@ -78,15 +87,21 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .ai{margin-bottom:11px}
 .anote{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);font-family:'Noto Sans TC',sans-serif;resize:none}
 .anote:focus{outline:none;border-color:var(--acc)}
+
+/* STARS */
 .star-row{display:flex;gap:12px;margin:4px 0 6px}
 .star{font-size:28px;cursor:pointer;color:var(--border2);transition:color .12s;user-select:none;line-height:1}
 .star.on{color:var(--acc-light)}
 .star-lbl{font-size:13px;color:var(--text2);min-height:18px;font-weight:500}
+
+/* MUSCLE SCROLLER */
 .msc{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:9px;scrollbar-width:none}
 .msc::-webkit-scrollbar{display:none}
 .mbtn{flex-shrink:0;padding:7px 13px;border-radius:22px;border:1px solid var(--border2);font-size:13px;color:var(--text2);cursor:pointer;background:var(--bg3);white-space:nowrap;font-family:'Noto Sans TC',sans-serif;transition:all .12s}
 .mbtn.on{background:var(--acc-bg);border-color:var(--acc);color:var(--acc-light)}
 .mbtn .cnt{font-size:10px;margin-left:3px;color:var(--green);font-family:'DM Mono',monospace}
+
+/* EX LIST */
 .ex-list{border-radius:10px;border:1px solid var(--border);max-height:240px;overflow-y:auto;margin-top:8px}
 .ex-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;transition:background .1s}
 .ex-item:last-child{border-bottom:none}
@@ -94,22 +109,41 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .ex-item.added{color:var(--acc-light);background:var(--acc-bg)}
 .ex-ico{font-size:18px;color:var(--text3);flex-shrink:0;margin-left:8px}
 .ex-item.added .ex-ico{color:var(--green)}
+
+/* HISTORY BADGE */
 .hist-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace;margin-left:5px;vertical-align:middle}
 .hist-best{background:var(--purple-bg);border:1px solid var(--purple-b);color:var(--purple)}
 .hist-none{background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
-.perf-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:7px;font-size:11px;font-weight:500;vertical-align:middle}
-.perf-up{background:var(--green-bg);border:1px solid var(--green-b);color:var(--green)}
-.perf-same{background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
-.perf-down{background:var(--red-bg);border:1px solid var(--red-b);color:var(--red)}
-.perf-new{background:var(--amber-bg);border:1px solid var(--amber-b);color:var(--amber)}
+
+/* PERF BADGE — 純文字標籤，非按鈕 */
+.pb{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:500;vertical-align:middle;margin-left:4px;cursor:default;user-select:none}
+.pb-up{background:var(--green-bg);border:1px solid var(--green-b);color:var(--green)}
+.pb-same{background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
+.pb-down{background:var(--red-bg);border:1px solid var(--red-b);color:var(--red)}
+.pb-new{background:var(--amber-bg);border:1px solid var(--amber-b);color:var(--amber)}
+
+/* GROUP BLOCK */
 .group-block{margin-bottom:12px}
 .group-lbl{font-size:11px;font-family:'DM Mono',monospace;color:var(--acc-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px;padding:3px 8px;background:var(--acc-bg);border-radius:6px;display:inline-block}
+
+/* WLOG */
 .wlog{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.85rem .95rem;margin-bottom:7px}
 .wlog-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
 .wlog-name{font-size:13px;color:var(--text);font-weight:500;flex:1;line-height:1.5}
 .wlog-del{font-size:16px;color:var(--text3);cursor:pointer;padding:0 4px;flex-shrink:0}.wlog-del:active{color:var(--red)}
-.wlog-hist{font-size:11px;color:var(--text3);margin-bottom:7px;padding:5px 8px;background:var(--bg3);border-radius:7px;border:1px solid var(--border);line-height:1.6}
+.wlog-hist{font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 9px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);line-height:1.7}
 .wlog-hist strong{color:var(--purple)}
+.wlog-hist .hist-row-item{display:flex;align-items:center;justify-content:space-between;padding:2px 0}
+.wlog-hist .hr-label{color:var(--text3);min-width:32px}
+.wlog-hist .hr-val{color:var(--purple);font-family:'DM Mono',monospace;font-size:11px}
+
+/* PLAN SETS GRID */
+.plan-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:7px}
+.plan-grid-lbl{font-size:10px;color:var(--text3);text-align:center;font-family:'DM Mono',monospace;margin-bottom:3px}
+.plan-inp{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 4px;font-size:15px;color:var(--text);text-align:center;width:100%;font-family:'Noto Sans TC',sans-serif;-webkit-appearance:none}
+.plan-inp:focus{outline:none;border-color:var(--acc)}
+
+/* SET ROWS */
 .set-labels{display:grid;grid-template-columns:20px 1fr 1fr 1fr 20px;gap:5px;margin-bottom:3px}
 .set-label{font-size:10px;color:var(--text3);text-align:center;font-family:'DM Mono',monospace}
 .set-row{display:grid;grid-template-columns:20px 1fr 1fr 1fr 20px;gap:5px;align-items:center;margin-bottom:5px}
@@ -121,10 +155,14 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .add-set:active{background:var(--bg4)}
 .wlog-note{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12px;color:var(--text2);font-family:'Noto Sans TC',sans-serif;resize:none;margin-top:6px}
 .wlog-note:focus{outline:none;border-color:var(--acc)}
+
+/* PREVIEW */
 .pbox{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem;font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.9;word-break:break-all;font-family:'Noto Sans TC',sans-serif}
 .cbtn{width:100%;padding:13px;border-radius:12px;background:var(--acc);color:#fff;border:none;font-size:16px;font-weight:600;cursor:pointer;margin-top:10px;font-family:'Noto Sans TC',sans-serif}
 .cbtn:active{opacity:.8}
 .hint{text-align:center;font-size:12px;color:var(--text3);margin-top:8px}
+
+/* MODAL */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;z-index:100}
 .modal-bg.hidden{display:none}
 .modal{background:var(--bg2);border-radius:20px 20px 0 0;padding:1.4rem 1.2rem 2rem;width:100%;max-width:430px;margin:0 auto}
@@ -135,17 +173,24 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .modal-row{display:flex;gap:10px;margin-top:4px}
 .m-cancel{flex:1;padding:13px;border-radius:12px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);font-size:15px;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
 .m-ok{flex:1;padding:13px;border-radius:12px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+
+/* HIST SCREEN */
 .hist-body{padding:1rem 1.2rem 5rem}
-.hist-ex-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.9rem;margin-bottom:10px}
-.hist-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
-.hist-row:last-child{border-bottom:none}
-.hist-date{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;min-width:60px}
-.hist-val{font-size:13px;color:var(--text);flex:1;padding:0 8px}
+.hcard{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.9rem;margin-bottom:10px}
+.hcard-date{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.hcard-rows{}
+.hrow{display:grid;grid-template-columns:40px 1fr 1fr 80px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.hrow:last-child{border-bottom:none}
+.hrow-reps{color:var(--text3);font-family:'DM Mono',monospace;font-size:11px}
+.hrow-kg{color:var(--purple);font-family:'DM Mono',monospace;font-weight:500}
+.hrow-sets{color:var(--text2);font-size:11px}
+.hrow-badge{text-align:right}
 </style>
 </head>
 <body>
 <div class="app">
 
+<!-- HOME -->
 <div class="screen active" id="s-home">
   <div class="home-hdr">
     <span class="logo">TRAINING · LOG</span>
@@ -153,13 +198,14 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
   </div>
   <div class="home-body">
     <div class="h-title">訓練筆記本</div>
-    <div class="h-sub">備課 → 上課 → 歷史對比</div>
+    <div class="h-sub">備課 → 上課 → 歷史強度對比</div>
     <button class="new-btn" onclick="openNewModal()">＋ 新增訓練筆記本</button>
     <div class="sec-lbl">所有筆記本</div>
     <div id="nb-list"></div>
   </div>
 </div>
 
+<!-- EDITOR -->
 <div class="screen" id="s-editor">
   <div class="ed-hdr">
     <div class="back" onclick="goHome()">←</div>
@@ -176,6 +222,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
       <div class="tab" onclick="switchTab('report')">報告</div>
     </div>
 
+    <!-- 備課 -->
     <div class="tc on" id="tc-plan">
       <div class="card">
         <div class="flabel">課程名稱</div>
@@ -183,7 +230,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
       </div>
       <div class="card">
         <div class="flabel">學員姓名</div>
-        <input type="text" id="f-student" placeholder="學員姓名（用於查詢歷史紀錄）" oninput="onStudentChange()">
+        <input type="text" id="f-student" placeholder="學員姓名（歷史紀錄依此區分）" oninput="onStudentChange()">
       </div>
       <div class="card">
         <div class="flabel">訓練類型 <span class="opt">可複選</span></div>
@@ -204,7 +251,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
         <input type="text" id="ex-search" placeholder="搜尋動作…" oninput="renderExList()" style="margin-bottom:0">
         <div class="ex-list" id="ex-list"></div>
       </div>
-      <div id="plan-log-section">
+      <div>
         <div class="sec-lbl" style="margin-top:6px">已加入動作（點名稱查歷史）</div>
         <div id="plan-log"></div>
       </div>
@@ -214,6 +261,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
       </div>
     </div>
 
+    <!-- 上課 -->
     <div class="tc" id="tc-class">
       <div class="card">
         <div class="flabel">今日狀態</div>
@@ -248,29 +296,39 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
       </div>
       <div class="card">
         <div class="sec">訓練記錄</div>
+        <!-- 上課頁動作庫（可折疊） -->
+        <div id="class-ex-toggle" style="margin-bottom:8px">
+          <button onclick="toggleClassExPanel()" style="width:100%;padding:7px;border-radius:8px;background:transparent;border:1px dashed var(--border2);color:var(--text3);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">
+            ＋ 新增 / 替換動作
+          </button>
+        </div>
+        <div id="class-ex-panel" style="display:none;margin-bottom:10px;background:var(--bg3);border-radius:10px;padding:10px">
+          <div class="msc" id="msc-class"></div>
+          <input type="text" id="ex-search-class" placeholder="搜尋動作…" oninput="renderClassExList()" style="margin-bottom:0;font-size:13px">
+          <div class="ex-list" id="ex-list-class" style="max-height:200px"></div>
+        </div>
         <div id="class-log"></div>
-        <div id="class-log-empty" style="font-size:13px;color:var(--text3);padding:6px 0">先在備課頁加入動作</div>
+        <div id="class-log-empty" style="font-size:13px;color:var(--text3);padding:6px 0">先在備課頁或上方新增動作</div>
       </div>
       <div class="card">
-        <div class="sec">訓練強度</div>
+        <div class="sec">訓練評分</div>
         <div class="ai"><div class="lbl">整體強度</div>
           <div class="achips" id="ac-int">
-            <div class="chip ok" onclick="togA(this)">輕鬆，留有餘力</div>
-            <div class="chip ok" onclick="togA(this)">適中，狀態不錯</div>
-            <div class="chip wn" onclick="togA(this)">偏重，有點吃力</div>
-            <div class="chip bd" onclick="togA(this)">過重，需調整</div>
+            <div class="chip ok" onclick="togA(this)">輕鬆</div>
+            <div class="chip ok" onclick="togA(this)">適中</div>
+            <div class="chip wn" onclick="togA(this)">偏重</div>
+            <div class="chip bd" onclick="togA(this)">過重</div>
           </div>
         </div>
-        <div class="ai"><div class="lbl">與上次相比</div>
+        <div class="ai"><div class="lbl">運動表現</div>
           <div class="achips" id="ac-prog">
-            <div class="chip ok" onclick="togA(this)">有進步</div>
-            <div class="chip ok" onclick="togA(this)">維持</div>
-            <div class="chip wn" onclick="togA(this)">略退步</div>
-            <div class="chip wn" onclick="togA(this)">首次動作</div>
+            <div class="chip ok" onclick="togA(this)">▲ 進步</div>
+            <div class="chip wn" onclick="togA(this)">● 持平</div>
+            <div class="chip bd" onclick="togA(this)">▼ 退步</div>
           </div>
         </div>
       </div>
-      <div class="card"><div class="flabel">表現亮點</div><textarea id="f-good" rows="2" placeholder="例：深蹲深度比上次進步"></textarea></div>
+      <div class="card"><div class="flabel">表現亮點</div><textarea id="f-good" rows="2" placeholder="例：深蹲深度比上次進步，膝蓋追蹤更穩定"></textarea></div>
       <div class="card"><div class="flabel">需要加強</div><textarea id="f-improve" rows="2" placeholder="例：硬舉起始位置腰椎仍有屈曲"></textarea></div>
       <div class="card"><div class="flabel">教練觀察 <span class="opt">選填</span></div><textarea id="f-obs" rows="2" placeholder="例：今天整體狀態受睡眠影響較大"></textarea></div>
       <div class="card"><div class="flabel">下一堂方向</div><textarea id="f-next" rows="2" placeholder="例：接下來兩週持續漸進增重"></textarea></div>
@@ -288,6 +346,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
       <div class="card"><div class="flabel">下次預約 <span class="opt">選填</span></div><input type="text" id="f-nextbook" placeholder="例：下週六早上"></div>
     </div>
 
+    <!-- 報告 -->
     <div class="tc" id="tc-report">
       <div style="margin:0 0 .6rem;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase">預覽報告</div>
       <div class="pbox" id="preview"></div>
@@ -298,6 +357,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
   </div>
 </div>
 
+<!-- HISTORY SCREEN -->
 <div class="screen" id="s-hist">
   <div class="ed-hdr">
     <div class="back" onclick="closeHist()">←</div>
@@ -309,6 +369,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
   <div class="hist-body" id="hist-body"></div>
 </div>
 
+<!-- MODAL -->
 <div class="modal-bg hidden" id="modal">
   <div class="modal">
     <div class="modal-title">新增訓練筆記本</div>
@@ -325,6 +386,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 </div>
 
 <script>
+// ── 動作庫 ──
 const EX={
   "胸大肌":["BB Incline Bench Press（槓鈴上斜臥推）","DB Incline Bench Press 30°（啞鈴上斜臥推 30 度）","DB Incline Bench Press 45°（啞鈴上斜臥推 45 度）","BB Incline Bench Press 45°（槓鈴上斜臥推 45 度）","Machine Incline Press（機械上斜胸推）","BB Floor Press（槓鈴地板臥推）","BB Bench Press（槓鈴平板臥推）","DB Bench Press（啞鈴平板臥推）","Machine Pec Deck（機械夾胸）","Single Arm DB Bench Press（單臂啞鈴臥推）","TRX Push Up（TRX 伏地挺身）","Incline Push Up On Bar（槓上上斜伏地挺身）","機械式胸推","Dip（雙槓撐體）","Machine Decline Press（機械下斜胸推）","Cable Low Chest Press（低位繩索胸推）"],
   "闊背肌":["Assisted Pull Up（輔助引體向上）","Neutral Grip Pull Up（正握引體向上）","Reverse Grip Chin Up（反握引體向上）","Wide Grip Pull Up（寬握引體向上）","Lat Pull Down（高位下拉）","Mag Grip Pull Down（Mag 握把下拉）","Straight Arm Pulldown（直臂下壓）","Close Grip Lat Pulldown（窄握高位下拉）","Wide Grip Lat Pulldown（寬握高位下拉）","Single Arm Lat Pulldown（單臂高位下拉）","Inverted Row With Barbell（槓鈴反式划船）","BB Bent Over Row（槓鈴俯身划船）","Reverse Grip Bent Over Row（反握俯身划船）","Machine Low Row（機械低位划船）","1 Arm DB Row（單臂啞鈴划船）","Wide Grip Cable Row（寬握繩索划船）","T Bar Row（T 槓划船）","Half Kneeling 1 Arm Cable Row（半跪姿單臂繩索划船）","Chest Supported 1 Arm Cable Row（胸支撐單臂繩索划船）","Seated Cable Row（坐姿繩索划船）","TRX Row（TRX 划船）","TRX Inverted Row（TRX 反式划船）","Front Pull Down（前拉下拉）","Half Kneeling 45° Single Arm Row（半跪 45 度單臂划船）","Cable 直臂下壓（繩索直臂下壓）","TRX Kneeling Pull Over（TRX 跪姿過頭下壓）"],
@@ -343,55 +405,251 @@ const EX={
 };
 
 const SLAB=['','狀態不佳','有些疲憊','狀態普通','狀態良好','狀態極佳'];
-let notebooks=[],curNB=null,stars=0,selMuscle='';
+let notebooks=[], curNB=null, stars=0, selMuscle='';
 
-function load(){try{notebooks=JSON.parse(localStorage.getItem('tlog_v3')||'[]');}catch(e){notebooks=[];}}
-function persist(){try{localStorage.setItem('tlog_v3',JSON.stringify(notebooks));}catch(e){}}
+// ── STORAGE ──
+const STORE_KEY='tlog_v3';
+function load(){
+  try{
+    notebooks=JSON.parse(localStorage.getItem(STORE_KEY)||'[]');
+    // 同時嘗試讀舊版 key 合併（tlog_v4 是誤改的版本）
+    try{
+      const old4=JSON.parse(localStorage.getItem('tlog_v4')||'[]');
+      if(old4.length){
+        // 合併：以 id 去重
+        const ids=new Set(notebooks.map(n=>n.id));
+        old4.forEach(n=>{if(!ids.has(n.id))notebooks.push(n);});
+        localStorage.removeItem('tlog_v4');
+      }
+    }catch(e){}
+  }catch(e){notebooks=[];}
+  // 資料遷移：舊格式 planSets/planReps/planKg → planRows
+  // 同時清除 sets 中次數>60 的異常資料（早期備課預計值誤存）
+  let migrated=false;
+  notebooks.forEach(nb=>{
+    (nb.exercises||[]).forEach(ex=>{
+      // 清除異常 sets
+      if(ex.sets){
+        const cleaned=ex.sets.filter(s=>{
+          const reps=parseInt(s.reps)||0;
+          return reps===0||reps<=60; // 保留空的或合理次數
+        });
+        if(cleaned.length!==ex.sets.length){ex.sets=cleaned;migrated=true;}
+        if(!ex.sets.length)ex.sets=[{sets:'',reps:'',weight:''}];
+      }
+      if(!ex.planRows||!ex.planRows.length){
+        if(ex.planSets||ex.planReps||ex.planKg){
+          ex.planRows=[{reps:String(ex.planReps||''),kg:String(ex.planKg||'')}];
+        } else {
+          ex.planRows=[{reps:'',kg:''}];
+        }
+        migrated=true;
+      }
+    });
+  });
+  if(migrated) persist();
+}
+function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(notebooks));}catch(e){alert('儲存失敗，瀏覽器空間可能不足');}}
 
-// ── HISTORY ──
-function getHistory(student,exName){
+// ══════════════════════════════════════════
+// ── 歷史強度核心邏輯（完全重寫）──
+// ══════════════════════════════════════════
+
+/**
+ * 取得某學員某動作「在指定時間戳之前」所有已完成課程的紀錄
+ * 以 completedAt（完成時間戳）排序，確保先後順序正確
+ * excludeId: 排除當前筆記本自己
+ */
+function getHistoryBefore(student, exName, beforeTs, excludeId){
   if(!student) return [];
   return notebooks
-    .filter(nb=>nb.student===student&&nb.id!==curNB?.id&&nb.done)
+    .filter(nb=>{
+      if(!nb.done) return false;                    // 只看已完成
+      if(nb.id===excludeId) return false;           // 排除自己
+      if(nb.student!==student) return false;        // 同學員
+      const ts = nb.completedAt || nb.id;           // 用完成時間，沒有則用建立時間
+      return ts < beforeTs;                         // 嚴格在當前之前
+    })
+    .map(nb=>{
+      const ex=(nb.exercises||[]).find(e=>e.name===exName);
+      if(!ex||!(ex.sets||[]).length) return null;
+      return {
+        ts: nb.completedAt || nb.id,
+        date: nb.date||'',
+        nbName: nb.name||'',
+        sets: ex.sets||[]
+      };
+    })
+    .filter(Boolean)
+    .sort((a,b)=>b.ts-a.ts); // 最新在前
+}
+
+/**
+ * 從一組 sets 建立「次數 → 最重kg」的 Map
+ * 例如：10下→10kg, 8下→8kg
+ * 同一次數取最重那組
+ */
+function buildRepsMaxMap(sets){
+  const map = new Map();
+  sets.forEach(s=>{
+    const reps = parseInt(s.reps)||0;
+    const kg = parseFloat(s.weight)||0;
+    // 過濾異常次數（>60下通常是備課預計值誤存）和無重量
+    if(reps>0 && reps<=60 && kg>0){
+      if(!map.has(reps)||kg>map.get(reps)){
+        map.set(reps, kg);
+      }
+    }
+  });
+  return map;
+}
+
+/**
+ * 取得某學員某動作「歷史上每個次數的最高kg」
+ * 跨所有已完成課程合併（excludeId: 排除當前未完成的，但包含已完成的同ID）
+ */
+function getLifetimeBestByReps(student, exName, excludeId){
+  if(!student) return new Map();
+  const allSets = notebooks
+    .filter(nb=> nb.done && nb.id!==excludeId && nb.student===student)
     .flatMap(nb=>{
       const ex=(nb.exercises||[]).find(e=>e.name===exName);
-      if(!ex) return [];
-      const best=getBest(ex.sets||[]);
-      if(!best) return [];
-      return [{date:nb.date||'',best}];
-    }).sort((a,b)=>b.date.localeCompare(a.date));
+      return ex?(ex.sets||[]):[];
+    });
+  return buildRepsMaxMap(allSets);
 }
-function getBest(sets){
-  let best=null,bkg=-1;
-  sets.forEach(s=>{
-    const kg=parseFloat(s.weight)||0,reps=parseFloat(s.reps)||0,grps=parseFloat(s.sets)||1;
-    if(kg>bkg||(kg===bkg&&reps>(best?.reps||0))){bkg=kg;best={sets:grps,reps,weight:kg};}
+
+/**
+ * 判斷這位學員是否曾做過某動作
+ * 只要任何筆記本（不管完成與否）有這個學員+這個動作，就不算首次
+ * 但排除當前這本自己
+ */
+function hasEverDone(student, exName){
+  if(!student) return false;
+  return notebooks.some(nb=>
+    nb.id !== (curNB&&curNB.id) &&
+    nb.student === student &&
+    (nb.exercises||[]).some(e=>e.name===exName)
+  );
+}
+
+/**
+ * 取得最新一次課程該動作的 sets（用於提示「上次」）
+ * 嚴格按 completedAt 排序
+ */
+function getLastSessionSets(student, exName, beforeTs, excludeId){
+  const hist = getHistoryBefore(student, exName, beforeTs, excludeId);
+  return hist.length ? hist[0].sets : null;
+}
+
+/**
+ * 計算訓練總量：所有組的 組數×次數×重量 加總
+ */
+function calcVolume(sets){
+  return sets.reduce((sum,s)=>{
+    const grps=parseFloat(s.sets)||1;
+    const reps=parseFloat(s.reps)||0;
+    const kg=parseFloat(s.weight)||0;
+    return sum+grps*reps*kg;
+  },0);
+}
+
+/**
+ * 細分評估結果物件
+ * strengthResult: 'up'|'same'|'down'|'new'|'pr' (pr=超越歷史最高)
+ * volumeResult:   'up'|'same'|'down'|'new'
+ * newPRReps: 哪些次數創了新PR（array）
+ */
+function evalDetailed(curSets, prevSets, lifetimeBest){
+  const curMap=buildRepsMaxMap(curSets);
+  const prevMap=prevSets?buildRepsMaxMap(prevSets):new Map();
+  const curVol=calcVolume(curSets);
+  const prevVol=prevSets?calcVolume(prevSets):0;
+
+  // 新紀錄判斷：有任何次數超越歷史最高
+  const newPRReps=[];
+  curMap.forEach((kg,reps)=>{
+    const histBest=lifetimeBest.get(reps)||0;
+    if(kg>histBest) newPRReps.push({reps,kg});
   });
-  return best;
+
+  // 單次強度 vs 上次
+  let strengthResult='new';
+  if(prevMap.size&&curMap.size){
+    let ups=0,downs=0,sames=0;
+    curMap.forEach((kg,reps)=>{
+      if(prevMap.has(reps)){
+        const prev=prevMap.get(reps);
+        if(kg>prev) ups++;
+        else if(kg<prev) downs++;
+        else sames++;
+      }
+    });
+    if(ups>0&&downs===0) strengthResult='up';
+    else if(downs>0&&ups===0) strengthResult='down';
+    else if(sames>0) strengthResult='same';
+    else strengthResult='new';
+  }
+
+  // 訓練總量 vs 上次
+  let volumeResult='new';
+  if(prevVol>0){
+    if(curVol>prevVol*1.01) volumeResult='up';
+    else if(curVol<prevVol*0.99) volumeResult='down';
+    else volumeResult='same';
+  }
+
+  return {strengthResult, volumeResult, newPRReps, curVol, prevVol};
 }
-function fmtBest(b){
-  if(!b) return '—';
-  const parts=[];
-  if(b.sets) parts.push(b.sets+'組');
-  if(b.reps) parts.push(b.reps+'下');
-  if(b.weight) parts.push(b.weight+'kg');
-  return parts.join(' × ')||'—';
+
+/**
+ * 舊介面保留（向下相容）
+ */
+function evalProgress(curSets, prevSets){
+  if(!prevSets||!prevSets.length) return 'new';
+  const curMap=buildRepsMaxMap(curSets);
+  const prevMap=buildRepsMaxMap(prevSets);
+  if(!curMap.size||!prevMap.size) return 'new';
+  let ups=0,downs=0,sames=0;
+  curMap.forEach((kg,reps)=>{
+    if(prevMap.has(reps)){
+      const prev=prevMap.get(reps);
+      if(kg>prev) ups++;
+      else if(kg<prev) downs++;
+      else sames++;
+    }
+  });
+  if(ups>0&&downs===0) return 'up';
+  if(downs>0&&ups===0) return 'down';
+  if(sames>0) return 'same';
+  return 'new';
 }
-function evalPerf(cur,prev){
-  if(!prev) return null;
-  const cw=parseFloat(cur.weight)||0,pw=parseFloat(prev.weight)||0;
-  const cr=parseFloat(cur.reps)||0,pr=parseFloat(prev.reps)||0;
-  if(cw>pw||(cw===pw&&cr>pr)) return 'up';
-  if(cw===pw&&cr===pr) return 'same';
-  return 'down';
+
+function strengthBadge(r, newPRReps){
+  if(newPRReps&&newPRReps.length){
+    const desc=newPRReps.map(p=>`${p.reps}下${p.kg}kg`).join(' / ');
+    return `<span class="pb pb-up">🎉 新紀錄 ${desc}</span>`;
+  }
+  if(r==='up') return `<span class="pb pb-up">▲ 強度↑</span>`;
+  if(r==='same') return `<span class="pb pb-same">● 強度持平</span>`;
+  if(r==='down') return `<span class="pb pb-down">▼ 強度↓</span>`;
+  return `<span class="pb pb-new">🔰 首次</span>`;
 }
-function perfBadge(perf,isNew){
-  if(isNew) return `<span class="perf-badge perf-new">🔰 首次</span>`;
-  if(perf==='up') return `<span class="perf-badge perf-up">▲ 進步</span>`;
-  if(perf==='same') return `<span class="perf-badge perf-same">● 維持</span>`;
-  if(perf==='down') return `<span class="perf-badge perf-down">▼ 退步</span>`;
+
+function volumeBadge(r){
+  if(r==='up') return `<span class="pb pb-up">▲ 訓練量↑</span>`;
+  if(r==='same') return `<span class="pb pb-same">● 訓練量持平</span>`;
+  if(r==='down') return `<span class="pb pb-down">▼ 訓練量↓</span>`;
   return '';
 }
+
+function perfBadgeHtml(perf){
+  if(perf==='up') return `<span class="pb pb-up">▲ 進步</span>`;
+  if(perf==='same') return `<span class="pb pb-same">● 持平</span>`;
+  if(perf==='down') return `<span class="pb pb-down">▼ 退步</span>`;
+  return `<span class="pb pb-new">🔰 首次</span>`;
+}
+
 
 // ── HOME ──
 document.getElementById('home-date').textContent=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
@@ -399,8 +657,9 @@ function renderHome(){
   const list=document.getElementById('nb-list');
   if(!notebooks.length){list.innerHTML='<div class="empty">還沒有任何筆記本<br>點上方按鈕新增第一本</div>';return;}
   list.innerHTML='';
-  [...notebooks].reverse().forEach((nb,ri)=>{
-    const i=notebooks.length-1-ri;
+  // 依建立時間降序排列（最新在前）
+  [...notebooks].sort((a,b)=>(b.id||0)-(a.id||0)).forEach(nb=>{
+    const i=notebooks.findIndex(n=>n.id===nb.id);
     const exs=nb.exercises||[];
     const prev=exs.slice(0,3).map(e=>e.name.split('（')[0]).join('、')+(exs.length>3?` +${exs.length-3}`:'');
     const d=document.createElement('div');d.className='nb-card';
@@ -409,62 +668,105 @@ function renderHome(){
       <div class="nb-name">${nb.name||'未命名'}</div>
       <div class="nb-meta">${nb.date||''}${nb.student?' · '+nb.student:''}${nb.type?' · '+nb.type:''}</div>
       <div class="nb-exs">${prev||'尚未加入動作'}</div>
-    </div><div class="nb-actions"><div class="icon-btn" onclick="event.stopPropagation();deleteNB(${i})">🗑</div></div></div>`;
+    </div><div><div class="nb-del" onclick="event.stopPropagation();deleteNB(${i})">🗑</div></div></div>`;
     d.onclick=()=>openNB(i);
     list.appendChild(d);
   });
 }
 
-function openNewModal(){document.getElementById('modal').classList.remove('hidden');document.getElementById('modal-name').value='';document.getElementById('modal-student').value='';setTimeout(()=>document.getElementById('modal-name').focus(),100);}
+function openNewModal(){
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('modal-name').value='';
+  document.getElementById('modal-student').value='';
+  setTimeout(()=>document.getElementById('modal-name').focus(),100);
+}
 function closeModal(){document.getElementById('modal').classList.add('hidden');}
 function createNB(){
   const name=document.getElementById('modal-name').value.trim()||'新筆記本';
   const student=document.getElementById('modal-student').value.trim();
-  const nb={id:Date.now(),name,student,date:new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'}),type:'',done:false,exercises:[],planNote:'',stars:0,sleep:'',foodWater:'',bodyState:'',condition:'',intensity:'',progress:'',good:'',improve:'',obs:'',next:'',diet:'',msg:'',freq:'彈性單堂',nextbook:''};
+  const now=Date.now();
+  const nb={
+    id:now, name, student,
+    date:new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'}),
+    type:'',done:false,completedAt:null,
+    exercises:[],planNote:'',stars:0,
+    sleep:'',foodWater:'',bodyState:'',condition:'',
+    intensity:'',progress:'',good:'',improve:'',obs:'',
+    next:'',diet:'',msg:'',freq:'彈性單堂',nextbook:''
+  };
   notebooks.push(nb);persist();closeModal();openNB(notebooks.length-1);
 }
-function deleteNB(i){if(!confirm('確定刪除？此操作無法復原'))return;notebooks.splice(i,1);persist();renderHome();}
+function deleteNB(i){
+  if(!confirm('確定刪除？此操作無法復原'))return;
+  notebooks.splice(i,1);persist();renderHome();
+}
 function goHome(){saveNB();show('s-home');renderHome();}
 
 // ── EDITOR ──
 function openNB(i){
-  curNB=notebooks[i];show('s-editor');
+  curNB=notebooks[i];
+  show('s-editor');
   document.getElementById('ed-title').textContent=curNB.name||'筆記本';
   document.getElementById('ed-sub').textContent=(curNB.date||'')+(curNB.student?' · '+curNB.student:'');
-  loadUI();switchTab('plan');initMsc();renderExList();renderPlanLog();renderClassLog();
+  loadUI();
+  switchTab('plan');
+  initMsc();
+  renderExList();
+  renderPlanLog();
+  renderClassLog();
 }
+
 function loadUI(){
-  sv('nb-name-inp',curNB.name);sv('f-student',curNB.student);sv('plan-note',curNB.planNote);
-  sv('f-condition',curNB.condition);sv('f-good',curNB.good);sv('f-improve',curNB.improve);
-  sv('f-obs',curNB.obs);sv('f-next',curNB.next);sv('f-diet',curNB.diet);sv('f-msg',curNB.msg);sv('f-nextbook',curNB.nextbook);
+  sv('nb-name-inp',curNB.name);sv('f-student',curNB.student);
+  sv('plan-note',curNB.planNote);sv('f-condition',curNB.condition);
+  sv('f-good',curNB.good);sv('f-improve',curNB.improve);sv('f-obs',curNB.obs);
+  sv('f-next',curNB.next);sv('f-diet',curNB.diet);sv('f-msg',curNB.msg);sv('f-nextbook',curNB.nextbook);
   stars=curNB.stars||0;renderStars();
   restoreCG('g-type',curNB.type?curNB.type.split('、'):[]);
   restoreCG('g-freq',[curNB.freq||'彈性單堂']);
-  restoreAC('ac-sleep',curNB.sleep);restoreAC('ac-food',curNB.foodWater);restoreAC('ac-body',curNB.bodyState);
-  restoreAC('ac-int',curNB.intensity);restoreAC('ac-prog',curNB.progress);
+  restoreAC('ac-sleep',curNB.sleep);restoreAC('ac-food',curNB.foodWater);
+  restoreAC('ac-body',curNB.bodyState);restoreAC('ac-int',curNB.intensity);
+  restoreAC('ac-prog',curNB.progress);
 }
 function sv(id,val){const e=document.getElementById(id);if(e)e.value=val||'';}
 function restoreAC(id,val){if(!val)return;document.querySelectorAll('#'+id+' .chip').forEach(c=>c.classList.toggle('on',c.textContent.trim()===val));}
 function restoreCG(gid,vals){document.querySelectorAll('#'+gid+' .chip').forEach(c=>c.classList.toggle('sel',vals.includes(c.textContent.trim())));}
+
 function saveNB(){
-  if(!curNB) return;
-  curNB.name=gv('nb-name-inp')||curNB.name;curNB.student=gv('f-student');
+  if(!curNB)return;
+  curNB.name=gv('nb-name-inp')||curNB.name;
+  curNB.student=gv('f-student');
   curNB.planNote=gv('plan-note');curNB.condition=gv('f-condition');
   curNB.good=gv('f-good');curNB.improve=gv('f-improve');curNB.obs=gv('f-obs');
   curNB.next=gv('f-next');curNB.diet=gv('f-diet');curNB.msg=gv('f-msg');curNB.nextbook=gv('f-nextbook');
   curNB.stars=stars;curNB.type=chips('g-type');curNB.freq=chips('g-freq')||'彈性單堂';
-  curNB.sleep=acGet('ac-sleep');curNB.foodWater=acGet('ac-food');curNB.bodyState=acGet('ac-body');
-  curNB.intensity=acGet('ac-int');curNB.progress=acGet('ac-prog');
-  (curNB.exercises||[]).forEach((ex,gi)=>{const ne=document.getElementById('note-'+gi);if(ne)ex.note=ne.value;});
+  curNB.sleep=acGet('ac-sleep');curNB.foodWater=acGet('ac-food');
+  curNB.bodyState=acGet('ac-body');curNB.intensity=acGet('ac-int');curNB.progress=acGet('ac-prog');
+  // sync exercise notes from DOM
+  (curNB.exercises||[]).forEach((ex,gi)=>{
+    const ne=document.getElementById('note-'+gi);if(ne)ex.note=ne.value;
+  });
   const idx=notebooks.findIndex(n=>n.id===curNB.id);
-  if(idx>=0)notebooks[idx]=curNB;persist();
+  if(idx>=0)notebooks[idx]=curNB;
+  persist();
 }
-function saveAndHome(){curNB.done=true;goHome();}
+
+function saveAndHome(){
+  // 記錄完成時間戳（這是排序的關鍵）
+  curNB.completedAt=Date.now();
+  curNB.done=true;
+  goHome();
+}
+
 function onStudentChange(){
   const v=document.getElementById('f-student').value.trim();
-  if(curNB){curNB.student=v;document.getElementById('ed-sub').textContent=(curNB.date||'')+(v?' · '+v:'');}
+  if(curNB){
+    curNB.student=v;
+    document.getElementById('ed-sub').textContent=(curNB.date||'')+(v?' · '+v:'');
+  }
   renderPlanLog();renderClassLog();
 }
+
 const gv=id=>(document.getElementById(id)?.value||'').trim();
 const chips=gid=>[...document.querySelectorAll('#'+gid+' .chip.sel')].map(c=>c.textContent.trim()).join('、');
 const acGet=id=>{const e=document.querySelector('#'+id+' .chip.on');return e?e.textContent.trim():'';};
@@ -486,14 +788,18 @@ function togS(el,gid){document.querySelectorAll('#'+gid+' .chip').forEach(c=>c.c
 function setStar(n){stars=n;if(curNB)curNB.stars=n;renderStars();}
 function renderStars(){
   const row=document.getElementById('star-row');row.innerHTML='';
-  for(let i=1;i<=5;i++){const s=document.createElement('span');s.className='star'+(stars>=i?' on':'');s.textContent='★';s.onclick=()=>setStar(i);row.appendChild(s);}
+  for(let i=1;i<=5;i++){
+    const s=document.createElement('span');s.className='star'+(stars>=i?' on':'');
+    s.textContent='★';s.onclick=()=>setStar(i);row.appendChild(s);
+  }
   document.getElementById('starlbl').textContent=SLAB[stars]||'點選評分';
 }
 
 // ── MUSCLE SCROLLER ──
 function initMsc(){
   const sc=document.getElementById('msc');sc.innerHTML='';
-  const all=document.createElement('div');all.className='mbtn'+(selMuscle===''?' on':'');all.textContent='全部';
+  const all=document.createElement('div');
+  all.className='mbtn'+(selMuscle===''?' on':'');all.textContent='全部';
   all.onclick=()=>{selMuscle='';initMsc();renderExList();};sc.appendChild(all);
   Object.keys(EX).forEach(m=>{
     const cnt=(curNB?.exercises||[]).filter(e=>e.muscle===m).length;
@@ -523,71 +829,263 @@ function toggleEx(name,muscle){
   if(!curNB)return;
   const idx=(curNB.exercises||[]).findIndex(e=>e.name===name);
   if(idx>=0)curNB.exercises.splice(idx,1);
-  else{if(!curNB.exercises)curNB.exercises=[];curNB.exercises.push({name,muscle,sets:[{sets:'',reps:'',weight:''}],note:'',planSets:''});}
+  else{
+    if(!curNB.exercises)curNB.exercises=[];
+    curNB.exercises.push({name,muscle,sets:[{sets:'',reps:'',weight:''}],note:'',planRows:[{reps:'',kg:''}]});
+  }
   persist();renderExList();renderPlanLog();renderClassLog();initMsc();
 }
 
-// ── PLAN LOG ──
+// ── PLAN LOG（備課）──
 function renderPlanLog(){
   const wrap=document.getElementById('plan-log');
   const exs=curNB?.exercises||[];
-  if(!exs.length){wrap.innerHTML='<div style="font-size:13px;color:var(--text3);padding:6px 0">尚未加入動作</div>';return;}
+  if(!exs.length){
+    wrap.innerHTML='<div style="font-size:13px;color:var(--text3);padding:6px 0">尚未加入動作，從上方選擇</div>';
+    return;
+  }
+  const student=curNB.student||'';
   const groups={};exs.forEach(ex=>{if(!groups[ex.muscle])groups[ex.muscle]=[];groups[ex.muscle].push(ex);});
   wrap.innerHTML='';
   Object.keys(groups).forEach(m=>{
-    const gb=document.createElement('div');gb.className='group-block';gb.innerHTML=`<div class="group-lbl">${m}</div>`;
+    const gb=document.createElement('div');gb.className='group-block';
+    gb.innerHTML=`<div class="group-lbl">${m}</div>`;
     groups[m].forEach(ex=>{
       const gi=exs.indexOf(ex);
-      const hist=getHistory(curNB?.student,ex.name);
-      const lastBest=hist[0]?.best;
-      const histHtml=lastBest?`<span class="hist-badge hist-best">歷史最高 ${fmtBest(lastBest)}</span>`:`<span class="hist-badge hist-none">首次訓練</span>`;
+      // 確保 planRows 存在
+      if(!ex.planRows||!ex.planRows.length) ex.planRows=[{reps:'',kg:''}];
+      const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+      const hasHistory=hasEverDone(student,ex.name);
       const d=document.createElement('div');d.className='wlog';
       d.innerHTML=`
         <div class="wlog-top">
           <div class="wlog-name">
-            <span style="cursor:pointer;text-decoration:underline;text-decoration-color:var(--purple)" onclick="openHistScreen('${ex.name.replace(/'/g,"\\'")}')">
+            <span style="cursor:pointer;border-bottom:1px solid var(--purple);padding-bottom:1px" onclick="openHistScreen('${ex.name.replace(/'/g,"\\'")}')">
               ${ex.name}
-            </span>${histHtml}
+            </span>
+            ${!hasHistory?`<span class="hist-badge hist-none">首次訓練</span>`:''}
           </div>
           <div class="wlog-del" onclick="removeEx(${gi})">✕</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:12px;color:var(--text3);flex-shrink:0">預計：</span>
-          <input type="text" id="ps-${gi}" value="${ex.planSets||''}" placeholder="例：4×8×80kg" style="flex:1;padding:6px 9px;font-size:13px;border-radius:7px" oninput="updPS(${gi},this.value)">
+        <div style="margin-top:6px">
+          <div class="set-labels" style="grid-template-columns:18px 1fr 1fr 52px 18px">
+            <div class="set-label"></div>
+            <div class="set-label">次數</div>
+            <div class="set-label">目標 kg</div>
+            <div class="set-label" style="color:var(--purple);text-align:left;padding-left:4px">PR</div>
+            <div class="set-label"></div>
+          </div>
+          <div id="plan-rows-${gi}"></div>
+          <button class="add-set" onclick="addPlanRow(${gi})">＋ 新增組數</button>
         </div>`;
       gb.appendChild(d);
     });
     wrap.appendChild(gb);
   });
+  // render plan rows
+  exs.forEach((_,gi)=>renderPlanRows(gi));
 }
-function updPS(gi,val){if(curNB?.exercises?.[gi])curNB.exercises[gi].planSets=val;}
-function removeEx(gi){if(!curNB?.exercises)return;curNB.exercises.splice(gi,1);persist();renderExList();renderPlanLog();renderClassLog();initMsc();}
 
-// ── CLASS LOG ──
+function renderPlanRows(gi){
+  const c=document.getElementById('plan-rows-'+gi);
+  if(!c||!curNB?.exercises?.[gi])return;
+  const ex=curNB.exercises[gi];
+  if(!ex.planRows||!ex.planRows.length) ex.planRows=[{reps:'',kg:''}];
+  const student=curNB.student||'';
+  const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+  c.innerHTML='';
+  ex.planRows.forEach((row,ri)=>{
+    const reps=parseInt(row.reps)||0;
+    const bestKg=reps>0&&lifetimeBest.has(reps)?lifetimeBest.get(reps):null;
+    const hintHtml=reps>0
+      ?(bestKg!=null
+        ?`<span style="color:var(--purple);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestKg}kg</span>`
+        :`<span style="color:var(--text3);font-size:10px">—</span>`)
+      :`<span style="color:var(--text3);font-size:10px">—</span>`;
+    const el=document.createElement('div');
+    el.style.cssText='display:grid;grid-template-columns:18px 1fr 1fr 52px 18px;gap:5px;align-items:center;margin-bottom:5px';
+    el.innerHTML=`
+      <div class="set-num">${ri+1}</div>
+      <input class="set-inp" type="text" inputmode="decimal" value="${row.reps||''}" placeholder="次" oninput="updPlanRow(${gi},${ri},'reps',this.value)">
+      <input class="set-inp" type="text" inputmode="decimal" value="${row.kg||''}" placeholder="kg" oninput="updPlanRow(${gi},${ri},'kg',this.value)">
+      <div style="padding-left:4px">${hintHtml}</div>
+      <div class="set-del" onclick="delPlanRow(${gi},${ri})">✕</div>`;
+    c.appendChild(el);
+  });
+}
+
+function addPlanRow(gi){
+  if(!curNB?.exercises?.[gi])return;
+  if(!curNB.exercises[gi].planRows)curNB.exercises[gi].planRows=[{reps:'',kg:''}];
+  curNB.exercises[gi].planRows.push({reps:'',kg:''});
+  renderPlanRows(gi);
+}
+function delPlanRow(gi,ri){
+  if(!curNB?.exercises?.[gi])return;
+  if((curNB.exercises[gi].planRows||[]).length<=1)return;
+  curNB.exercises[gi].planRows.splice(ri,1);
+  renderPlanRows(gi);
+}
+function updPlanRow(gi,ri,field,val){
+  if(!curNB?.exercises?.[gi])return;
+  if(!curNB.exercises[gi].planRows)curNB.exercises[gi].planRows=[{reps:'',kg:''}];
+  curNB.exercises[gi].planRows[ri][field]=val;
+  // 即時更新歷史提示
+  renderPlanRows(gi);
+}
+
+function buildPlanHintHtml(planReps,bestKg,hasHistory){
+  if(!hasHistory) return '';
+  if(!planReps) return `<span style="color:var(--text3)">填入次數後顯示該次歷史最高</span>`;
+  if(bestKg!=null) return `<span style="color:var(--purple);font-family:'DM Mono',monospace">${planReps}下 歷史最高 → <strong>${bestKg}kg</strong></span>`;
+  return `<span style="color:var(--text3)">${planReps}下 尚無紀錄</span>`;
+}
+
+function updatePlanHint(gi){
+  const ex=curNB?.exercises?.[gi];if(!ex)return;
+  const student=curNB.student||'';
+  const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+  const hasHistory=lifetimeBest.size>0;
+  const planReps=parseInt(document.getElementById('pr-'+gi)?.value)||0;
+  const bestForReps=planReps>0&&lifetimeBest.has(planReps)?lifetimeBest.get(planReps):null;
+  const hint=document.getElementById('plan-hint-'+gi);
+  if(hint)hint.innerHTML=buildPlanHintHtml(planReps,bestForReps,hasHistory);
+}
+
+function updPS(gi,field,val){
+  if(curNB?.exercises?.[gi])curNB.exercises[gi][field]=val;
+}
+function removeEx(gi){
+  if(!curNB?.exercises)return;
+  curNB.exercises.splice(gi,1);persist();
+  renderExList();renderPlanLog();renderClassLog();initMsc();
+}
+
+// ── CLASS PAGE EX PANEL ──
+let classSelMuscle='';
+function toggleClassExPanel(){
+  const p=document.getElementById('class-ex-panel');
+  const showing=p.style.display==='none';
+  p.style.display=showing?'block':'none';
+  if(showing){initClassMsc();renderClassExList();}
+}
+function initClassMsc(){
+  const sc=document.getElementById('msc-class');if(!sc)return;
+  sc.innerHTML='';
+  const all=document.createElement('div');
+  all.className='mbtn'+(classSelMuscle===''?' on':'');all.textContent='全部';
+  all.onclick=()=>{classSelMuscle='';initClassMsc();renderClassExList();};sc.appendChild(all);
+  Object.keys(EX).forEach(m=>{
+    const cnt=(curNB?.exercises||[]).filter(e=>e.muscle===m).length;
+    const b=document.createElement('div');b.className='mbtn'+(classSelMuscle===m?' on':'');
+    b.innerHTML=m+(cnt?`<span class="cnt">${cnt}</span>`:'');
+    b.onclick=()=>{classSelMuscle=m;initClassMsc();renderClassExList();};sc.appendChild(b);
+  });
+}
+function renderClassExList(){
+  const list=document.getElementById('ex-list-class');if(!list)return;
+  const q=(document.getElementById('ex-search-class')?.value||'').toLowerCase();
+  let exs=[];
+  if(classSelMuscle)exs=EX[classSelMuscle].map(n=>({name:n,muscle:classSelMuscle}));
+  else Object.keys(EX).forEach(m=>EX[m].forEach(n=>exs.push({name:n,muscle:m})));
+  if(q)exs=exs.filter(e=>e.name.toLowerCase().includes(q));
+  list.innerHTML='';
+  exs.forEach(({name,muscle})=>{
+    const added=(curNB?.exercises||[]).some(e=>e.name===name);
+    const d=document.createElement('div');d.className='ex-item'+(added?' added':'');
+    d.innerHTML=`<span>${name}</span><span class="ex-ico">${added?'✓':'＋'}</span>`;
+    d.onclick=()=>{toggleEx(name,muscle);renderClassExList();initClassMsc();};
+    list.appendChild(d);
+  });
+}
 function renderClassLog(){
-  const wrap=document.getElementById('class-log'),empty=document.getElementById('class-log-empty');
+  const wrap=document.getElementById('class-log');
+  const empty=document.getElementById('class-log-empty');
   const exs=curNB?.exercises||[];
   if(!exs.length){wrap.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
+  const student=curNB.student||'';
+  // 用當下時間查歷史，確保能找到所有已完成課程（包含今天稍早完成的）
+  const curTs=Date.now();
   const groups={};exs.forEach(ex=>{if(!groups[ex.muscle])groups[ex.muscle]=[];groups[ex.muscle].push(ex);});
   wrap.innerHTML='';
   Object.keys(groups).forEach(m=>{
-    const gb=document.createElement('div');gb.className='group-block';gb.innerHTML=`<div class="group-lbl">${m}</div>`;
+    const gb=document.createElement('div');gb.className='group-block';
+    gb.innerHTML=`<div class="group-lbl">${m}</div>`;
     groups[m].forEach(ex=>{
       const gi=exs.indexOf(ex);
-      const hist=getHistory(curNB?.student,ex.name);
-      const lastBest=hist[0]?.best;
-      const curBest=getBest(ex.sets||[]);
-      const perf=curBest&&lastBest?evalPerf(curBest,lastBest):null;
-      const isNew=!lastBest;
-      const pHtml=curBest?perfBadge(perf,isNew):'';
-      const histLine=lastBest?`歷史最高：<strong>${fmtBest(lastBest)}</strong>　${hist[0]?.date||''}`:`首次進行此動作`;
-      const planHint=ex.planSets?`<span style="color:var(--text3);font-size:11px;margin-left:5px">預計 ${ex.planSets}</span>`:'';
+      const lastSets=getLastSessionSets(student,ex.name,curTs,curNB.id);
+      const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+      const curSets=ex.sets||[];
+      // 首次判斷：用 hasEverDone 查所有已完成課程（含之前的）
+      const hasHistory=hasEverDone(student,ex.name);
+      // 預計提示（從 planRows 組合）
+      const planRows=ex.planRows||[];
+      const planHint=planRows.filter(r=>r.reps||r.kg).map(r=>[r.reps?r.reps+'次':'',r.kg?r.kg+'kg':''].filter(Boolean).join('×')).join(' / ');
+      // 用第一組的次數做歷史比對
+      const planReps=parseInt((planRows[0]||{}).reps)||0;
+      // 上次提示 — 顯示上次各次數最重（不依賴備課次數）
+      let histLine='';
+      if(!hasHistory){
+        histLine='';  // 首次不顯示任何提示，badge 已處理
+      } else if(lastSets&&lastSets.length){
+        const lastMap=buildRepsMaxMap(lastSets);
+        if(lastMap.size){
+          // 如果備課有設定次數，優先顯示對應次數；否則顯示最重那組
+          if(planReps&&lastMap.has(planReps)){
+            histLine=`上次 ${planReps}下 → <strong>${lastMap.get(planReps)}kg</strong>`;
+          } else {
+            // 顯示上次最重那組
+            let maxKg=0,maxReps=0;
+            lastMap.forEach((kg,r)=>{if(kg>maxKg){maxKg=kg;maxReps=r;}});
+            if(maxKg) histLine=`上次最重：${maxReps}下 → <strong>${maxKg}kg</strong>`;
+          }
+        }
+      }
+      // 歷史最高（只顯示預計次數）
+      let bestLine='';
+      if(hasHistory&&planReps&&lifetimeBest.has(planReps)){
+        const best=lifetimeBest.get(planReps);
+        const lastMap=lastSets?buildRepsMaxMap(lastSets):new Map();
+        const lastKg=lastMap.get(planReps)||0;
+        if(best!==lastKg) bestLine=`歷史最高：${planReps}下 → ${best}kg`;
+      }
       const d=document.createElement('div');d.className='wlog';
+      // 如果 sets 是空的（全部欄位空），且備課有 planRows，就預填
+      const allEmpty=curSets.every(s=>!s.sets&&!s.reps&&!s.weight);
+      if(allEmpty&&planRows.length){
+        ex.sets=planRows.map(r=>({sets:'',reps:r.reps||'',weight:r.kg||''}));
+      }
+      // 用 evalDetailed 取得細分指標
+      const detail=evalDetailed(curSets,lastSets,lifetimeBest);
+      const sBadge=hasHistory?strengthBadge(detail.strengthResult,detail.newPRReps):strengthBadge('new',[]);
+      // 訓練量顯示（上課中提示，報告不顯示）
+      const curVol=calcVolume(curSets);
+      const prevVol=lastSets?calcVolume(lastSets):0;
+      let volLine='';
+      if(curVol>0){
+        volLine=`訓練量：${Math.round(curVol)}kg`;
+        if(prevVol>0) volLine+=`（上次 ${Math.round(prevVol)}kg）`;
+      }
+      // hist 區域：只顯示有資訊的行
+      const histRows=[histLine,bestLine].filter(Boolean);
       d.innerHTML=`
-        <div class="wlog-top"><div class="wlog-name">${ex.name}${planHint} <span id="pb-${gi}">${pHtml}</span></div></div>
-        <div class="wlog-hist">${histLine}</div>
-        <div class="set-labels"><div class="set-label"></div><div class="set-label">組數</div><div class="set-label">次數</div><div class="set-label">重量kg</div><div class="set-label"></div></div>
+        <div class="wlog-top">
+          <div class="wlog-name">
+            ${ex.name}
+            <span id="pb-${gi}" style="margin-left:4px">${sBadge}</span>
+          </div>
+          <div class="wlog-del" onclick="removeEx(${gi})">✕</div>
+        </div>
+        ${(histRows.length||volLine)?`<div class="wlog-hist" id="vol-${gi}">${histRows.map(r=>`<div>${r}</div>`).join('')}${volLine?`<div class="vol-line" style="color:var(--text3)">${volLine}</div>`:''}</div>`:''}
+        <div class="set-labels" style="grid-template-columns:18px 1fr 1fr 1fr 52px 18px">
+          <div class="set-label"></div>
+          <div class="set-label">組數</div>
+          <div class="set-label">次數</div>
+          <div class="set-label">重量kg</div>
+          <div class="set-label" style="color:var(--purple);text-align:left;padding-left:2px">PR</div>
+          <div class="set-label"></div>
+        </div>
         <div id="sets-${gi}"></div>
         <button class="add-set" onclick="addSet(${gi})">＋ 新增組數</button>
         <textarea class="wlog-note" id="note-${gi}" rows="1" placeholder="備註（選填）" oninput="updNote(${gi})">${ex.note||''}</textarea>`;
@@ -597,53 +1095,129 @@ function renderClassLog(){
   });
   exs.forEach((_,gi)=>renderSets(gi));
 }
+
 function renderSets(gi){
-  const c=document.getElementById('sets-'+gi);if(!c||!curNB?.exercises?.[gi])return;
-  const sets=curNB.exercises[gi].sets||[];c.innerHTML='';
+  const c=document.getElementById('sets-'+gi);
+  if(!c||!curNB?.exercises?.[gi])return;
+  const ex=curNB.exercises[gi];
+  const sets=ex.sets||[];
+  const student=curNB.student||'';
+  // PR 欄：包含當前 sets 一起算（歷史最高 + 今天填的）
+  const histBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+  const curMap=buildRepsMaxMap(sets);
+  // 合併：同次數取較大值
+  const allBest=new Map(histBest);
+  curMap.forEach((kg,reps)=>{
+    if(!allBest.has(reps)||kg>allBest.get(reps)) allBest.set(reps,kg);
+  });
+  c.innerHTML='';
   sets.forEach((s,si)=>{
-    const row=document.createElement('div');row.className='set-row';
-    row.innerHTML=`<div class="set-num">${si+1}</div>
-      <input class="set-inp" type="text" value="${s.sets||''}" placeholder="組" oninput="updSet(${gi},${si},'sets',this.value)">
-      <input class="set-inp" type="text" value="${s.reps||''}" placeholder="次" oninput="updSet(${gi},${si},'reps',this.value)">
-      <input class="set-inp" type="text" value="${s.weight||''}" placeholder="kg" oninput="updSet(${gi},${si},'weight',this.value)">
+    const reps=parseInt(s.reps)||0;
+    const bestKg=reps>0&&allBest.has(reps)?allBest.get(reps):null;
+    const histHtml=reps>0
+      ?(bestKg!=null
+        ?`<span style="color:var(--purple);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestKg}kg</span>`
+        :`<span style="color:var(--text3);font-size:10px">—</span>`)
+      :`<span style="color:var(--text3);font-size:10px">—</span>`;
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:18px 1fr 1fr 1fr 52px 18px;gap:5px;align-items:center;margin-bottom:5px';
+    row.innerHTML=`
+      <div class="set-num">${si+1}</div>
+      <input class="set-inp" type="text" inputmode="decimal" value="${s.sets||''}" placeholder="組" oninput="updSet(${gi},${si},'sets',this.value)">
+      <input class="set-inp" type="text" inputmode="decimal" value="${s.reps||''}" placeholder="次" oninput="updSet(${gi},${si},'reps',this.value);renderSets(${gi})">
+      <input class="set-inp" type="text" inputmode="decimal" value="${s.weight||''}" placeholder="kg" oninput="updSet(${gi},${si},'weight',this.value)">
+      <div style="padding-left:2px">${histHtml}</div>
       <div class="set-del" onclick="delSet(${gi},${si})">✕</div>`;
     c.appendChild(row);
   });
 }
-function addSet(gi){if(!curNB?.exercises?.[gi])return;curNB.exercises[gi].sets.push({sets:'',reps:'',weight:''});renderSets(gi);}
-function delSet(gi,si){if(!curNB?.exercises?.[gi])return;if(curNB.exercises[gi].sets.length<=1)return;curNB.exercises[gi].sets.splice(si,1);renderSets(gi);}
+
+function addSet(gi){
+  if(!curNB?.exercises?.[gi])return;
+  curNB.exercises[gi].sets.push({sets:'',reps:'',weight:''});
+  renderSets(gi);
+}
+function delSet(gi,si){
+  if(!curNB?.exercises?.[gi])return;
+  if(curNB.exercises[gi].sets.length<=1)return;
+  curNB.exercises[gi].sets.splice(si,1);renderSets(gi);
+  refreshPerfBadge(gi);
+}
 function updSet(gi,si,f,v){
   if(curNB?.exercises?.[gi]?.sets?.[si])curNB.exercises[gi].sets[si][f]=v;
-  const ex=curNB.exercises[gi];
-  const hist=getHistory(curNB?.student,ex.name);
-  const lastBest=hist[0]?.best;
-  const curBest=getBest(ex.sets||[]);
-  const pb=document.getElementById('pb-'+gi);
-  if(pb)pb.innerHTML=curBest?perfBadge(curBest&&lastBest?evalPerf(curBest,lastBest):null,!lastBest):'';
+  refreshPerfBadge(gi);
 }
-function updNote(gi){const e=document.getElementById('note-'+gi);if(e&&curNB?.exercises?.[gi])curNB.exercises[gi].note=e.value;}
+function updNote(gi){
+  const e=document.getElementById('note-'+gi);
+  if(e&&curNB?.exercises?.[gi])curNB.exercises[gi].note=e.value;
+}
+function refreshPerfBadge(gi){
+  const ex=curNB?.exercises?.[gi];if(!ex)return;
+  const student=curNB.student||'';
+  const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+  const hasHistory=hasEverDone(student,ex.name);
+  const lastSets=getLastSessionSets(student,ex.name,Date.now(),curNB.id);
+  const pb=document.getElementById('pb-'+gi);
+  if(!pb)return;
+  if(!hasHistory){pb.innerHTML=strengthBadge('new',[]);return;}
+  const detail=evalDetailed(ex.sets||[],lastSets,lifetimeBest);
+  pb.innerHTML=strengthBadge(detail.strengthResult,detail.newPRReps);
+  // 即時更新訓練量
+  const volEl=document.getElementById('vol-'+gi);
+  if(volEl){
+    const curVol=calcVolume(ex.sets||[]);
+    const prevVol=lastSets?calcVolume(lastSets):0;
+    if(curVol>0){
+      let vt=`訓練量：${Math.round(curVol)}kg`;
+      if(prevVol>0)vt+=`（上次 ${Math.round(prevVol)}kg）`;
+      const volDiv=volEl.querySelector('.vol-line');
+      if(volDiv)volDiv.innerHTML=vt;
+    }
+  }
+  renderSets(gi);
+}
 
 // ── HISTORY SCREEN ──
 function openHistScreen(exName){
   saveNB();
   const student=curNB?.student||'';
-  const hist=getHistory(student,exName);
   document.getElementById('hist-title').textContent=exName.split('（')[0];
-  document.getElementById('hist-sub').textContent=student?student+' 的所有歷史紀錄':'歷史紀錄';
+  document.getElementById('hist-sub').textContent=student?student+' 歷史紀錄':'歷史紀錄';
   const body=document.getElementById('hist-body');
-  if(!hist.length){body.innerHTML='<div class="empty">尚無此學員此動作的歷史紀錄<br>完成第一堂課後會出現在這裡</div>';show('s-hist');return;}
-  let html='<div class="hist-ex-card">';
-  hist.forEach((h,i)=>{
-    const prev=hist[i+1]?.best;
-    const perf=prev?evalPerf(h.best,prev):null;
-    const badge=i===hist.length-1?`<span class="perf-badge perf-new">初始</span>`:perfBadge(perf,false);
-    html+=`<div class="hist-row">
-      <span class="hist-date">${h.date}</span>
-      <span class="hist-val">${fmtBest(h.best)}</span>
-      <span>${badge}</span>
+  // 取所有完成的課程中有此動作的，按完成時間排序
+  const records=notebooks
+    .filter(nb=>nb.done&&nb.student===student&&nb.id!==curNB.id)
+    .map(nb=>{
+      const ex=(nb.exercises||[]).find(e=>e.name===exName);
+      if(!ex||!(ex.sets||[]).length)return null;
+      return {ts:nb.completedAt||nb.id,date:nb.date||'',name:nb.name||'',sets:ex.sets||[]};
+    })
+    .filter(Boolean)
+    .sort((a,b)=>b.ts-a.ts);
+  if(!records.length){
+    body.innerHTML='<div class="empty">尚無此學員此動作的歷史紀錄<br>完成第一堂課後會出現在這裡</div>';
+    show('s-hist');return;
+  }
+  let html='';
+  records.forEach((rec,idx)=>{
+    const prevSets=idx<records.length-1?records[idx+1].sets:null;
+    const perf=evalProgress(rec.sets,prevSets);
+    const badge=idx===records.length-1?`<span class="pb pb-new">初始</span>`:perfBadgeHtml(perf);
+    const repsMap=buildRepsMaxMap(rec.sets);
+    let rows='';
+    [...repsMap.keys()].sort((a,b)=>a-b).forEach(reps=>{
+      rows+=`<div class="hrow">
+        <div class="hrow-reps">${reps} 下</div>
+        <div class="hrow-kg">${repsMap.get(reps)} kg</div>
+        <div class="hrow-sets">${rec.sets.filter(s=>parseInt(s.reps)===reps).length} 組</div>
+        <div class="hrow-badge"></div>
+      </div>`;
+    });
+    html+=`<div class="hcard">
+      <div class="hcard-date"><span>${rec.date} ${rec.name}</span>${badge}</div>
+      <div class="hcard-rows">${rows||'<div style="color:var(--text3);font-size:12px;padding:4px 0">無重量記錄</div>'}</div>
     </div>`;
   });
-  html+='</div>';
   body.innerHTML=html;show('s-hist');
 }
 function closeHist(){show('s-editor');}
@@ -653,9 +1227,11 @@ function buildPreview(){
   if(!curNB)return;saveNB();
   const name=curNB.student||'學員',type=curNB.type||'—';
   const starStr=curNB.stars?'★'.repeat(curNB.stars)+'☆'.repeat(5-curNB.stars):'—';
+  const curTs=Date.now();
   let m=`🏋️ 訓練報告｜${name}\n日期：${curNB.date||''}　類型：${type}\n━━━━━━━━━━━━━━━━\n\n`;
   m+=`📊 今日狀態　${starStr}　${SLAB[curNB.stars]||''}\n`;
-  if(curNB.sleep||curNB.foodWater||curNB.bodyState)m+=`  睡眠：${curNB.sleep||'—'}　飲食水分：${curNB.foodWater||'—'}\n  身體：${curNB.bodyState||'—'}\n`;
+  if(curNB.sleep||curNB.foodWater||curNB.bodyState)
+    m+=`  睡眠：${curNB.sleep||'—'}　飲食水分：${curNB.foodWater||'—'}\n  身體：${curNB.bodyState||'—'}\n`;
   if(curNB.condition)m+=`  備註：${curNB.condition}\n`;
   m+='\n';
   const exs=curNB.exercises||[];
@@ -665,12 +1241,33 @@ function buildPreview(){
     Object.keys(groups).forEach(mu=>{
       m+=`\n  ▸ ${mu}\n`;
       groups[mu].forEach(ex=>{
-        const hist=getHistory(curNB.student,ex.name);
-        const lastBest=hist[0]?.best,curBest=getBest(ex.sets||[]);
-        const perf=curBest&&lastBest?evalPerf(curBest,lastBest):null;
-        const perfTxt=curBest?(lastBest?({up:'▲ 進步',same:'● 維持',down:'▼ 退步'}[perf]||''):'🔰 首次'):'';
-        m+=`  ${ex.name}${perfTxt?' ['+perfTxt+']':''}\n`;
-        if(lastBest)m+=`    歷史最高：${fmtBest(lastBest)}\n`;
+        const lastSets=getLastSessionSets(curNB.student,ex.name,curTs,curNB.id);
+        const lifetimeBest=getLifetimeBestByReps(curNB.student,ex.name,curNB.id);
+        const hasHistory=hasEverDone(curNB.student,ex.name);
+        const detail=evalDetailed(ex.sets||[],lastSets,lifetimeBest);
+        // 組合標籤文字
+        let tags=[];
+        if(!hasHistory){
+          tags.push('🔰 首次');
+        } else {
+          if(detail.newPRReps&&detail.newPRReps.length){
+            tags.push('🎉 新紀錄 '+detail.newPRReps.map(p=>`${p.reps}下${p.kg}kg`).join('/'));
+          } else {
+            tags.push({up:'▲強度↑',same:'●強度持平',down:'▼強度↓'}[detail.strengthResult]||'');
+          }
+        }
+        const tagStr=tags.filter(Boolean).join(' ');
+        m+=`  ${ex.name}${tagStr?' ['+tagStr+']':''}\n`;
+        if(lastSets){
+          const lastMap=buildRepsMaxMap(lastSets);
+          if(lastMap.size){
+            const parts=[...lastMap.keys()].sort((a,b)=>a-b).map(r=>`${r}下→${lastMap.get(r)}kg`);
+            m+=`    上次：${parts.join(' / ')}\n`;
+          }
+        }
+        if(detail.newPRReps&&detail.newPRReps.length){
+          m+=`    ✦ 新紀錄：${detail.newPRReps.map(p=>`${p.reps}下 ${p.kg}kg`).join(' / ')}\n`;
+        }
         (ex.sets||[]).forEach((s,i)=>{
           const sets=s.sets||'—',reps=s.reps||'—',weight=s.weight;
           m+=`    組${i+1}：${sets}組 × ${reps}下${weight?' × '+weight+'kg':''}\n`;
@@ -680,7 +1277,8 @@ function buildPreview(){
     });
     m+='\n';
   }
-  if(curNB.intensity||curNB.progress)m+=`⚡ 強度：${curNB.intensity||'—'}　進步：${curNB.progress||'—'}\n\n`;
+  const perf={up:'▲ 進步',same:'● 持平',down:'▼ 退步'}[curNB.progress]||curNB.progress||'—';
+  if(curNB.intensity||curNB.progress)m+=`⚡ 強度：${curNB.intensity||'—'}　運動表現：${perf}\n\n`;
   if(curNB.good||curNB.improve||curNB.obs){
     m+=`✅ 表現回饋\n`;
     if(curNB.good)m+=`  亮點：${curNB.good}\n`;
@@ -688,9 +1286,13 @@ function buildPreview(){
     if(curNB.obs)m+=`  觀察：${curNB.obs}\n`;
     m+='\n';
   }
-  if(curNB.next||curNB.diet){m+=`🗓 接下來\n`;if(curNB.next)m+=`${curNB.next}\n`;if(curNB.diet)m+=`\n🥗 飲食提醒\n${curNB.diet}\n`;m+='\n';}
+  if(curNB.next||curNB.diet){
+    m+=`🗓 接下來\n`;if(curNB.next)m+=`${curNB.next}\n`;
+    if(curNB.diet)m+=`\n🥗 飲食提醒\n${curNB.diet}\n`;m+='\n';
+  }
   m+=`━━━━━━━━━━━━━━━━\n📅 預約下一堂\n建議頻率：${curNB.freq||'彈性單堂'}\n`;
-  m+=curNB.nextbook?`下次時間：${curNB.nextbook}\n`:`有空的時間傳給我確認 ✅\nLine：wwsskkll\n`;
+  m+=curNB.nextbook?`下次時間：${curNB.nextbook}\n`:`有空的時間傳給我確認 ✅\n`;
+  m+=`Line：wwsskkll\n`;
   if(curNB.msg)m+=`\n💬 給 ${name}\n「${curNB.msg}」\n`;
   m+=`\n下次見 💪`;
   document.getElementById('preview').textContent=m;
@@ -698,13 +1300,29 @@ function buildPreview(){
 
 function doCopy(){
   navigator.clipboard.writeText(document.getElementById('preview').textContent).then(()=>{
-    const b=document.getElementById('copybtn');b.textContent='已複製！';setTimeout(()=>b.textContent='複製 Line 訊息',2200);
+    const b=document.getElementById('copybtn');b.textContent='已複製！';
+    setTimeout(()=>b.textContent='複製 Line 訊息',2200);
   });
 }
 
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
 
-load();renderHome();renderStars();
+// ── INIT ──
+load();
+renderHome();
+renderStars();
+document.getElementById('home-date').textContent=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+
+// ── 自我測試（console）──
+console.log('[tlog v4] loaded. notebooks:', notebooks.length);
+if(notebooks.length){
+  const done=notebooks.filter(n=>n.done);
+  console.log('[tlog v4] completed notebooks:', done.length);
+  done.forEach(n=>console.log(`  [${n.student}] ${n.name} completedAt:${n.completedAt} id:${n.id}`));
+}
 </script>
 </body>
 </html>
