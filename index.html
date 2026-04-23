@@ -130,6 +130,8 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .wlog{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.85rem .95rem;margin-bottom:7px}
 .wlog-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
 .wlog-name{font-size:13px;color:var(--text);font-weight:500;flex:1;line-height:1.5}
+.wlog-name-text{display:block;margin-bottom:4px}
+.wlog-badges{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .wlog-del{font-size:16px;color:var(--text3);cursor:pointer;padding:0 4px;flex-shrink:0}.wlog-del:active{color:var(--red)}
 .wlog-hist{font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 9px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);line-height:1.7}
 .wlog-hist strong{color:var(--purple)}
@@ -466,13 +468,14 @@ function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(notebooks))
  */
 function getHistoryBefore(student, exName, beforeTs, excludeId){
   if(!student) return [];
+  const s=student.trim().toLowerCase();
   return notebooks
     .filter(nb=>{
-      if(!nb.done) return false;                    // 只看已完成
-      if(nb.id===excludeId) return false;           // 排除自己
-      if(nb.student!==student) return false;        // 同學員
-      const ts = nb.completedAt || nb.id;           // 用完成時間，沒有則用建立時間
-      return ts < beforeTs;                         // 嚴格在當前之前
+      if(!nb.done) return false;
+      if(nb.id===excludeId) return false;
+      if((nb.student||'').trim().toLowerCase()!==s) return false;
+      const ts = nb.completedAt || nb.id;
+      return ts < beforeTs;
     })
     .map(nb=>{
       const ex=(nb.exercises||[]).find(e=>e.name===exName);
@@ -514,8 +517,9 @@ function buildRepsMaxMap(sets){
  */
 function getLifetimeBestByReps(student, exName, excludeId){
   if(!student) return new Map();
+  const s=student.trim().toLowerCase();
   const allSets = notebooks
-    .filter(nb=> nb.done && nb.id!==excludeId && nb.student===student)
+    .filter(nb=> nb.done && nb.id!==excludeId && (nb.student||'').trim().toLowerCase()===s)
     .flatMap(nb=>{
       const ex=(nb.exercises||[]).find(e=>e.name===exName);
       return ex?(ex.sets||[]):[];
@@ -530,9 +534,10 @@ function getLifetimeBestByReps(student, exName, excludeId){
  */
 function hasEverDone(student, exName){
   if(!student) return false;
+  const s=student.trim().toLowerCase();
   return notebooks.some(nb=>
     nb.id !== (curNB&&curNB.id) &&
-    nb.student === student &&
+    (nb.student||'').trim().toLowerCase() === s &&
     (nb.exercises||[]).some(e=>e.name===exName)
   );
 }
@@ -637,7 +642,7 @@ function strengthBadge(r, newPRReps){
   if(r==='up') return `<span class="pb pb-up">▲ 強度↑</span>`;
   if(r==='same') return `<span class="pb pb-same">● 強度持平</span>`;
   if(r==='down') return `<span class="pb pb-down">▼ 強度↓</span>`;
-  return `<span class="pb pb-new">🔰 首次</span>`;
+  return `<span class="pb pb-same">— 首次記錄</span>`;
 }
 
 function volumeBadge(r){
@@ -651,7 +656,7 @@ function perfBadgeHtml(perf){
   if(perf==='up') return `<span class="pb pb-up">▲ 進步</span>`;
   if(perf==='same') return `<span class="pb pb-same">● 持平</span>`;
   if(perf==='down') return `<span class="pb pb-down">▼ 退步</span>`;
-  return `<span class="pb pb-new">🔰 首次</span>`;
+  return `<span class="pb pb-same">— 首次記錄</span>`;
 }
 
 
@@ -860,6 +865,16 @@ function renderPlanLog(){
       if(!ex.planRows||!ex.planRows.length) ex.planRows=[{reps:'',kg:''}];
       const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
       const hasHistory=hasEverDone(student,ex.name);
+      const lastSets=getLastSessionSets(student,ex.name,Date.now(),curNB.id);
+      // 上次訓練紀錄摘要
+      let lastSummary='';
+      if(lastSets&&lastSets.length){
+        const lastMap=buildRepsMaxMap(lastSets);
+        if(lastMap.size){
+          const parts=[...lastMap.keys()].sort((a,b)=>a-b).map(r=>`${r}下 ${lastMap.get(r)}kg`);
+          lastSummary=parts.join(' / ');
+        }
+      }
       const d=document.createElement('div');d.className='wlog';
       d.innerHTML=`
         <div class="wlog-top">
@@ -867,11 +882,12 @@ function renderPlanLog(){
             <span style="cursor:pointer;border-bottom:1px solid var(--purple);padding-bottom:1px" onclick="openHistScreen('${ex.name.replace(/'/g,"\\'")}')">
               ${ex.name}
             </span>
-            ${!hasHistory?`<span class="hist-badge hist-none">首次訓練</span>`:''}
+            ${!hasHistory?`<span class="hist-badge hist-none">🆕 新動作</span>`:''}
           </div>
           <div class="wlog-del" onclick="removeEx(${gi})">✕</div>
         </div>
-        <div style="margin-top:6px">
+        ${lastSummary?`<div style="font-size:11px;color:var(--text3);margin-bottom:6px;padding:4px 6px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">上次：<span style="color:var(--purple)">${lastSummary}</span></div>`:''}
+        <div style="margin-top:4px">
           <div class="set-labels" style="grid-template-columns:18px 1fr 1fr 52px 18px">
             <div class="set-label"></div>
             <div class="set-label">次數</div>
@@ -897,21 +913,38 @@ function renderPlanRows(gi){
   if(!ex.planRows||!ex.planRows.length) ex.planRows=[{reps:'',kg:''}];
   const student=curNB.student||'';
   const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+  // 建立 kg → 最多次數 反向 Map
+  const kgToMaxReps=new Map();
+  try{
+    notebooks.filter(nb=>nb.done&&(nb.student||'').trim().toLowerCase()===student.trim().toLowerCase())
+      .forEach(nb=>{
+        const ex2=(nb.exercises||[]).find(e=>e.name===ex.name);
+        if(ex2)(ex2.sets||[]).forEach(s=>{
+          const r=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
+          if(r>0&&r<=60&&kg>0&&(!kgToMaxReps.has(kg)||r>kgToMaxReps.get(kg))) kgToMaxReps.set(kg,r);
+        });
+      });
+  }catch(e){}
   c.innerHTML='';
   ex.planRows.forEach((row,ri)=>{
     const reps=parseInt(row.reps)||0;
-    const bestKg=reps>0&&lifetimeBest.has(reps)?lifetimeBest.get(reps):null;
-    const hintHtml=reps>0
-      ?(bestKg!=null
-        ?`<span style="color:var(--purple);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestKg}kg</span>`
-        :`<span style="color:var(--text3);font-size:10px">—</span>`)
-      :`<span style="color:var(--text3);font-size:10px">—</span>`;
+    const kg=parseFloat(row.kg)||0;
+    let hintHtml=`<span style="color:var(--text3);font-size:10px">—</span>`;
+    if(reps>0){
+      // 有次數：顯示該次數歷史最高 kg（紫色）
+      const bestKg=lifetimeBest.get(reps);
+      if(bestKg!=null) hintHtml=`<span style="color:var(--purple);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestKg}kg</span>`;
+    } else if(kg>0){
+      // 只有重量：顯示這個重量歷史最多次數（藍色）
+      const bestReps=kgToMaxReps.get(kg);
+      if(bestReps!=null) hintHtml=`<span style="color:var(--acc-light);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestReps}次</span>`;
+    }
     const el=document.createElement('div');
     el.style.cssText='display:grid;grid-template-columns:18px 1fr 1fr 52px 18px;gap:5px;align-items:center;margin-bottom:5px';
     el.innerHTML=`
       <div class="set-num">${ri+1}</div>
       <input class="set-inp" type="text" inputmode="decimal" value="${row.reps||''}" placeholder="次" oninput="updPlanRow(${gi},${ri},'reps',this.value)">
-      <input class="set-inp" type="text" inputmode="decimal" value="${row.kg||''}" placeholder="kg" oninput="updPlanRow(${gi},${ri},'kg',this.value)">
+      <input class="set-inp" type="text" inputmode="decimal" value="${row.kg||''}" placeholder="kg" oninput="updPlanRow(${gi},${ri},'kg',this.value);renderPlanRows(${gi})">
       <div style="padding-left:4px">${hintHtml}</div>
       <div class="set-del" onclick="delPlanRow(${gi},${ri})">✕</div>`;
     c.appendChild(el);
@@ -1021,38 +1054,38 @@ function renderClassLog(){
       const lastSets=getLastSessionSets(student,ex.name,curTs,curNB.id);
       const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
       const curSets=ex.sets||[];
-      // 首次判斷：用 hasEverDone 查所有已完成課程（含之前的）
-      const hasHistory=hasEverDone(student,ex.name);
+      // 首次判斷：直接看歷史最高有無資料，跟 lifetimeBest 來源一致
+      // 若 lifetimeBest 空，再用 hasEverDone 補查（有動作名但無重量紀錄）
+      const hasHistory=lifetimeBest.size>0||hasEverDone(student,ex.name);
       // 預計提示（從 planRows 組合）
       const planRows=ex.planRows||[];
       const planHint=planRows.filter(r=>r.reps||r.kg).map(r=>[r.reps?r.reps+'次':'',r.kg?r.kg+'kg':''].filter(Boolean).join('×')).join(' / ');
       // 用第一組的次數做歷史比對
       const planReps=parseInt((planRows[0]||{}).reps)||0;
-      // 上次提示 — 顯示上次各次數最重（不依賴備課次數）
+      // 歷史提示 — 等填入次數後才顯示同次數的歷史最高
+      // 初始狀態顯示整體歷史最高讓教練知道基準
       let histLine='';
-      if(!hasHistory){
-        histLine='';  // 首次不顯示任何提示，badge 已處理
-      } else if(lastSets&&lastSets.length){
-        const lastMap=buildRepsMaxMap(lastSets);
-        if(lastMap.size){
-          // 如果備課有設定次數，優先顯示對應次數；否則顯示最重那組
-          if(planReps&&lastMap.has(planReps)){
-            histLine=`上次 ${planReps}下 → <strong>${lastMap.get(planReps)}kg</strong>`;
-          } else {
-            // 顯示上次最重那組
-            let maxKg=0,maxReps=0;
-            lastMap.forEach((kg,r)=>{if(kg>maxKg){maxKg=kg;maxReps=r;}});
-            if(maxKg) histLine=`上次最重：${maxReps}下 → <strong>${maxKg}kg</strong>`;
-          }
-        }
-      }
-      // 歷史最高（只顯示預計次數）
       let bestLine='';
-      if(hasHistory&&planReps&&lifetimeBest.has(planReps)){
-        const best=lifetimeBest.get(planReps);
-        const lastMap=lastSets?buildRepsMaxMap(lastSets):new Map();
-        const lastKg=lastMap.get(planReps)||0;
-        if(best!==lastKg) bestLine=`歷史最高：${planReps}下 → ${best}kg`;
+      if(hasHistory){
+        // 找今天已填的次數，對應顯示歷史最高
+        const curMap=buildRepsMaxMap(curSets);
+        if(curMap.size){
+          // 有填次數：只顯示今天有填的次數對應的歷史最高
+          const matchLines=[];
+          curMap.forEach((kg,reps)=>{
+            const histKg=lifetimeBest.get(reps);
+            const lastMap=lastSets?buildRepsMaxMap(lastSets):new Map();
+            const lastKg=lastMap.get(reps);
+            if(histKg) matchLines.push(`${reps}下 歷史最高：<strong>${histKg}kg</strong>${lastKg&&lastKg!==histKg?` / 上次：${lastKg}kg`:''}`);
+            else if(lastKg) matchLines.push(`${reps}下 上次：<strong>${lastKg}kg</strong>`);
+          });
+          if(matchLines.length) histLine=matchLines.join('　');
+        } else {
+          // 還沒填次數：顯示整體歷史最高讓教練參考
+          let maxKg=0,maxReps=0;
+          lifetimeBest.forEach((kg,r)=>{if(kg>maxKg){maxKg=kg;maxReps=r;}});
+          if(maxKg) histLine=`歷史最高：${maxReps}下 → <strong>${maxKg}kg</strong>`;
+        }
       }
       const d=document.createElement('div');d.className='wlog';
       // 如果 sets 是空的（全部欄位空），且備課有 planRows，就預填
@@ -1071,13 +1104,18 @@ function renderClassLog(){
         volLine=`訓練量：${Math.round(curVol)}kg`;
         if(prevVol>0) volLine+=`（上次 ${Math.round(prevVol)}kg）`;
       }
+      // 動作標籤：新動作 vs 有歷史（獨立於強度指標）
+      const newExTag=!hasHistory?`<span style="font-size:11px;padding:2px 7px;border-radius:6px;background:var(--amber-bg);border:1px solid var(--amber-b);color:var(--amber);margin-left:5px;font-weight:500">🆕 新動作</span>`:'';
       // hist 區域：只顯示有資訊的行
       const histRows=[histLine,bestLine].filter(Boolean);
       d.innerHTML=`
         <div class="wlog-top">
           <div class="wlog-name">
-            ${ex.name}
-            <span id="pb-${gi}" style="margin-left:4px">${sBadge}</span>
+            <span class="wlog-name-text">${ex.name}</span>
+            <div class="wlog-badges">
+              ${newExTag}
+              <span id="pb-${gi}">${sBadge}</span>
+            </div>
           </div>
           <div class="wlog-del" onclick="removeEx(${gi})">✕</div>
         </div>
@@ -1106,30 +1144,63 @@ function renderSets(gi){
   const ex=curNB.exercises[gi];
   const sets=ex.sets||[];
   const student=curNB.student||'';
-  // PR 欄：包含當前 sets 一起算（歷史最高 + 今天填的）
+  // PR 欄雙向查詢
+  // 也建立「kg → 最多次數」的反向 Map
   const histBest=getLifetimeBestByReps(student,ex.name,curNB.id);
   const curMap=buildRepsMaxMap(sets);
-  // 合併：同次數取較大值
   const allBest=new Map(histBest);
   curMap.forEach((kg,reps)=>{
     if(!allBest.has(reps)||kg>allBest.get(reps)) allBest.set(reps,kg);
   });
+  // 建立 kg → 最多次數 的 Map（歷史 + 今天）
+  const kgToMaxReps=new Map();
+  const allSetsForKg=[
+    ...getLifetimeBestByReps(student,ex.name,curNB.id).entries(),
+    ...buildRepsMaxMap(sets).entries()
+  ];
+  // 從所有歷史 sets 建立反向 map
+  const rawAllSets=[];
+  try{
+    notebooks.filter(nb=>nb.done&&(nb.student||'').trim().toLowerCase()===student.trim().toLowerCase())
+      .forEach(nb=>{
+        const ex2=(nb.exercises||[]).find(e=>e.name===ex.name);
+        if(ex2)(ex2.sets||[]).forEach(s=>rawAllSets.push(s));
+      });
+    sets.forEach(s=>rawAllSets.push(s));
+    rawAllSets.forEach(s=>{
+      const r=parseInt(s.reps)||0;
+      const kg=parseFloat(s.weight)||0;
+      if(r>0&&r<=60&&kg>0){
+        if(!kgToMaxReps.has(kg)||r>kgToMaxReps.get(kg)) kgToMaxReps.set(kg,r);
+      }
+    });
+  }catch(e){}
+
   c.innerHTML='';
   sets.forEach((s,si)=>{
     const reps=parseInt(s.reps)||0;
-    const bestKg=reps>0&&allBest.has(reps)?allBest.get(reps):null;
-    const histHtml=reps>0
-      ?(bestKg!=null
-        ?`<span style="color:var(--purple);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestKg}kg</span>`
-        :`<span style="color:var(--text3);font-size:10px">—</span>`)
-      :`<span style="color:var(--text3);font-size:10px">—</span>`;
+    const kg=parseFloat(s.weight)||0;
+    let histHtml=`<span style="color:var(--text3);font-size:10px">—</span>`;
+    if(reps>0&&kg>0){
+      // 兩個都填：顯示該次數的歷史最高 kg
+      const bestKg=allBest.get(reps);
+      if(bestKg!=null) histHtml=`<span style="color:var(--purple);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestKg}kg</span>`;
+    } else if(reps>0){
+      // 只填次數：顯示該次數歷史最高 kg
+      const bestKg=allBest.get(reps);
+      if(bestKg!=null) histHtml=`<span style="color:var(--purple);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestKg}kg</span>`;
+    } else if(kg>0){
+      // 只填重量：顯示這個重量歷史上做過的最多次數
+      const bestReps=kgToMaxReps.get(kg);
+      if(bestReps!=null) histHtml=`<span style="color:var(--acc-light);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;white-space:nowrap">${bestReps}次</span>`;
+    }
     const row=document.createElement('div');
     row.style.cssText='display:grid;grid-template-columns:18px 1fr 1fr 1fr 52px 18px;gap:5px;align-items:center;margin-bottom:5px';
     row.innerHTML=`
       <div class="set-num">${si+1}</div>
       <input class="set-inp" type="text" inputmode="decimal" value="${s.sets||''}" placeholder="組" oninput="updSet(${gi},${si},'sets',this.value)">
       <input class="set-inp" type="text" inputmode="decimal" value="${s.reps||''}" placeholder="次" oninput="updSet(${gi},${si},'reps',this.value);renderSets(${gi})">
-      <input class="set-inp" type="text" inputmode="decimal" value="${s.weight||''}" placeholder="kg" oninput="updSet(${gi},${si},'weight',this.value)">
+      <input class="set-inp" type="text" inputmode="decimal" value="${s.weight||''}" placeholder="kg" oninput="updSet(${gi},${si},'weight',this.value);renderSets(${gi})">
       <div style="padding-left:2px">${histHtml}</div>
       <div class="set-del" onclick="delSet(${gi},${si})">✕</div>`;
     c.appendChild(row);
@@ -1189,8 +1260,9 @@ function openHistScreen(exName){
   document.getElementById('hist-sub').textContent=student?student+' 歷史紀錄':'歷史紀錄';
   const body=document.getElementById('hist-body');
   // 取所有完成的課程中有此動作的，按完成時間排序
+  const _s=(student||'').trim().toLowerCase();
   const records=notebooks
-    .filter(nb=>nb.done&&nb.student===student&&nb.id!==curNB.id)
+    .filter(nb=>nb.done&&(nb.student||'').trim().toLowerCase()===_s&&nb.id!==curNB.id)
     .map(nb=>{
       const ex=(nb.exercises||[]).find(e=>e.name===exName);
       if(!ex||!(ex.sets||[]).length)return null;
@@ -1247,30 +1319,44 @@ function buildPreview(){
       groups[mu].forEach(ex=>{
         const lastSets=getLastSessionSets(curNB.student,ex.name,curTs,curNB.id);
         const lifetimeBest=getLifetimeBestByReps(curNB.student,ex.name,curNB.id);
-        const hasHistory=hasEverDone(curNB.student,ex.name);
+        const hasHistory=lifetimeBest.size>0||hasEverDone(curNB.student,ex.name);
         const detail=evalDetailed(ex.sets||[],lastSets,lifetimeBest);
-        // 組合標籤文字
-        let tags=[];
-        if(!hasHistory){
-          tags.push('🔰 首次');
-        } else {
-          if(detail.newPRReps&&detail.newPRReps.length){
-            tags.push('🎉 新紀錄 '+detail.newPRReps.map(p=>`${p.reps}下${p.kg}kg`).join('/'));
-          } else {
-            tags.push({up:'▲強度↑',same:'●強度持平',down:'▼強度↓'}[detail.strengthResult]||'');
-          }
+        const newExMark=!hasHistory?'🆕 新動作':'';
+        let strengthTag='';
+        if(hasHistory&&detail.newPRReps&&detail.newPRReps.length){
+          strengthTag='🎉 新紀錄';
         }
-        const tagStr=tags.filter(Boolean).join(' ');
+        const tagStr=[newExMark,strengthTag].filter(Boolean).join(' ');
         m+=`  ${ex.name}${tagStr?' ['+tagStr+']':''}\n`;
-        if(lastSets){
+        // 進步對比：只顯示今天有填且有進步的次數
+        if(detail.strengthResult==='up'&&lastSets){
+          const curMap=buildRepsMaxMap(ex.sets||[]);
           const lastMap=buildRepsMaxMap(lastSets);
-          if(lastMap.size){
-            const parts=[...lastMap.keys()].sort((a,b)=>a-b).map(r=>`${r}下→${lastMap.get(r)}kg`);
-            m+=`    上次：${parts.join(' / ')}\n`;
-          }
+          const progLines=[];
+          curMap.forEach((kg,reps)=>{
+            if(lastMap.has(reps)&&kg>lastMap.get(reps)){
+              progLines.push(`${reps}下：${lastMap.get(reps)}kg → ${kg}kg`);
+            }
+          });
+          if(progLines.length) m+=`    進步：${progLines.join(' / ')}\n`;
         }
-        if(detail.newPRReps&&detail.newPRReps.length){
-          m+=`    ✦ 新紀錄：${detail.newPRReps.map(p=>`${p.reps}下 ${p.kg}kg`).join(' / ')}\n`;
+        // 新紀錄：精簡顯示，只出現一次
+        if(hasHistory&&detail.newPRReps&&detail.newPRReps.length){
+          const prLines=[];
+          detail.newPRReps.forEach(p=>{
+            const prevKg=lifetimeBest.get(p.reps)||0;
+            if(prevKg>0) prLines.push(`${p.reps}下 ${prevKg}→${p.kg}kg`);
+            else{
+              // 首次此次數，改查同重量的次數進步
+              const histKgReps=[];
+              notebooks.filter(nb=>nb.done&&nb.id!==curNB.id&&(nb.student||'').trim().toLowerCase()===(curNB.student||'').trim().toLowerCase())
+                .forEach(nb=>{const ex2=(nb.exercises||[]).find(e=>e.name===ex.name);if(ex2)(ex2.sets||[]).forEach(s=>{const r=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;if(r>0&&r<=60&&kg===p.kg) histKgReps.push(r);});});
+              const maxPrevReps=histKgReps.length?Math.max(...histKgReps):0;
+              if(maxPrevReps>0) prLines.push(`${p.kg}kg ${maxPrevReps}→${p.reps}次`);
+              else prLines.push(`${p.reps}下 ${p.kg}kg`);
+            }
+          });
+          if(prLines.length) m+=`    ✦ ${prLines.join(' / ')}\n`;
         }
         (ex.sets||[]).forEach((s,i)=>{
           const sets=s.sets||'—',reps=s.reps||'—',weight=s.weight;
