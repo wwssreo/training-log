@@ -1340,13 +1340,6 @@ function renderStudentDiet(){
     html+='<div class="chip'+(i===2?' sel':'')+'" onclick="togS(this,\'diet-day-type-chips\');updateDietColLabel()">'+p+'</div>';
   });
   html+='</div></div>';
-  // 類型調整鈕：決定這筆是「高碳/一般/低碳」等
-  html+='<div style="margin-bottom:10px"><div class="flabel" style="margin-bottom:6px">碳水類型</div>';
-  html+='<div class="chip-group" id="diet-carb-type-chips">';
-  ['高碳','中碳','低碳','正常'].forEach((p,i)=>{
-    html+='<div class="chip'+(i===3?' sel':'')+'" onclick="togS(this,\'diet-carb-type-chips\')">'+p+'</div>';
-  });
-  html+='</div></div>';
   // 高碳日三大營養素
   html+='<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:6px">';
   html+='<div style="font-size:11px;color:#ff8c42;font-weight:600;margin-bottom:8px;font-family:\'DM Mono\',monospace">🔴 高碳日目標攝取量</div>';
@@ -2999,7 +2992,6 @@ function openDietEdit(ts){
   const e=macros.find(m=>m.ts===ts);if(!e)return;
   document.getElementById('diet-edit-sub').textContent=curStudentName+' · '+e.date;
   const phases=['增肌期','減脂期','維持期','高碳日','低碳日','補碳日'];
-  const carbTypes=['高碳','中碳','低碳','正常'];
   const dayTypes=['訓練日','休息日','常日'];
   let body='<div class="card">';
   body+='<div class="flabel" style="margin-bottom:6px">訓練階段</div>';
@@ -3009,12 +3001,9 @@ function openDietEdit(ts){
   body+='<div class="flabel" style="margin-bottom:6px;margin-top:10px">當日類型</div>';
   body+='<div class="chip-group" id="edit-daytype-chips">';
   dayTypes.forEach(p=>{body+='<div class="chip'+(e.dayType===p?' sel':'')+'" onclick="togS(this,\'edit-daytype-chips\')">'+p+'</div>';});
-  body+='</div>';
-  body+='<div class="flabel" style="margin-bottom:6px;margin-top:10px">碳水類型</div>';
-  body+='<div class="chip-group" id="edit-carbtype-chips">';
-  carbTypes.forEach(p=>{body+='<div class="chip'+((e.carbType||'正常')===p?' sel':'')+'" onclick="togS(this,\'edit-carbtype-chips\')">'+p+'</div>';});
   body+='</div></div>';
-  body+='<div class="card"><div class="sec">三大營養素</div>';
+  body+='<div class="card">';
+  body+='<div style="font-size:11px;color:#ff8c42;font-weight:600;margin-bottom:6px">🔴 高碳日目標攝取量</div>';
   body+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
   body+='<div><div style="font-size:10px;color:var(--green);margin-bottom:4px">蛋白質 g</div><input type="text" inputmode="decimal" id="edit-protein" value="'+e.protein+'" oninput="calcEditMacros()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--green);text-align:center"></div>';
   body+='<div><div style="font-size:10px;color:var(--amber);margin-bottom:4px">碳水 g</div><input type="text" inputmode="decimal" id="edit-carb" value="'+e.carb+'" oninput="calcEditMacros()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--amber);text-align:center"></div>';
@@ -3022,12 +3011,18 @@ function openDietEdit(ts){
   body+='</div>';
   const pK=e.pKcal,cK=e.cKcal,fK=e.fKcal,tot=e.total;
   const pP=tot?Math.round(pK/tot*100):0,cP=tot?Math.round(cK/tot*100):0;
-  body+='<div id="edit-macros-result" style="background:var(--bg3);border-radius:8px;padding:10px">';
+  body+='<div id="edit-macros-result" style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:12px">';
   body+='<div style="text-align:center;margin-bottom:8px"><span style="font-size:24px;font-weight:600;color:var(--text)">'+tot+'</span><span style="font-size:11px;color:var(--text3);margin-left:4px">kcal</span></div>';
   body+='<div style="height:8px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:6px" id="edit-bar"><div style="width:'+pP+'%;background:var(--green)"></div><div style="width:'+cP+'%;background:var(--amber)"></div><div style="flex:1;background:var(--red)"></div></div>';
   body+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;font-size:11px">';
   body+='<div style="color:var(--green)" id="edit-p-info">'+pK+'kcal ('+pP+'%)</div><div style="color:var(--amber)" id="edit-c-info">'+cK+'kcal ('+cP+'%)</div><div style="color:var(--red)" id="edit-f-info">'+fK+'kcal ('+(100-pP-cP)+'%)</div>';
-  body+='</div></div></div>';
+  body+='</div></div>';
+  body+='<div style="font-size:11px;color:#5b9bd5;font-weight:600;margin-bottom:6px">🔵 低碳日目標攝取量</div>';
+  body+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+  body+='<div><div style="font-size:10px;color:var(--green);margin-bottom:4px">蛋白質 g</div><input type="text" inputmode="decimal" id="edit-protein2" value="'+(e.col2?.protein||'')+'" placeholder="0" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--green);text-align:center"></div>';
+  body+='<div><div style="font-size:10px;color:var(--amber);margin-bottom:4px">碳水 g</div><input type="text" inputmode="decimal" id="edit-carb2" value="'+(e.col2?.carb||'')+'" placeholder="0" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--amber);text-align:center"></div>';
+  body+='<div><div style="font-size:10px;color:var(--red);margin-bottom:4px">脂肪 g</div><input type="text" inputmode="decimal" id="edit-fat2" value="'+(e.col2?.fat||'')+'" placeholder="0" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--red);text-align:center"></div>';
+  body+='</div></div>';
   body+='<div class="card"><div class="flabel">飲水目標</div>';
   body+='<input type="text" id="edit-water" value="'+(e.water||'')+'" placeholder="例：2000ml" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text)">';
   body+='<div class="flabel" style="margin-top:10px">教練備註</div>';
@@ -3061,10 +3056,14 @@ function saveDietEdit(){
   const pK=Math.round(p*4),cK=Math.round(c*4),fK=Math.round(f*9),tot=pK+cK+fK;
   const phase=document.querySelector('#edit-phase-chips .chip.sel')?.textContent.trim()||'';
   const dayType=document.querySelector('#edit-daytype-chips .chip.sel')?.textContent.trim()||'';
-  const carbType=document.querySelector('#edit-carbtype-chips .chip.sel')?.textContent.trim()||'';
   const water=(document.getElementById('edit-water')?.value||'').trim();
   const note=(document.getElementById('edit-note')?.value||'').trim();
-  macros[idx]={...macros[idx],protein:p,carb:c,fat:f,pKcal:pK,cKcal:cK,fKcal:fK,total:tot,phase,dayType,carbType,water,note};
+  const p2=parseFloat(document.getElementById('edit-protein2')?.value)||0;
+  const c2v=parseFloat(document.getElementById('edit-carb2')?.value)||0;
+  const f2=parseFloat(document.getElementById('edit-fat2')?.value)||0;
+  const updatedEntry={...macros[idx],protein:p,carb:c,fat:f,pKcal:pK,cKcal:cK,fKcal:fK,total:tot,phase,dayType,water,note};
+  if(p2||c2v||f2){const pK2=Math.round(p2*4),cK2=Math.round(c2v*4),fK2=Math.round(f2*9),tot2=pK2+cK2+fK2;updatedEntry.col2={protein:p2,carb:c2v,fat:f2,pKcal:pK2,cKcal:cK2,fKcal:fK2,total:tot2};}else{delete updatedEntry.col2;}
+  macros[idx]=updatedEntry;
   saveDietData();alert('✅ 已更新');
   backToStudent();switchStudentTab('diet');
 }
