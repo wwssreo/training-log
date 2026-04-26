@@ -545,7 +545,7 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
 <!-- SESSION DETAIL SCREEN -->
 <div class="screen" id="s-session-detail">
   <div class="ed-hdr">
-    <div class="back" onclick="backToStudent()">←</div>
+    <div class="back" onclick="backToStudent();switchStudentTab('sessions')">←</div>
     <div class="ed-title-wrap">
       <div class="ed-title" id="session-detail-title">課程詳情</div>
       <div class="ed-sub" id="session-detail-sub"></div>
@@ -574,6 +574,10 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
     <div id="diet-content" style="display:none">
       <!-- 飲食計畫記錄 -->
       <div class="card">
+        <!-- 日期 -->
+        <div class="flabel">日期</div>
+        <input type="text" id="diet-date-input" placeholder="例：04/27" style="margin-bottom:12px">
+
         <!-- 當日類型 -->
         <div class="flabel">當日類型</div>
         <div class="chip-group" id="diet-daytype" style="margin-bottom:14px">
@@ -701,9 +705,9 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
 <!-- DIET EXPORT PREVIEW SCREEN -->
 <div class="screen" id="s-diet-export">
   <div class="ed-hdr">
-    <div class="back" onclick="backToStudent();switchStudentTab('diet')">←</div>
+    <div class="back" id="report-back-btn" onclick="reportGoBack()">←</div>
     <div class="ed-title-wrap">
-      <div class="ed-title">飲食計畫輸出</div>
+      <div class="ed-title" id="diet-export-title">報告預覽</div>
       <div class="ed-sub" id="diet-export-sub"></div>
     </div>
   </div>
@@ -1225,18 +1229,13 @@ function openBackupScreen(){
 }
 
 function exportBackup(){
-  // 建立完整備份物件
   const students=[...new Set(notebooks.map(n=>(n.student||'').trim()).filter(Boolean))];
   const backup={
     version:'coach-tool-v1',
     exportDate:new Date().toISOString(),
-    notebooks,
-    dietData,
-    clientList,
-    // 各學員各動作最高強度摘要
+    notebooks,dietData,clientList,
     strengthSummary:{}
   };
-  // 計算每位學員每個動作的最高強度
   students.forEach(student=>{
     backup.strengthSummary[student]={};
     const allExNames=new Set();
@@ -1247,71 +1246,74 @@ function exportBackup(){
       if(best.size){
         let maxKg=0,maxReps=0;
         best.forEach((kg,r)=>{if(kg>maxKg){maxKg=kg;maxReps=r;}});
-        backup.strengthSummary[student][exName]={
-          bestKg:maxKg,bestReps:maxReps,
-          byReps:Object.fromEntries(best)
-        };
+        backup.strengthSummary[student][exName]={bestKg:maxKg,bestReps:maxReps,byReps:Object.fromEntries(best)};
       }
     });
   });
   const json=JSON.stringify(backup,null,2);
+  // 手機相容：只複製，不強制下載
   document.getElementById('backup-preview').textContent=json;
   document.getElementById('backup-preview-wrap').style.display='block';
-  // 複製到剪貼板
-  copyText(json,'✅ 備份已複製到剪貼板！\n請貼到備忘錄或記事本儲存。');
+  copyText(json,'✅ 備份已複製！\n請貼到備忘錄或雲端筆記保存。');
 }
 
 function exportReadableReport(){
-  const students=[...new Set(notebooks.map(n=>(n.student||'').trim()).filter(Boolean))];
+  const students=[...new Set([
+    ...notebooks.map(n=>(n.student||'').trim()),
+    ...clientList,
+    ...Object.keys(dietData)
+  ].filter(Boolean))];
+
   let report=`📊 教練工具完整資料報告\n匯出時間：${new Date().toLocaleString('zh-TW')}\n${'═'.repeat(30)}\n\n`;
+
   students.forEach(student=>{
     report+=`👤 ${student}\n${'─'.repeat(20)}\n`;
-    // 評估資料
-    const assess=notebooks.find(n=>n.isAssess&&(n.student||'').trim()===student);
-    if(assess&&assess.assessData){
-      const a=assess.assessData;
-      report+=`📋 評估紀錄（${assess.date}）\n`;
-      if(a.goals)report+=`  目標：${a.goals}\n`;
-      if(a.injury)report+=`  注意事項：${a.injury}\n`;
-      report+=`  深蹲：${a.squat||'—'}　髖主導：${a.hip||'—'}　核心：${a.core||'—'}\n\n`;
+
+    // ── 最新評估報告（與複製給客戶LINE完全一致）──
+    const assessNbs=notebooks.filter(n=>n.isAssess&&(n.student||'').trim()===student)
+      .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id));
+    const latestAssess=assessNbs[0];
+    if(latestAssess&&latestAssess.assessData){
+      report+=buildAssessReport(latestAssess.assessData, student, latestAssess.date||'')+'\n\n';
     }
-    // 飲食習慣
-    const diet=dietData[student];
-    if(diet&&diet.habits&&diet.habits.type){
-      const h=diet.habits;
-      report+=`🥗 飲食習慣\n  型態：${h.type||'—'}　餐數：${h.meals||'—'}　飲水：${h.water||'—'}\n`;
-      if(h.supplements)report+=`  補充品：${h.supplements}\n`;
-      if(h.note)report+=`  備註：${h.note}\n`;
-      report+='\n';
+
+    // ── 最新一筆飲食紀錄（與複製給客戶LINE完全一致）──
+    const macros=(dietData[student]?.macros||[]).sort((a,b)=>b.ts-a.ts);
+    if(macros.length){
+      report+=buildDietReport([macros[0]], student)+'\n\n';
     }
-    // 訓練最高強度
+
+    // ── 所有訓練動作以10下為基準的最高重量 ──
     const allExNames=new Set();
     notebooks.filter(n=>n.done&&(n.student||'').trim()===student&&!n.isAssess)
       .forEach(n=>(n.exercises||[]).forEach(ex=>allExNames.add(ex.name)));
     if(allExNames.size){
-      report+=`💪 各動作歷史最高強度\n`;
+      report+=`💪 各動作以10下為基準的最高重量\n`;
       allExNames.forEach(exName=>{
         const best=getLifetimeBestByReps(student,exName,null);
         if(best.size){
-          const parts=[...best.entries()].sort((a,b)=>a[0]-b[0]).map(([r,kg])=>`${r}下→${kg}kg`);
-          report+=`  ${exName.split('（')[0]}\n    ${parts.join(' / ')}\n`;
+          // 找10下的最高重量；若無10下紀錄，找最接近10下的
+          let targetKg=best.get(10)||0;
+          if(!targetKg){
+            let closestReps=null,minDiff=Infinity;
+            best.forEach((kg,r)=>{const d=Math.abs(r-10);if(d<minDiff){minDiff=d;closestReps=r;targetKg=kg;}});
+            if(closestReps!==null&&targetKg){
+              report+=`  ${exName.split('（')[0]}：${closestReps}下→${targetKg}kg（${closestReps}下紀錄）\n`;
+            }
+          } else {
+            report+=`  ${exName.split('（')[0]}：10下→${targetKg}kg\n`;
+          }
         }
       });
       report+='\n';
     }
-    // 課程歷史
-    const sessions=notebooks.filter(n=>n.done&&!n.isAssess&&(n.student||'').trim()===student)
-      .sort((a,b)=>(a.completedAt||a.id)-(b.completedAt||b.id));
-    if(sessions.length){
-      report+=`📅 課程紀錄（共 ${sessions.length} 堂）\n`;
-      sessions.forEach(s=>report+=`  ${s.date} ${s.name||''} ${s.type?'['+s.type+']':''}\n`);
-      report+='\n';
-    }
     report+='\n';
   });
+
+  // 只複製，不下載，手機也能用
   document.getElementById('backup-preview').textContent=report;
   document.getElementById('backup-preview-wrap').style.display='block';
-  copyText(report,'✅ 報告已複製到剪貼板！');
+  copyText(report,'✅ 報告已複製！');
 }
 
 function copyBackup(){
@@ -1407,7 +1409,21 @@ function switchTab(name){
   ['tc-plan','tc-class','tc-report'].forEach(id=>{
     document.getElementById(id).classList.toggle('on',id==='tc-'+name);
   });
-  if(name==='class') renderClassLog();
+  if(name==='class'){
+    // 修正10：將備課 planRows 同步到上課 sets（只在 sets 為空時同步）
+    if(curNB?.exercises){
+      curNB.exercises.forEach(ex=>{
+        if(ex.planRows&&ex.planRows.length){
+          const hasRealSets=(ex.sets||[]).some(s=>parseInt(s.reps)||parseFloat(s.weight)||parseInt(s.sets));
+          if(!hasRealSets){
+            ex.sets=ex.planRows.map(pr=>({sets:pr.sets||'',reps:pr.reps||'',weight:pr.kg||''}));
+          }
+        }
+      });
+      persist();
+    }
+    renderClassLog();
+  }
   if(name==='report') renderReport();
 }
 
@@ -1507,29 +1523,58 @@ function renderPlanLog(){
   const exs=curNB?.exercises||[];
   if(!exs.length){container.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">尚未加入任何動作</div>';return;}
   container.innerHTML='';
+  const student=(document.getElementById('f-student')?.value||curNB?.student||'').trim();
+  const curTs=curNB?.completedAt||curNB?.id||Date.now();
   exs.forEach((ex,ei)=>{
     const div=document.createElement('div');
     div.className='wlog';
-    // 歷史最高
-    const student=(document.getElementById('f-student')?.value||curNB?.student||'').trim();
     const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
-    let bestHtml='';
-    if(lifetimeBest.size){
+    const isNew=!hasEverDone(student,ex.name);
+    const prevSets=getLastSessionSets(student,ex.name,curTs,curNB.id);
+
+    // ── 備課提示（新動作或歷史紀錄）──
+    let hintHtml='';
+    if(isNew){
+      hintHtml=`<div class="wlog-hist" style="border-color:var(--amber-b);background:var(--amber-bg)">
+        <span style="color:var(--amber);font-weight:500">✨ 新動作</span>
+        <span style="color:var(--text3);margin-left:6px">此客戶首次訓練，備課時填寫預計目標</span>
+      </div>`;
+    } else if(lifetimeBest.size){
+      // 顯示同次數歷史最高重量
       const parts=[...lifetimeBest.entries()].sort((a,b)=>a[0]-b[0]).map(([r,kg])=>`${r}下→${kg}kg`).join(' / ');
-      bestHtml=`<div class="wlog-hist">歷史最高：<strong>${parts}</strong></div>`;
+      let prevHtml='';
+      if(prevSets&&prevSets.length){
+        const validPrev=prevSets.filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+        if(validPrev.length){
+          const lastDesc=validPrev.map(s=>{
+            const g=parseInt(s.sets)||1,r=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
+            return `${g}組 ${r?r+'下':'—'} ${kg?'×'+kg+'kg':''}`.trim();
+          }).join(' / ');
+          prevHtml=`<div style="font-size:11px;color:var(--text2);margin-top:3px">上次：${lastDesc}</div>`;
+        }
+      }
+      hintHtml=`<div class="wlog-hist">
+        <span style="color:var(--text3);font-size:10px">歷史最高：</span><strong style="color:var(--purple)">${parts}</strong>
+        ${prevHtml}
+      </div>`;
     }
-    // planRows
-    const planRows=ex.planRows||[{reps:'',kg:''}];
-    let planHtml=`<div class="plan-grid">`;
-    planHtml+=`<div><div class="plan-grid-lbl">組</div></div>`;
-    planHtml+=`<div><div class="plan-grid-lbl">次</div></div>`;
-    planHtml+=`<div><div class="plan-grid-lbl">重量(kg)</div></div>`;
-    planHtml+='</div>';
+
+    // planRows — 使用 set-row 格式
+    const planRows=ex.planRows&&ex.planRows.length?ex.planRows:[{sets:'',reps:'',kg:''}];
+    let setRowsHtml=`<div class="set-labels">
+      <div class="set-label">#</div>
+      <div class="set-label">組數</div>
+      <div class="set-label">次數</div>
+      <div class="set-label">重量(kg)</div>
+      <div class="set-label"></div>
+    </div>`;
     planRows.forEach((pr,pi)=>{
-      planHtml+=`<div class="plan-grid" style="margin-top:4px">
-        <input class="plan-inp" type="text" inputmode="decimal" placeholder="${pi+1}" value="${pi+1}" readonly style="color:var(--text3)">
-        <input class="plan-inp" type="text" inputmode="decimal" placeholder="次" value="${pr.reps}" oninput="updatePlanRow(${ei},${pi},'reps',this.value)">
-        <input class="plan-inp" type="text" inputmode="decimal" placeholder="kg" value="${pr.kg}" oninput="updatePlanRow(${ei},${pi},'kg',this.value)">
+      setRowsHtml+=`<div class="set-row">
+        <div class="set-num">${pi+1}</div>
+        <input class="set-inp" type="text" inputmode="decimal" placeholder="組" value="${pr.sets||''}" oninput="updatePlanRow(${ei},${pi},'sets',this.value)">
+        <input class="set-inp" type="text" inputmode="decimal" placeholder="次" value="${pr.reps||''}" oninput="updatePlanRow(${ei},${pi},'reps',this.value)">
+        <input class="set-inp" type="text" inputmode="decimal" placeholder="kg" value="${pr.kg||''}" oninput="updatePlanRow(${ei},${pi},'kg',this.value)">
+        <div class="set-del" onclick="delPlanRow(${ei},${pi})">✕</div>
       </div>`;
     });
     div.innerHTML=`
@@ -1537,26 +1582,35 @@ function renderPlanLog(){
         <div class="wlog-name"><span class="wlog-name-text">${ex.name.split('（')[0]}<span style="font-size:11px;color:var(--text3);font-weight:300"> ${ex.name.includes('（')?'（'+ex.name.split('（')[1]:''}</span></span></div>
         <span class="wlog-del" onclick="toggleExercise('${ex.name.replace(/'/g,"\\'")}')">✕</span>
       </div>
-      ${bestHtml}
+      ${hintHtml}
       <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-family:'DM Mono',monospace">計畫組數</div>
-      ${planHtml}
-      <button onclick="addPlanRow(${ei})" style="width:100%;margin-top:5px;padding:6px;border-radius:2px;background:transparent;border:1px dashed var(--border2);color:var(--text3);font-size:11px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">＋ 加一組</button>
+      ${setRowsHtml}
+      <button class="add-set" onclick="addPlanRow(${ei})">＋ 加一組</button>
       <textarea class="wlog-note" rows="1" placeholder="備課備註" oninput="updateExNote(${ei},this.value)">${ex.note||''}</textarea>`;
     container.appendChild(div);
   });
 }
 
+function delPlanRow(ei,pi){
+  if(!curNB?.exercises?.[ei]?.planRows) return;
+  const rows=curNB.exercises[ei].planRows;
+  if(rows.length<=1){alert('至少保留一組');return;}
+  rows.splice(pi,1);
+  persist();renderPlanLog();
+}
+
 function updatePlanRow(ei,pi,field,val){
   if(!curNB?.exercises?.[ei]) return;
-  if(!curNB.exercises[ei].planRows) curNB.exercises[ei].planRows=[{reps:'',kg:''}];
+  if(!curNB.exercises[ei].planRows) curNB.exercises[ei].planRows=[{sets:'',reps:'',kg:''}];
+  if(!curNB.exercises[ei].planRows[pi]) curNB.exercises[ei].planRows[pi]={sets:'',reps:'',kg:''};
   curNB.exercises[ei].planRows[pi][field]=val;
   persist();
 }
 
 function addPlanRow(ei){
   if(!curNB?.exercises?.[ei]) return;
-  if(!curNB.exercises[ei].planRows) curNB.exercises[ei].planRows=[{reps:'',kg:''}];
-  curNB.exercises[ei].planRows.push({reps:'',kg:''});
+  if(!curNB.exercises[ei].planRows) curNB.exercises[ei].planRows=[{sets:'',reps:'',kg:''}];
+  curNB.exercises[ei].planRows.push({sets:'',reps:'',kg:''});
   persist();renderPlanLog();
 }
 
@@ -1586,31 +1640,63 @@ function renderClassLog(){
   exs.forEach((ex,ei)=>{
     const prevSets=getLastSessionSets(student,ex.name,curTs,curNB.id);
     const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+    const isNewExercise=!hasEverDone(student,ex.name);
     const sets=ex.sets&&ex.sets.length?ex.sets:[{sets:'',reps:'',weight:''}];
 
-    // 歷史提示
+    // ── 歷史/提示區塊 ──
     let histHtml='';
-    if(prevSets&&prevSets.length){
-      const rows=prevSets.slice(0,3).map(s=>{
-        const kg=parseFloat(s.weight)||0;const reps=parseInt(s.reps)||0;
-        if(!kg&&!reps)return '';
-        return `<div class="hist-row-item"><span class="hr-label">${parseInt(s.sets)||1}組</span><span class="hr-val">${reps?reps+'下':'—'} × ${kg?kg+'kg':'—'}</span></div>`;
-      }).filter(Boolean).join('');
-      if(rows) histHtml=`<div class="wlog-hist"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">上次紀錄</div>${rows}</div>`;
+    if(isNewExercise){
+      // 全新動作：顯示「新動作」提示
+      histHtml=`<div class="wlog-hist" style="border-color:var(--amber-b);background:var(--amber-bg)">
+        <span style="color:var(--amber);font-weight:500">✨ 新動作</span>
+        <span style="color:var(--text3);margin-left:6px">此客戶首次訓練，請根據測試重量填寫</span>
+      </div>`;
+    } else if(prevSets&&prevSets.length){
+      // 有上次紀錄：顯示上次數據，提示今日參考
+      const validPrev=prevSets.filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+      if(validPrev.length){
+        const rows=validPrev.map(s=>{
+          const g=parseInt(s.sets)||1,r=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
+          // 推算建議：同次數多0.5-2.5kg 或 同重量多1-2下
+          const suggKg=kg?kg+2.5:0;
+          const suggRep=r?r+1:0;
+          return `<div class="hist-row-item">
+            <span class="hr-label">${g}組</span>
+            <span class="hr-val">${r?r+'下':'—'} × ${kg?kg+'kg':'—'}</span>
+            ${kg||r?`<span style="font-size:10px;color:var(--green);margin-left:6px">→ 建議 ${suggKg?suggKg+'kg / ':''}${suggRep?suggRep+'下':''}</span>`:''}
+          </div>`;
+        }).join('');
+        histHtml=`<div class="wlog-hist"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">上次紀錄</div>${rows}</div>`;
+      }
     } else if(lifetimeBest.size){
+      // 有歷史但不是上一次同類課：顯示歷史最高
       const parts=[...lifetimeBest.entries()].sort((a,b)=>a[0]-b[0]).map(([r,kg])=>`${r}下→${kg}kg`).join(' / ');
       histHtml=`<div class="wlog-hist">歷史最高：<strong style="color:var(--purple)">${parts}</strong></div>`;
     }
 
-    // 進步徽章
+    // ── 進步徽章（只判斷是否超越歷史最高）──
     let badgeHtml='';
     const curValidSets=sets.filter(s=>parseInt(s.reps)>0&&parseFloat(s.weight)>0);
-    if(curValidSets.length){
-      const {strengthResult,volumeResult,newPRReps}=evalDetailed(sets,prevSets,lifetimeBest);
-      badgeHtml=strengthBadge(strengthResult,newPRReps)+volumeBadge(volumeResult);
+    if(curValidSets.length&&lifetimeBest.size){
+      const curMap=buildRepsMaxMap(curValidSets);
+      const newPRReps=[];
+      curMap.forEach((kg,reps)=>{
+        const histBest=lifetimeBest.get(reps)||0;
+        if(kg>histBest) newPRReps.push({reps,kg});
+      });
+      if(newPRReps.length){
+        const desc=newPRReps.map(p=>`${p.reps}下 ${p.kg}kg`).join(' / ');
+        badgeHtml=`<span class="pb pb-up">🎉 新紀錄 ${desc}</span>`;
+      } else if(curValidSets.length&&!isNewExercise){
+        // 看是否比歷史最高「任何次數」有進步
+        let anyProgress=false;
+        curMap.forEach((kg,reps)=>{const best=lifetimeBest.get(reps)||0;if(kg>best*0)anyProgress=true;});
+      }
+    } else if(isNewExercise&&curValidSets.length){
+      badgeHtml=`<span class="pb pb-new">✨ 首次記錄</span>`;
     }
 
-    // set rows
+    // ── Set rows（組欄可填） ──
     let setRowsHtml=`<div class="set-labels">
       <div class="set-label">#</div>
       <div class="set-label">組數</div>
@@ -1621,11 +1707,12 @@ function renderClassLog(){
     sets.forEach((s,si)=>{
       setRowsHtml+=`<div class="set-row">
         <div class="set-num">${si+1}</div>
-        <input class="set-inp" type="text" inputmode="decimal" placeholder="1" value="${s.sets||''}" oninput="updateSet(${ei},${si},'sets',this.value)">
+        <input class="set-inp" type="text" inputmode="decimal" placeholder="組" value="${s.sets||''}" oninput="updateSet(${ei},${si},'sets',this.value)">
         <input class="set-inp" type="text" inputmode="decimal" placeholder="次" value="${s.reps||''}" oninput="updateSet(${ei},${si},'reps',this.value)">
         <input class="set-inp" type="text" inputmode="decimal" placeholder="kg" value="${s.weight||''}" oninput="updateSet(${ei},${si},'weight',this.value)">
         <div class="set-del" onclick="delSet(${ei},${si})">✕</div>
-      </div>`;
+      </div>
+      <div id="set-hint-${ei}-${si}" style="display:none;font-size:10px;color:var(--green);font-family:'DM Mono',monospace;padding:2px 6px;margin-bottom:2px"></div>`;
     });
 
     const div=document.createElement('div');
@@ -1653,12 +1740,57 @@ function updateSet(ei,si,field,val){
   if(!curNB.exercises[ei].sets[si]) curNB.exercises[ei].sets[si]={sets:'',reps:'',weight:''};
   curNB.exercises[ei].sets[si][field]=val;
   persist();
+  // ── 修正4：即時建議 ──
+  const student=(curNB.student||'').trim();
+  const ex=curNB.exercises[ei];
+  const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+  const hintId=`set-hint-${ei}-${si}`;
+  const hintEl=document.getElementById(hintId);
+  if(!hintEl||!lifetimeBest.size) return;
+  const curReps=parseInt(curNB.exercises[ei].sets[si].reps)||0;
+  const curKg=parseFloat(curNB.exercises[ei].sets[si].weight)||0;
+  let hint='';
+  if(field==='reps'&&curReps>0){
+    // 填次數→建議該次數歷史最高重量
+    const bestKg=lifetimeBest.get(curReps);
+    if(bestKg) hint=`${curReps}下歷史最高：${bestKg}kg`;
+    else{
+      // 找最近次數的最高重量作參考
+      const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[0]-curReps)-Math.abs(b[0]-curReps))[0];
+      if(nearby) hint=`${nearby[0]}下歷史最高${nearby[1]}kg（參考）`;
+    }
+  } else if(field==='weight'&&curKg>0){
+    // 填重量→建議該重量歷史最高次數
+    let bestReps=0,bestKgDiff=Infinity;
+    lifetimeBest.forEach((kg,r)=>{
+      if(kg===curKg&&r>bestReps){bestReps=r;}
+      const diff=Math.abs(kg-curKg);
+      if(diff<bestKgDiff){bestKgDiff=diff;}
+    });
+    // 找完全一樣重量的最高次數
+    lifetimeBest.forEach((kg,r)=>{if(Math.abs(kg-curKg)<0.1&&r>bestReps) bestReps=r;});
+    if(bestReps) hint=`${curKg}kg歷史最高：${bestReps}下`;
+    else{
+      const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[1]-curKg)-Math.abs(b[1]-curKg))[0];
+      if(nearby) hint=`近似重量 ${nearby[1]}kg→${nearby[0]}下（參考）`;
+    }
+  }
+  hintEl.textContent=hint;
+  hintEl.style.display=hint?'block':'none';
 }
 
 function addSet(ei){
   if(!curNB?.exercises?.[ei]) return;
   if(!curNB.exercises[ei].sets) curNB.exercises[ei].sets=[];
   curNB.exercises[ei].sets.push({sets:'',reps:'',weight:''});
+  persist();renderClassLog();
+}
+
+function delLastSet(ei){
+  if(!curNB?.exercises?.[ei]?.sets) return;
+  const sets=curNB.exercises[ei].sets;
+  if(sets.length<=1){alert('至少保留一組');return;}
+  sets.pop();
   persist();renderClassLog();
 }
 
@@ -1709,9 +1841,11 @@ function renderReport(){
   const freq=getMultiChip('g-freq')||nb.freq||'';
   const nextbook=document.getElementById('f-nextbook')?.value||nb.nextbook||'';
   const starVal=stars||nb.stars||0;
+  const curTs=nb.completedAt||nb.id||Date.now();
 
-  // 訓練紀錄文字
+  // 訓練紀錄文字 + 進步比對
   let exLines='';
+  let prLines=''; // 新紀錄行
   (nb.exercises||[]).forEach(ex=>{
     const validSets=(ex.sets||[]).filter(s=>parseInt(s.reps)||parseFloat(s.weight));
     if(!validSets.length)return;
@@ -1723,6 +1857,13 @@ function renderReport(){
     }).join(' / ');
     exLines+=`  • ${ex.name.split('（')[0]}  ${setDesc}\n`;
     if(ex.classNote) exLines+=`    ↳ ${ex.classNote}\n`;
+
+    // 進步比對（同重量次數進步 / 同次數重量進步）
+    const prevSets=getLastSessionSets(student,ex.name,curTs,nb.id);
+    const lifetimeBest=getLifetimeBestByReps(student,ex.name,nb.id);
+    const exShortName=ex.name.split('（')[0];
+    const progressItems=detectProgress(validSets,prevSets,lifetimeBest,exShortName);
+    progressItems.forEach(p=>prLines+=`  ${p}\n`);
   });
 
   let report='';
@@ -1744,6 +1885,9 @@ function renderReport(){
   if(exLines){
     report+=`📊 訓練內容\n`;
     report+=exLines+'\n';
+  }
+  if(prLines){
+    report+=`🏆 今日進步\n${prLines}\n`;
   }
   if(intensity||prog) report+=`強度：${intensity}　表現：${prog}\n\n`;
   if(good) report+=`✅ 表現亮點\n${good}\n\n`;
@@ -1846,12 +1990,20 @@ function saveAndHome(){
   curNB.done=true;
   curNB.completedAt=Date.now();
   if(!curNB.date) curNB.date=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
-  // 確保學員在 clientList
   if(curNB.student&&!clientList.includes(curNB.student)){clientList.push(curNB.student);saveClientList();}
   persist();
   const s=curNB.student;
-  goHome();
-  if(s) openStudent(s);
+  curNB=null;
+  if(s){
+    curStudentName=s;
+    document.getElementById('student-title').textContent=s;
+    const sessions=notebooks.filter(n=>!n.isAssess&&(n.student||'').trim()===s);
+    document.getElementById('student-sub').textContent=sessions.filter(n=>n.done).length+' 堂課程';
+    switchStudentTab('sessions');
+    show('s-student');
+  } else {
+    show('s-home');renderHome();
+  }
 }
 
 function goHome(){
@@ -1891,7 +2043,7 @@ function createNB(){
 function quickSession(student){
   const today=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
   const nb={
-    id:Date.now(),name:student+' '+today,date:today,student,
+    id:Date.now(),name:today,date:today,student,
     exercises:[],stars:0,done:false,planNote:'',
     type:'',sleep:'',food:'',body:'',condition:'',
     intensity:'',prog:'',good:'',improve:'',obs:'',
@@ -1930,21 +2082,36 @@ function renderStudentAssess(){
   const el=document.getElementById('student-assess-tab');
   if(!el)return;
   const assessNbs=notebooks.filter(n=>n.isAssess&&(n.student||'').trim()===curStudentName);
+  let html=`<div style="margin-bottom:8px"><button onclick="quickAssess('${curStudentName.replace(/'/g,"\\'")}');curStudentName='${curStudentName.replace(/'/g,"\\'")}'" style="width:100%;padding:10px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">📋 新增評估</button></div>`;
   if(!assessNbs.length){
-    el.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px">尚無評估紀錄<br><button onclick="quickAssess('${curStudentName.replace(/'/g,"\\'")}');backToStudent=()=>{openStudent('${curStudentName.replace(/'/g,"\\'")}')}" style="margin-top:12px;padding:10px 20px;border-radius:4px;background:var(--amber);color:#fff;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif">📋 新增評估</button></div>`;
-    return;
+    html+='<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">尚無評估紀錄</div>';
+    el.innerHTML=html;return;
   }
-  let html='<div style="margin-bottom:8px"><button onclick="quickAssess(\''+curStudentName.replace(/'/g,"\\'")+'\')" style="width:100%;padding:10px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-family:\'Noto Sans TC\',sans-serif;font-size:13px">📋 新增評估</button></div>';
   assessNbs.sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id)).forEach(nb=>{
     const a=nb.assessData||{};
     html+=`<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:14px;font-weight:500">${nb.date||'評估'}</div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:6px">
+          <button onclick="previewAssessReport(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">報告</button>
           <button onclick="openAssessEdit(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">編輯</button>
           <button onclick="deleteAssess(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">刪除</button>
         </div>
       </div>`;
+    // 基本資訊
+    const basicInfo=[];
+    if(a.sex)basicInfo.push('性別：'+a.sex);
+    if(a.height)basicInfo.push('身高：'+a.height+'cm');
+    if(a.weight)basicInfo.push('體重：'+a.weight+'kg');
+    if(a.birth)basicInfo.push('生日：'+a.birth);
+    if(basicInfo.length) html+=`<div style="font-size:12px;color:var(--text2);margin-bottom:6px">${basicInfo.join('　')}</div>`;
+    // 身體組成
+    const bodyComp=[];
+    if(a.bf)bodyComp.push('體脂：'+a.bf+'%');
+    if(a.muscleKg)bodyComp.push('肌肉：'+a.muscleKg+'kg');
+    if(a.bmi)bodyComp.push('BMI：'+a.bmi);
+    if(a.waist)bodyComp.push('腰圍：'+a.waist+'cm');
+    if(bodyComp.length) html+=`<div style="font-size:12px;color:var(--purple);margin-bottom:6px">${bodyComp.join('　')}</div>`;
     if(a.goals) html+=`<div style="font-size:13px;margin-bottom:6px"><span style="color:var(--text3)">目標：</span>${a.goals}</div>`;
     if(a.injury) html+=`<div style="font-size:13px;margin-bottom:6px"><span style="color:var(--red)">注意：</span>${a.injury}</div>`;
     const fields=[['深蹲模式',a.squat],['髖主導',a.hip],['核心穩定',a.core],['肩活動度',a.shoulder],['胸椎活動度',a.thoracic]];
@@ -1957,9 +2124,179 @@ function renderStudentAssess(){
       html+=`</div>`;
     }
     if(a.note) html+=`<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.7">${a.note}</div>`;
+    if(a.priority) html+=`<div style="font-size:12px;color:var(--acc-light);margin-top:4px;line-height:1.7">優先順序：${a.priority}</div>`;
     html+=`</div>`;
   });
   el.innerHTML=html;
+}
+
+// ══════════════════════════════════════════
+// ── 統一進步判斷函式 ──
+// ══════════════════════════════════════════
+/**
+ * 對單個動作判斷今次是否有進步，回傳描述字串陣列
+ * 條件1：同重量下，次數比上次/歷史最高多
+ * 條件2：同次數下，重量比上次/歷史最高重
+ */
+function detectProgress(validSets, prevSets, lifetimeBest, exShortName){
+  const results=[];
+  if(!validSets||!validSets.length) return results;
+
+  // 建立本次 kg→maxReps、reps→maxKg 的 Map
+  const curKgToReps=new Map(); // 同重量下最高次數
+  const curRepsToKg=new Map(); // 同次數下最高重量
+  validSets.forEach(s=>{
+    const r=parseInt(s.reps)||0;
+    const kg=parseFloat(s.weight)||0;
+    if(!r||!kg) return;
+    if(!curKgToReps.has(kg)||r>curKgToReps.get(kg)) curKgToReps.set(kg,r);
+    if(!curRepsToKg.has(r)||kg>curRepsToKg.get(r)) curRepsToKg.set(r,kg);
+  });
+
+  // 歷史最高：reps→maxKg（已有），另外建立 kg→maxReps
+  const histKgToReps=new Map();
+  if(lifetimeBest.size){
+    // lifetimeBest 是 reps→kg，倒過來建 kg→reps
+    lifetimeBest.forEach((kg,r)=>{
+      if(!histKgToReps.has(kg)||r>histKgToReps.get(kg)) histKgToReps.set(kg,r);
+    });
+  }
+
+  // 條件1：同重量，今次次數 > 歷史最高次數
+  curKgToReps.forEach((reps,kg)=>{
+    const histReps=histKgToReps.get(kg)||0;
+    if(reps>histReps&&histReps>0){
+      results.push(`▲ ${exShortName}：${kg}kg 次數進步（${histReps}→${reps}下）`);
+    }
+  });
+
+  // 條件2：同次數，今次重量 > 歷史最高重量
+  curRepsToKg.forEach((kg,reps)=>{
+    const histKg=lifetimeBest.get(reps)||0;
+    if(kg>histKg&&histKg>0){
+      results.push(`▲ ${exShortName}：${reps}下 重量進步（${histKg}→${kg}kg）`);
+    }
+  });
+
+  // 若全部都是首次（歷史無紀錄），不算進步，不輸出
+  return results;
+}
+
+// ══════════════════════════════════════════
+// ── 統一評估報告產生函式 ──
+// ══════════════════════════════════════════
+function buildAssessReport(a, student, date){
+  let r=`🏆 第一堂評估報告\n學員：${student||'—'}`;
+  if(a.age) r+=`　${a.age}歲`;
+  if(a.sex) r+=`　${a.sex}`;
+  if(a.height) r+=`　${a.height}cm`;
+  r+=`　日期：${date||''}\n${'─'.repeat(20)}\n\n`;
+  const bodyParts=[];
+  if(a.bodyWeight) bodyParts.push(`體重：${a.bodyWeight}kg`);
+  if(a.muscleKg) bodyParts.push(`肌肉重：${a.muscleKg}kg`);
+  if(a.fatKg) bodyParts.push(`脂肪重：${a.fatKg}kg`);
+  if(a.bf) bodyParts.push(`體脂肪：${a.bf}%`);
+  if(a.visceralFat) bodyParts.push(`內臟脂肪：${a.visceralFat}`);
+  if(a.bmi) bodyParts.push(`BMI：${a.bmi}`);
+  if(bodyParts.length) r+=`📊 身體組成\n${bodyParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(a.goals) r+=`🎯 課程目標\n${a.goals}\n\n`;
+  if(a.injury) r+=`⚠️ 注意事項\n${a.injury}\n\n`;
+  if(a.meals||a.protein||a.water||a.suppl){
+    r+=`🥗 飲食水分\n`;
+    if(a.meals) r+=`  餐數：${a.meals}\n`;
+    if(a.protein) r+=`  蛋白質：${a.protein}\n`;
+    if(a.water) r+=`  飲水：${a.water}\n`;
+    if(a.suppl) r+=`  訓練補充：${a.suppl}\n`;
+    if(a.dietSuggest) r+=`  建議：${a.dietSuggest}\n`;
+    r+='\n';
+  }
+  if(a.sleepHrs||a.sleepQ){
+    r+=`😴 睡眠\n  時數：${a.sleepHrs||'—'}　品質：${a.sleepQ||'—'}\n`;
+    if(a.sleepSuggest) r+=`  建議：${a.sleepSuggest}\n`;
+    r+='\n';
+  }
+  const staticParts=[];
+  if(a.head) staticParts.push(`頭頸：${a.head}`);
+  if(a.shoulderLvl) staticParts.push(`肩膀：${a.shoulderLvl}`);
+  if(a.scapula) staticParts.push(`肩胛：${a.scapula}`);
+  if(a.thoracicCurve) staticParts.push(`胸椎曲度：${a.thoracicCurve}`);
+  if(a.lumbarCurve) staticParts.push(`腰椎曲度：${a.lumbarCurve}`);
+  if(a.pelvis) staticParts.push(`骨盆：${a.pelvis}`);
+  if(a.kneeAlign) staticParts.push(`膝蓋：${a.kneeAlign}`);
+  if(a.foot) staticParts.push(`足弓：${a.foot}`);
+  if(staticParts.length) r+=`🔍 靜態評估\n${staticParts.map(p=>'  '+p).join('\n')}\n\n`;
+  const romParts=[];
+  if(a.overhead) romParts.push(`過頭舉：${a.overhead}`);
+  if(a.shoulderRot) romParts.push(`肩旋轉：${a.shoulderRot}`);
+  if(a.thoracicRot) romParts.push(`胸椎旋轉：${a.thoracicRot}`);
+  if(a.thoracicExt) romParts.push(`胸椎伸直：${a.thoracicExt}`);
+  if(a.thoracicFlex) romParts.push(`胸椎彎曲：${a.thoracicFlex}`);
+  if(a.lumbarExt) romParts.push(`腰椎伸直：${a.lumbarExt}`);
+  if(a.lumbarFlex) romParts.push(`腰椎彎曲：${a.lumbarFlex}`);
+  if(a.hipFlex||a.hipExt) romParts.push(`髖屈曲：${a.hipFlex||'—'}　髖伸直：${a.hipExt||'—'}`);
+  if(a.hipIr||a.hipEr) romParts.push(`髖內旋：${a.hipIr||'—'}　髖外旋：${a.hipEr||'—'}`);
+  if(romParts.length) r+=`💪 關節活動度\n${romParts.map(p=>'  '+p).join('\n')}\n\n`;
+  const dynParts=[];
+  if(a.sqDepth) dynParts.push(`深蹲：${a.sqDepth}${a.sqKnee?' / 膝'+a.sqKnee:''}`);
+  if(a.hipDom) dynParts.push(`髖主導：${a.hipDom}`);
+  if(a.iap) dynParts.push(`核心：${a.iap}`);
+  if(a.hPush) dynParts.push(`水平推：${a.hPush}`);
+  if(a.vPush) dynParts.push(`垂直推：${a.vPush}`);
+  if(a.hPull) dynParts.push(`水平拉：${a.hPull}`);
+  if(a.vPull) dynParts.push(`垂直拉：${a.vPull}`);
+  if(dynParts.length) r+=`⚙️ 動態評估\n${dynParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(a.sessionStars) r+=`今日狀態：${'★'.repeat(a.sessionStars)}${'☆'.repeat(5-a.sessionStars)}（${SLAB[a.sessionStars]||''}）\n`;
+  if(a.exercises) r+=`\n📊 第一堂訓練\n${a.exercises.split('\n').map(l=>'  '+l).join('\n')}\n\n`;
+  if(a.obs) r+=`👁 教練觀察\n${a.obs}\n\n`;
+  if(a.good) r+=`✅ 表現亮點\n${a.good}\n\n`;
+  if(a.nextDir) r+=`🎯 下一階段方向\n${a.nextDir}\n\n`;
+  if(a.priority) r+=`📌 優先改善\n${a.priority}\n\n`;
+  if(a.freq) r+=`📅 建議頻率：${a.freq}\n`;
+  if(a.nextBook) r+=`下次預約：${a.nextBook}\n`;
+  return r.trim();
+}
+
+// ── 統一飲食報告產生函式 ──
+function buildDietReport(macros, student){
+  let r=`🥗 飲食計畫報告｜${student}\n匯出：${new Date().toLocaleDateString('zh-TW')}\n${'─'.repeat(20)}\n\n`;
+  if(!macros||!macros.length){r+='尚無飲食紀錄';return r.trim();}
+  macros.forEach(m=>{
+    r+=`📅 ${m.date||'—'}${m.dayType?' ('+m.dayType+')':''}\n`;
+    if(m.hcKcal!=null){
+      if(m.hcKcal) r+=`  高碳日：${m.hcKcal}kcal　蛋${m.hcProtein||0}g 碳${m.hcCarb||0}g 脂${m.hcFat||0}g\n`;
+      if(m.lcKcal) r+=`  低碳日：${m.lcKcal}kcal　蛋${m.lcProtein||0}g 碳${m.lcCarb||0}g 脂${m.lcFat||0}g\n`;
+      if(m.water) r+=`  飲水目標：${m.water}\n`;
+    } else {
+      r+=`  ${m.total||0}kcal　蛋白${m.protein||0}g 碳水${m.carb||0}g 脂肪${m.fat||0}g\n`;
+    }
+    if(m.note) r+=`  備註：${m.note}\n`;
+    r+='\n';
+  });
+  return r.trim();
+}
+
+// ── 評估報告產出（客戶分頁的報告按鈕） ──
+function previewAssessReport(nbId){
+  const nb=notebooks.find(n=>n.id===nbId);if(!nb)return;
+  const a=nb.assessData||{};
+  const student=nb.student||'學員';
+  const r=buildAssessReport(a, student, nb.date||'');
+  showReport('評估報告', student+' · 評估報告 '+nb.date, r, 'assess');
+}
+
+// ── 飲食報告（整體所有紀錄） ──
+function previewDietReport(){
+  const macros=(dietData[curStudentName]?.macros||[]).sort((a,b)=>b.ts-a.ts);
+  const r=buildDietReport(macros, curStudentName||'學員');
+  showReport('飲食報告', curStudentName+' · 飲食紀錄', r, 'diet');
+}
+
+// ── 單筆飲食報告（每筆飲食紀錄的報告按鈕）──
+function previewSingleDietReport(ts){
+  const macros=dietData[curStudentName]?.macros||[];
+  const m=macros.find(e=>e.ts===ts);if(!m)return;
+  const r=buildDietReport([m], curStudentName||'學員');
+  showReport('飲食報告', curStudentName+' · 飲食報告 '+m.date, r, 'diet');
 }
 
 function deleteAssess(nbId){
@@ -1968,55 +2305,185 @@ function deleteAssess(nbId){
   persist();renderStudentAssess();
 }
 
+// ── 飲食計畫新增（對應新UI） ──
+function saveDietPlan(){
+  if(!curStudentName){alert('請先選擇學員');return;}
+  const dayType=document.querySelector('#diet-daytype .chip.sel')?.textContent.trim()||'';
+  const hcP=parseFloat(document.getElementById('diet-hc-protein')?.value)||0;
+  const hcC=parseFloat(document.getElementById('diet-hc-carb')?.value)||0;
+  const hcF=parseFloat(document.getElementById('diet-hc-fat')?.value)||0;
+  const lcP=parseFloat(document.getElementById('diet-lc-protein')?.value)||0;
+  const lcC=parseFloat(document.getElementById('diet-lc-carb')?.value)||0;
+  const lcF=parseFloat(document.getElementById('diet-lc-fat')?.value)||0;
+  const waterGoal=(document.getElementById('diet-water-goal')?.value||'').trim();
+  const note=(document.getElementById('diet-note')?.value||'').trim();
+  const inputDate=(document.getElementById('diet-date-input')?.value||'').trim();
+  const today=inputDate||new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+  // 計算高碳日熱量
+  const hcKcal=Math.round(hcP*4+hcC*4+hcF*9);
+  const lcKcal=Math.round(lcP*4+lcC*4+lcF*9);
+  const entry={
+    ts:Date.now(),date:today,dayType,
+    hcProtein:hcP,hcCarb:hcC,hcFat:hcF,hcKcal,
+    lcProtein:lcP,lcCarb:lcC,lcFat:lcF,lcKcal,
+    water:waterGoal,note,
+    // 相容舊格式（用高碳日數值作為預設）
+    protein:hcP,carb:hcC,fat:hcF,
+    pKcal:Math.round(hcP*4),cKcal:Math.round(hcC*4),fKcal:Math.round(hcF*9),total:hcKcal
+  };
+  if(!dietData[curStudentName]) dietData[curStudentName]={macros:[],habits:{}};
+  dietData[curStudentName].macros.push(entry);
+  saveDietData();
+  // 更新計數
+  const cnt=document.getElementById('diet-count');
+  if(cnt) cnt.textContent=dietData[curStudentName].macros.length;
+  renderDietHistory();
+  alert('✅ 飲食紀錄已儲存');
+  // 跳回學員飲食分頁
+  backToStudent();
+  switchStudentTab('diet');
+}
+
 function renderStudentDiet(){
   const el=document.getElementById('student-diet-tab');
   if(!el)return;
   const data=dietData[curStudentName]||{};
   const macros=(data.macros||[]).sort((a,b)=>b.ts-a.ts);
-  const habits=data.habits||{};
-  let html='';
-  // 快速記錄按鈕
-  html+=`<div style="margin-bottom:8px"><button onclick="openDietFor('${curStudentName.replace(/'/g,"\\'")}');backFromDiet=()=>{openStudent('${curStudentName.replace(/'/g,"\\'")}');switchStudentTab('diet');}" style="width:100%;padding:10px;border-radius:4px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">🥗 記錄飲食數據</button></div>`;
-  // 飲食習慣摘要
-  if(habits.type){
-    html+=`<div class="card"><div class="sec">飲食習慣</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px">
-        ${habits.type?`<div style="background:var(--bg3);padding:4px 8px;border-radius:3px"><span style="color:var(--text3)">型態：</span>${habits.type}</div>`:''}
-        ${habits.meals?`<div style="background:var(--bg3);padding:4px 8px;border-radius:3px"><span style="color:var(--text3)">餐數：</span>${habits.meals}</div>`:''}
-        ${habits.water?`<div style="background:var(--bg3);padding:4px 8px;border-radius:3px"><span style="color:var(--text3)">飲水：</span>${habits.water}</div>`:''}
-        ${habits.suppl?`<div style="background:var(--bg3);padding:4px 8px;border-radius:3px"><span style="color:var(--text3)">補充前後：</span>${habits.suppl}</div>`:''}
-        ${habits.supplements?`<div style="background:var(--bg3);padding:4px 8px;border-radius:3px"><span style="color:var(--text3)">補充品：</span>${habits.supplements}</div>`:''}
-      </div>
-      ${habits.note?`<div style="font-size:12px;color:var(--text2);margin-top:8px">${habits.note}</div>`:''}
-    </div>`;
-  }
-  // 飲食歷史
-  if(macros.length){
-    html+=`<div class="sec-lbl" style="margin:4px 0 8px">飲食紀錄</div>`;
-    macros.forEach(m=>{
-      html+=`<div class="card" style="margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="font-size:13px;font-weight:500">${m.date||'—'}</div>
+  let html=`<div style="margin-bottom:8px">
+    <button onclick="openDietFor('${curStudentName.replace(/'/g,"\\'")}');" style="width:100%;padding:10px;border-radius:4px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">🥗 記錄飲食</button>
+  </div>`;
+  if(!macros.length){html+='<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">尚無飲食數據</div>';el.innerHTML=html;return;}
+  html+=`<div class="sec-lbl" style="margin:4px 0 8px">飲食紀錄（${macros.length} 筆）</div>`;
+  macros.forEach(m=>{
+    // 支援新格式 & 舊格式
+    const isNew=m.hcKcal!=null;
+    html+=`<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div>
+          <span style="font-size:13px;font-weight:500">${m.date||'—'}</span>
+          ${m.dayType?`<span style="font-size:11px;color:var(--acc-light);margin-left:6px;background:var(--acc-bg);padding:1px 6px;border-radius:3px">${m.dayType}</span>`:''}
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="previewSingleDietReport(${m.ts})" style="padding:3px 8px;border-radius:3px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:11px;font-family:'Noto Sans TC',sans-serif">報告</button>
+          <button onclick="openDietEditEntry(${m.ts})" style="padding:3px 8px;border-radius:3px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:11px;font-family:'Noto Sans TC',sans-serif">編輯</button>
           <button onclick="deleteDietEntry(${m.ts})" style="padding:3px 8px;border-radius:3px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:11px;font-family:'Noto Sans TC',sans-serif">刪除</button>
         </div>
-        <div style="font-size:22px;font-weight:600;text-align:center;color:var(--text);margin-bottom:8px">${m.total||0} <span style="font-size:12px;color:var(--text3)">kcal</span></div>
-        <div style="height:8px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:6px">
-          <div style="width:${m.total?Math.round((m.pKcal||0)/m.total*100):0}%;background:var(--green)"></div>
-          <div style="width:${m.total?Math.round((m.cKcal||0)/m.total*100):0}%;background:var(--amber)"></div>
-          <div style="flex:1;background:var(--red)"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;font-size:11px">
-          <div style="color:var(--green)">蛋白 ${m.protein||0}g</div>
-          <div style="color:var(--amber)">碳水 ${m.carb||0}g</div>
-          <div style="color:var(--red)">脂肪 ${m.fat||0}g</div>
-        </div>
-        ${m.note?`<div style="font-size:12px;color:var(--text2);margin-top:8px">${m.note}</div>`:''}
       </div>`;
-    });
-  } else {
-    html+=`<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">尚無飲食數據</div>`;
-  }
+    if(isNew){
+      if(m.hcKcal){
+        html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:12px;color:var(--amber);font-weight:500">高碳日</span>
+          <span style="font-size:16px;font-weight:600;color:var(--text)">${m.hcKcal} <span style="font-size:10px;color:var(--text3)">kcal</span></span>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">蛋 ${m.hcProtein||0}g　碳 ${m.hcCarb||0}g　脂 ${m.hcFat||0}g</div>`;
+      }
+      if(m.lcKcal){
+        html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;margin-bottom:4px">
+          <span style="font-size:12px;color:var(--purple);font-weight:500">低碳日</span>
+          <span style="font-size:16px;font-weight:600;color:var(--text)">${m.lcKcal} <span style="font-size:10px;color:var(--text3)">kcal</span></span>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">蛋 ${m.lcProtein||0}g　碳 ${m.lcCarb||0}g　脂 ${m.lcFat||0}g</div>`;
+      }
+      if(m.water) html+=`<div style="font-size:12px;color:var(--text2);margin-top:6px">💧 ${m.water}</div>`;
+    } else {
+      html+=`<div style="font-size:20px;font-weight:600;text-align:center;color:var(--text);margin-bottom:6px">${m.total||0} <span style="font-size:12px;color:var(--text3)">kcal</span></div>
+      <div style="font-size:11px;color:var(--text3);text-align:center">蛋白 ${m.protein||0}g　碳水 ${m.carb||0}g　脂肪 ${m.fat||0}g</div>`;
+    }
+    if(m.note) html+=`<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.6">${m.note}</div>`;
+    html+=`</div>`;
+  });
   el.innerHTML=html;
+}
+
+// ── 飲食紀錄編輯入口（從學員飲食頁） ──
+function openDietEditEntry(ts){
+  // 帶入舊資料到飲食頁表單並切換過去
+  const macros=dietData[curStudentName]?.macros||[];
+  const e=macros.find(m=>m.ts===ts);if(!e)return;
+  editingDietTs=ts;
+  openDietFor(curStudentName);
+  // 延遲填入舊值
+  setTimeout(()=>{
+    const dtChips=document.querySelectorAll('#diet-daytype .chip');
+    dtChips.forEach(c=>c.classList.toggle('sel',c.textContent.trim()===e.dayType));
+    const ids=[['diet-hc-protein',e.hcProtein||e.protein||0],['diet-hc-carb',e.hcCarb||e.carb||0],
+      ['diet-hc-fat',e.hcFat||e.fat||0],['diet-lc-protein',e.lcProtein||0],
+      ['diet-lc-carb',e.lcCarb||0],['diet-lc-fat',e.lcFat||0],
+      ['diet-water-goal',e.water||''],['diet-note',e.note||''],
+      ['diet-date-input',e.date||'']];
+    ids.forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+    // 改按鈕文字為更新
+    const btn=document.querySelector('[onclick="saveDietPlan()"]');
+    if(btn){btn.textContent='更新飲食紀錄';btn.onclick=()=>updateDietPlan(ts);}
+  },150);
+}
+
+function updateDietPlan(ts){
+  if(!dietData[curStudentName])return;
+  const macros=dietData[curStudentName].macros;
+  const idx=macros.findIndex(m=>m.ts===ts);if(idx<0)return;
+  const dayType=document.querySelector('#diet-daytype .chip.sel')?.textContent.trim()||'';
+  const hcP=parseFloat(document.getElementById('diet-hc-protein')?.value)||0;
+  const hcC=parseFloat(document.getElementById('diet-hc-carb')?.value)||0;
+  const hcF=parseFloat(document.getElementById('diet-hc-fat')?.value)||0;
+  const lcP=parseFloat(document.getElementById('diet-lc-protein')?.value)||0;
+  const lcC=parseFloat(document.getElementById('diet-lc-carb')?.value)||0;
+  const lcF=parseFloat(document.getElementById('diet-lc-fat')?.value)||0;
+  const waterGoal=(document.getElementById('diet-water-goal')?.value||'').trim();
+  const note=(document.getElementById('diet-note')?.value||'').trim();
+  const inputDate=(document.getElementById('diet-date-input')?.value||'').trim();
+  const hcKcal=Math.round(hcP*4+hcC*4+hcF*9);
+  const lcKcal=Math.round(lcP*4+lcC*4+lcF*9);
+  macros[idx]={...macros[idx],date:inputDate||macros[idx].date,dayType,hcProtein:hcP,hcCarb:hcC,hcFat:hcF,hcKcal,lcProtein:lcP,lcCarb:lcC,lcFat:lcF,lcKcal,water:waterGoal,note,protein:hcP,carb:hcC,fat:hcF,pKcal:Math.round(hcP*4),cKcal:Math.round(hcC*4),fKcal:Math.round(hcF*9),total:hcKcal};
+  saveDietData();alert('✅ 已更新');
+  editingDietTs=null;
+  backToStudent();switchStudentTab('diet');
+}
+
+function exportStudent(){
+  const student=curStudentName;
+  const sessions=notebooks.filter(n=>!n.isAssess&&(n.student||'').trim()===student&&n.done)
+    .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id));
+  // 最新評估
+  const latestAssess=notebooks.filter(n=>n.isAssess&&(n.student||'').trim()===student)
+    .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id))[0];
+  // 所有飲食紀錄
+  const allDiet=(dietData[student]?.macros||[]).sort((a,b)=>b.ts-a.ts);
+
+  let text=`👤 學員資料：${student}\n匯出時間：${new Date().toLocaleString('zh-TW')}\n${'═'.repeat(25)}\n\n`;
+
+  // 最新評估（完整格式）
+  if(latestAssess&&latestAssess.assessData){
+    text+=buildAssessReport(latestAssess.assessData, student, latestAssess.date||'')+'\n\n';
+  }
+
+  // 飲食歷史所有紀錄
+  if(allDiet.length){
+    text+=buildDietReport(allDiet, student)+'\n\n';
+  }
+
+  // 訓練：所有動作以10下為基準的最高重量
+  const allExNames=new Set();
+  sessions.forEach(nb=>(nb.exercises||[]).forEach(ex=>allExNames.add(ex.name)));
+  if(allExNames.size){
+    text+=`💪 各動作以10下為基準的最高重量\n`;
+    allExNames.forEach(exName=>{
+      const best=getLifetimeBestByReps(student,exName,null);
+      if(!best.size)return;
+      const exactKg=best.get(10);
+      if(exactKg){
+        text+=`  ${exName.split('（')[0]}：10下→${exactKg}kg\n`;
+      } else {
+        let closestReps=null,closestKg=0,minDiff=Infinity;
+        best.forEach((kg,r)=>{const d=Math.abs(r-10);if(d<minDiff){minDiff=d;closestReps=r;closestKg=kg;}});
+        if(closestReps!==null) text+=`  ${exName.split('（')[0]}：${closestReps}下→${closestKg}kg（${closestReps}下紀錄）\n`;
+      }
+    });
+    text+='\n';
+  }
+
+  // 先預覽，使用者看完再按複製
+  showReport('學員資料匯出', student+' · 完整資料', text.trim(), 'sessions');
 }
 
 function deleteDietEntry(ts){
@@ -2031,13 +2498,12 @@ function renderStudentSessions(){
   if(!el)return;
   const sessions=notebooks.filter(n=>!n.isAssess&&(n.student||'').trim()===curStudentName)
     .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id));
-  let html=`<div style="margin-bottom:8px"><button onclick="quickSession('${curStudentName.replace(/'/g,"\\'")}');backToStudent=()=>{openStudent('${curStudentName.replace(/'/g,"\\'")}')}" style="width:100%;padding:10px;border-radius:4px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">💪 新增課程</button></div>`;
+  const sn=curStudentName.replace(/'/g,"\\'");
+  let html=`<div style="margin-bottom:8px"><button onclick="quickSession('${sn}')" style="width:100%;padding:10px;border-radius:4px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">💪 新增課程</button></div>`;
   if(!sessions.length){html+='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px">尚無課程記錄</div>';el.innerHTML=html;return;}
   sessions.forEach(nb=>{
     const exNames=(nb.exercises||[]).map(e=>e.name.split('（')[0]).join('、');
-    const statusTag=nb.done
-      ?`<span class="tag tag-done">✓ 已完成</span>`
-      :`<span class="tag tag-prep">備課中</span>`;
+    const statusTag=nb.done?`<span class="tag tag-done">✓ 已完成</span>`:`<span class="tag tag-prep">備課中</span>`;
     html+=`<div class="nb-card" onclick="openSessionDetail(${nb.id})">
       <div class="nb-row">
         <div class="nb-info">
@@ -2048,6 +2514,7 @@ function renderStudentSessions(){
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
           <button onclick="event.stopPropagation();editSession(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">編輯</button>
+          <button onclick="event.stopPropagation();previewSessionReport(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">報告</button>
           <button onclick="event.stopPropagation();deleteSession(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">刪除</button>
         </div>
       </div>
@@ -2100,30 +2567,64 @@ function openSessionDetail(nbId){
     if(val) html+=`<div class="card"><div class="flabel">${label}</div><div style="font-size:13px;line-height:1.7">${val}</div></div>`;
   });
   body.innerHTML=html||'<div style="text-align:center;padding:2rem;color:var(--text3)">尚無詳細資料</div>';
+  // 加報告按鈕
+  const reportBtn=document.createElement('button');
+  reportBtn.style.cssText='width:100%;margin-top:10px;padding:13px;border-radius:4px;background:var(--green);color:#fff;border:none;font-size:15px;font-weight:500;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif';
+  reportBtn.textContent='📋 產出課程報告';
+  reportBtn.onclick=()=>previewSessionReport(nbId);
+  body.appendChild(reportBtn);
   show('s-session-detail');
+}
+
+function previewSessionReport(nbId){
+  const nb=notebooks.find(n=>n.id===nbId);if(!nb)return;
+  const student=nb.student||'學員';
+  // 組裝報告文字（複用 renderReport 邏輯）
+  let r=`💪 訓練報告｜${student}｜${nb.date||''}\n`;
+  if(nb.name) r+=`📋 ${nb.name}\n`;
+  if(nb.type) r+=`分類：${nb.type}\n`;
+  r+='\n';
+  if(nb.stars) r+=`今日狀態：${'★'.repeat(nb.stars)}${'☆'.repeat(5-nb.stars)}（${SLAB[nb.stars]||''}）\n`;
+  const lifeParts=[];
+  if(nb.sleep) lifeParts.push('睡眠 '+nb.sleep);
+  if(nb.food) lifeParts.push('飲食 '+nb.food);
+  if(nb.body) lifeParts.push('身體 '+nb.body);
+  if(lifeParts.length) r+=`生活狀況：${lifeParts.join(' ｜ ')}\n`;
+  if(nb.condition) r+=`備註：${nb.condition}\n`;
+  r+='\n';
+  let exLines='';let prLines='';
+  const curTs=nb.completedAt||nb.id||Date.now();
+  (nb.exercises||[]).forEach(ex=>{
+    const validSets=(ex.sets||[]).filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+    if(!validSets.length)return;
+    const setDesc=validSets.map(s=>{
+      const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
+      return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
+    }).join(' / ');
+    exLines+=`  • ${ex.name.split('（')[0]}  ${setDesc}\n`;
+    if(ex.classNote) exLines+=`    ↳ ${ex.classNote}\n`;
+    const prevSets2=getLastSessionSets(student,ex.name,curTs,nb.id);
+    const lifetimeBest2=getLifetimeBestByReps(student,ex.name,nb.id);
+    const progressItems=detectProgress(validSets,prevSets2,lifetimeBest2,ex.name.split('（')[0]);
+    progressItems.forEach(p=>prLines+=`  ${p}\n`);
+  });
+  if(exLines) r+=`📊 訓練內容\n${exLines}\n`;
+  if(prLines) r+=`🏆 今日進步\n${prLines}\n`;
+  if(nb.intensity||nb.prog) r+=`強度：${nb.intensity||'—'}　表現：${nb.prog||'—'}\n\n`;
+  if(nb.good) r+=`✅ 表現亮點\n${nb.good}\n\n`;
+  if(nb.improve) r+=`🔧 需要加強\n${nb.improve}\n\n`;
+  if(nb.obs) r+=`👁 教練觀察\n${nb.obs}\n\n`;
+  if(nb.next) r+=`🎯 下一堂方向\n${nb.next}\n\n`;
+  if(nb.diet) r+=`🥗 飲食提醒\n${nb.diet}\n\n`;
+  if(nb.msg) r+=`💬 給 ${student} 的話\n${nb.msg}\n\n`;
+  if(nb.freq) r+=`📅 建議頻率：${nb.freq}\n`;
+  if(nb.nextbook) r+=`下次預約：${nb.nextbook}\n`;
+  showReport('課程報告', student+' · 課程報告 '+nb.date, r.trim(), 'sessions');
 }
 
 function backToStudent(){
   if(curStudentName) openStudent(curStudentName);
   else{show('s-home');renderHome();}
-}
-
-function exportStudent(){
-  const sessions=notebooks.filter(n=>!n.isAssess&&(n.student||'').trim()===curStudentName&&n.done);
-  let text=`👤 學員報告：${curStudentName}\n匯出時間：${new Date().toLocaleString('zh-TW')}\n${'═'.repeat(25)}\n\n`;
-  text+=`💪 共完成 ${sessions.length} 堂課程\n\n`;
-  sessions.sort((a,b)=>(a.completedAt||a.id)-(b.completedAt||b.id)).forEach(nb=>{
-    text+=`📅 ${nb.date||''} ${nb.name||''}\n`;
-    (nb.exercises||[]).forEach(ex=>{
-      const v=(ex.sets||[]).filter(s=>parseInt(s.reps)||parseFloat(s.weight));
-      if(v.length){
-        const desc=v.map(s=>`${parseInt(s.sets)||1}組×${parseInt(s.reps)||0}下×${parseFloat(s.weight)||0}kg`).join(' / ');
-        text+=`  • ${ex.name.split('（')[0]}  ${desc}\n`;
-      }
-    });
-    text+='\n';
-  });
-  copyText(text,'✅ 學員報告已複製！');
 }
 
 // ══════════════════════════════════════════
@@ -2177,7 +2678,6 @@ function closeHist(){
 // ══════════════════════════════════════════
 function openDietFor(student){
   curStudentName=student||curStudentName;
-  // 填入學員選擇器
   const sel=document.getElementById('diet-student-sel');
   sel.innerHTML='<option value="">選擇學員</option>';
   const allStudents=[...new Set([...notebooks.map(n=>(n.student||'').trim()),...clientList])].filter(Boolean);
@@ -2189,13 +2689,18 @@ function openDietFor(student){
   });
   document.getElementById('diet-sub').textContent=curStudentName;
   document.getElementById('diet-content').style.display=curStudentName?'block':'none';
-  // 清空輸入
-  ['diet-protein','diet-carb','diet-fat'].forEach(id=>{
+  // 清空新格式輸入
+  ['diet-hc-protein','diet-hc-carb','diet-hc-fat','diet-lc-protein','diet-lc-carb','diet-lc-fat','diet-water-goal','diet-note'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
-  document.getElementById('macros-result').style.display='none';
-  // 載入飲食習慣
-  loadDietHabits(curStudentName);
+  // 預填今天日期
+  const dateEl=document.getElementById('diet-date-input');
+  if(dateEl) dateEl.value=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+  // 重置 chip 和按鈕
+  document.querySelectorAll('#diet-daytype .chip').forEach(c=>c.classList.remove('sel'));
+  const saveBtn=document.querySelector('[onclick="saveDietPlan()"]');
+  if(saveBtn){saveBtn.textContent='儲存這筆飲食紀錄';saveBtn.onclick=saveDietPlan;}
+  editingDietTs=null;
   renderDietHistory();
   show('s-diet');
 }
@@ -2272,27 +2777,48 @@ function loadDietHabits(student){
 function renderDietHistory(){
   const el=document.getElementById('diet-history');if(!el)return;
   const macros=(dietData[curStudentName]?.macros||[]).sort((a,b)=>b.ts-a.ts);
+  const cnt=document.getElementById('diet-count');
+  if(cnt) cnt.textContent=macros.length;
   if(!macros.length){el.innerHTML='<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px">尚無飲食紀錄</div>';return;}
   let html='';
   macros.slice(0,10).forEach(m=>{
+    const isNew=m.hcKcal!=null;
     html+=`<div class="card" style="margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div style="font-size:13px;font-weight:500">${m.date||'—'}</div>
-        <div style="font-size:22px;font-weight:600;color:var(--text)">${m.total||0} <span style="font-size:11px;color:var(--text3)">kcal</span></div>
-      </div>
-      <div style="height:6px;border-radius:3px;overflow:hidden;display:flex;margin-bottom:4px">
-        <div style="width:${m.total?Math.round((m.pKcal||0)/m.total*100):0}%;background:var(--green)"></div>
-        <div style="width:${m.total?Math.round((m.cKcal||0)/m.total*100):0}%;background:var(--amber)"></div>
-        <div style="flex:1;background:var(--red)"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;font-size:11px">
-        <div style="color:var(--green)">蛋 ${m.protein||0}g</div>
-        <div style="color:var(--amber)">碳 ${m.carb||0}g</div>
-        <div style="color:var(--red)">脂 ${m.fat||0}g</div>
-      </div>
-    </div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div>
+          <span style="font-size:13px;font-weight:500">${m.date||'—'}</span>
+          ${m.dayType?`<span style="font-size:11px;color:var(--acc-light);margin-left:6px">${m.dayType}</span>`:''}
+        </div>
+      </div>`;
+    if(isNew){
+      if(m.hcKcal) html+=`<div style="font-size:12px;color:var(--amber)">高碳：${m.hcKcal}kcal  蛋${m.hcProtein||0}g 碳${m.hcCarb||0}g 脂${m.hcFat||0}g</div>`;
+      if(m.lcKcal) html+=`<div style="font-size:12px;color:var(--purple)">低碳：${m.lcKcal}kcal  蛋${m.lcProtein||0}g 碳${m.lcCarb||0}g 脂${m.lcFat||0}g</div>`;
+      if(m.water) html+=`<div style="font-size:11px;color:var(--text3)">💧 ${m.water}</div>`;
+    } else {
+      html+=`<div style="font-size:13px;font-weight:600;color:var(--text)">${m.total||0} kcal</div>
+      <div style="font-size:11px;color:var(--text3)">蛋 ${m.protein||0}g　碳 ${m.carb||0}g　脂 ${m.fat||0}g</div>`;
+    }
+    if(m.note) html+=`<div style="font-size:12px;color:var(--text2);margin-top:4px">${m.note}</div>`;
+    html+=`</div>`;
   });
   el.innerHTML=html;
+}
+
+// ── 通用報告展示 ──
+let _reportBackTab='diet';
+function showReport(title, subtitle, text, backTab){
+  _reportBackTab=backTab||'diet';
+  const titleEl=document.getElementById('diet-export-title');
+  const subEl=document.getElementById('diet-export-sub');
+  const previewEl=document.getElementById('diet-export-preview');
+  if(titleEl) titleEl.textContent=title||'報告預覽';
+  if(subEl) subEl.textContent=subtitle||'';
+  if(previewEl) previewEl.textContent=text||'';
+  show('s-diet-export');
+}
+function reportGoBack(){
+  backToStudent();
+  switchStudentTab(_reportBackTab);
 }
 
 function copyDietExport(){
@@ -2359,147 +2885,373 @@ function saveDietEdit(){
 // ══════════════════════════════════════════
 let assessCur=0,assessStudent='',assessDate='',assessStars=0;
 const ASSESS_PAGES=[
+  // ── 頁1：身體組成 + 基本資訊 + 目標 ──
   {name:'基本資訊',render:()=>`
-    <div class="card"><div class="flabel">姓名</div><input type="text" id="as-name" placeholder="學員姓名" value="${assessStudent}"></div>
-    <div class="card"><div class="flabel">生日 <span class="opt">選填</span></div><input type="text" id="as-birth" placeholder="例：1990/01/01" value="${window._assessData?.birth||''}"></div>
-    <div class="card"><div class="flabel">性別</div>
-      <div class="chip-group" id="as-sex-chips">
-        <div class="chip${window._assessData?.sex==='男'?' sel':''}" onclick="togS(this,'as-sex-chips')">男</div>
-        <div class="chip${window._assessData?.sex==='女'?' sel':''}" onclick="togS(this,'as-sex-chips')">女</div>
-        <div class="chip${window._assessData?.sex==='其他'?' sel':''}" onclick="togS(this,'as-sex-chips')">其他</div>
+    <div class="card">
+      <div class="sec">身體組成（選填）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+        <div><div class="flabel">體重 kg</div><input type="text" inputmode="decimal" id="as-bw" placeholder="kg" value="${window._assessData?.bodyWeight||''}"></div>
+        <div><div class="flabel">肌肉重 kg</div><input type="text" inputmode="decimal" id="as-muscle" placeholder="kg" value="${window._assessData?.muscleKg||''}"></div>
+        <div><div class="flabel">脂肪重 kg</div><input type="text" inputmode="decimal" id="as-fat-kg" placeholder="kg" value="${window._assessData?.fatKg||''}"></div>
+        <div><div class="flabel">體脂肪 %</div><input type="text" inputmode="decimal" id="as-bf" placeholder="%" value="${window._assessData?.bf||''}"></div>
+        <div><div class="flabel">內臟脂肪</div><input type="text" inputmode="decimal" id="as-visceral" placeholder="等級" value="${window._assessData?.visceralFat||''}"></div>
+        <div><div class="flabel">BMI <span class="opt">選填</span></div><input type="text" inputmode="decimal" id="as-bmi" placeholder="" value="${window._assessData?.bmi||''}"></div>
       </div>
     </div>
-    <div class="card"><div class="flabel">身高 / 體重 <span class="opt">選填</span></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <input type="text" inputmode="decimal" id="as-height" placeholder="身高 cm" value="${window._assessData?.height||''}">
-        <input type="text" inputmode="decimal" id="as-weight" placeholder="體重 kg" value="${window._assessData?.weight||''}">
+    <div class="card">
+      <div class="sec">個人資訊</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+        <div style="grid-column:1/-1"><div class="flabel">姓名</div><input type="text" id="as-name" placeholder="學員姓名" value="${assessStudent||window._assessData?.name||''}"></div>
+        <div><div class="flabel">年齡</div><input type="text" inputmode="decimal" id="as-age" placeholder="歲" value="${window._assessData?.age||''}"></div>
+        <div><div class="flabel">性別</div>
+          <div class="chip-group" id="as-sex-chips" style="margin-bottom:0">
+            ${['男','女','其他'].map(v=>`<div class="chip${window._assessData?.sex===v?' sel':''}" onclick="togS(this,'as-sex-chips')">${v}</div>`).join('')}
+          </div>
+        </div>
+        <div><div class="flabel">身高 cm</div><input type="text" inputmode="decimal" id="as-height" placeholder="cm" value="${window._assessData?.height||''}"></div>
       </div>
+    </div>
+    <div class="card">
+      <div class="flabel">課程目標</div>
+      <textarea id="as-goals" rows="3" placeholder="例：增肌減脂、改善體態、運動表現">${window._assessData?.goals||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="flabel">受傷 / 注意事項</div>
+      <textarea id="as-injury" rows="3" placeholder="例：右膝半月板、腰椎L4-L5、高血壓">${window._assessData?.injury||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="flabel">飲食水分 <span class="opt">選填</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">每日餐數</div>
+          <input type="text" id="as-meals" placeholder="例：3餐" value="${window._assessData?.meals||''}"></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">蛋白質攝取</div>
+          <input type="text" id="as-protein" placeholder="例：偏低" value="${window._assessData?.protein||''}"></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">飲水量</div>
+          <input type="text" id="as-water" placeholder="例：2000ml" value="${window._assessData?.water||''}"></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">訓練補充</div>
+          <input type="text" id="as-suppl" placeholder="例：無" value="${window._assessData?.suppl||''}"></div>
+      </div>
+      <div class="flabel" style="margin-top:4px">飲食建議</div>
+      <textarea id="as-diet-suggest" rows="2" placeholder="教練針對飲食的建議">${window._assessData?.dietSuggest||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="flabel">睡眠 <span class="opt">選填</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">時數</div>
+          <input type="text" id="as-sleep-hrs" placeholder="例：6小時" value="${window._assessData?.sleepHrs||''}"></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">品質</div>
+          <input type="text" id="as-sleep-q" placeholder="例：淺眠" value="${window._assessData?.sleepQ||''}"></div>
+      </div>
+      <div class="flabel" style="margin-top:4px">睡眠建議</div>
+      <textarea id="as-sleep-suggest" rows="2" placeholder="教練針對睡眠的建議">${window._assessData?.sleepSuggest||''}</textarea>
     </div>`,
-    collect:()=>({name:document.getElementById('as-name')?.value.trim()||assessStudent,
-      birth:document.getElementById('as-birth')?.value.trim(),
+    collect:()=>({
+      name:document.getElementById('as-name')?.value.trim()||assessStudent,
+      age:document.getElementById('as-age')?.value.trim(),
       sex:document.querySelector('#as-sex-chips .chip.sel')?.textContent.trim(),
       height:document.getElementById('as-height')?.value.trim(),
-      weight:document.getElementById('as-weight')?.value.trim()})},
-  {name:'目標 & 經歷',render:()=>`
-    <div class="card"><div class="flabel">健身目標</div><textarea id="as-goals" rows="3" placeholder="例：增肌減脂、改善姿勢、提升運動表現">${window._assessData?.goals||''}</textarea></div>
-    <div class="card"><div class="flabel">運動經歷</div>
-      <div class="achips" id="as-exp">
-        ${['完全新手','健身房 < 1年','健身房 1–3年','健身房 3年↑','有其他運動背景'].map(v=>`<div class="chip ok${window._assessData?.exp===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+      bodyWeight:document.getElementById('as-bw')?.value.trim(),
+      muscleKg:document.getElementById('as-muscle')?.value.trim(),
+      fatKg:document.getElementById('as-fat-kg')?.value.trim(),
+      bf:document.getElementById('as-bf')?.value.trim(),
+      visceralFat:document.getElementById('as-visceral')?.value.trim(),
+      bmi:document.getElementById('as-bmi')?.value.trim(),
+      goals:document.getElementById('as-goals')?.value.trim(),
+      injury:document.getElementById('as-injury')?.value.trim(),
+      meals:document.getElementById('as-meals')?.value.trim(),
+      protein:document.getElementById('as-protein')?.value.trim(),
+      water:document.getElementById('as-water')?.value.trim(),
+      suppl:document.getElementById('as-suppl')?.value.trim(),
+      dietSuggest:document.getElementById('as-diet-suggest')?.value.trim(),
+      sleepHrs:document.getElementById('as-sleep-hrs')?.value.trim(),
+      sleepQ:document.getElementById('as-sleep-q')?.value.trim(),
+      sleepSuggest:document.getElementById('as-sleep-suggest')?.value.trim()
+    })},
+  // ── 頁2：靜態評估 ──
+  {name:'靜態評估',render:()=>`
+    <div class="card">
+      <div class="sec">頭頸 ／ 上半身</div>
+      <div class="ai"><div class="lbl">頭頸位置</div>
+        <div class="achips" id="as-head">
+          ${[['ok','正常'],['wn','頭頸前移'],['wn','側偏']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.head===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
       </div>
+      <div class="ai"><div class="lbl">肩膀高低</div>
+        <div class="achips" id="as-shoulder-lvl">
+          ${[['ok','對稱'],['wn','左高'],['wn','右高']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.shoulderLvl===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">肩胛位置</div>
+        <div class="achips" id="as-scapula">
+          ${[['ok','正常'],['wn','翼狀'],['wn','過度前引']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.scapula===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">胸椎曲度</div>
+        <div class="achips" id="as-thoracic-curve">
+          ${[['ok','正常'],['wn','過度後凸'],['wn','過度前凸']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.thoracicCurve===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">腰椎曲度</div>
+        <div class="achips" id="as-lumbar-curve">
+          ${[['ok','正常'],['wn','過度前凸'],['wn','過度後凸']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.lumbarCurve===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <textarea class="anote" id="as-upper-note" rows="2" placeholder="頭頸/上半身細節備註（例：右肩明顯高於左側，頭頸前移約2cm）">${window._assessData?.upperNote||''}</textarea>
     </div>
-    <div class="card"><div class="flabel">受傷或注意事項</div><textarea id="as-injury" rows="3" placeholder="例：右膝半月板、腰椎間盤突出（L4-L5）">${window._assessData?.injury||''}</textarea></div>`,
-    collect:()=>({goals:document.getElementById('as-goals')?.value.trim(),
-      exp:document.querySelector('#as-exp .chip.on')?.textContent.trim(),
-      injury:document.getElementById('as-injury')?.value.trim()})},
-  {name:'深蹲模式',render:()=>`
-    <div class="card"><div class="sec">深蹲評估</div>
+    <div class="card">
+      <div class="sec">骨盆 ／ 下肢</div>
+      <div class="ai"><div class="lbl">骨盆傾斜</div>
+        <div class="achips" id="as-pelvis">
+          ${[['ok','中立'],['wn','前傾'],['wn','後傾'],['wn','側傾']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.pelvis===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">膝蓋排列</div>
+        <div class="achips" id="as-knee-align">
+          ${[['ok','正常'],['wn','膝內扣'],['wn','膝過伸']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.kneeAlign===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">足弓足踝</div>
+        <div class="achips" id="as-foot">
+          ${[['ok','正常'],['wn','扁平足'],['wn','足踝外翻']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.foot===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <textarea class="anote" id="as-lower-note" rows="2" placeholder="骨盆/下肢細節備註">${window._assessData?.lowerNote||''}</textarea>
+    </div>`,
+    collect:()=>({
+      head:document.querySelector('#as-head .chip.on')?.textContent.trim(),
+      shoulderLvl:document.querySelector('#as-shoulder-lvl .chip.on')?.textContent.trim(),
+      scapula:document.querySelector('#as-scapula .chip.on')?.textContent.trim(),
+      thoracicCurve:document.querySelector('#as-thoracic-curve .chip.on')?.textContent.trim(),
+      lumbarCurve:document.querySelector('#as-lumbar-curve .chip.on')?.textContent.trim(),
+      upperNote:document.getElementById('as-upper-note')?.value.trim(),
+      pelvis:document.querySelector('#as-pelvis .chip.on')?.textContent.trim(),
+      kneeAlign:document.querySelector('#as-knee-align .chip.on')?.textContent.trim(),
+      foot:document.querySelector('#as-foot .chip.on')?.textContent.trim(),
+      lowerNote:document.getElementById('as-lower-note')?.value.trim()
+    })},
+  // ── 頁3：關節活動度（加胸腰椎伸屈、髖屈伸）──
+  {name:'關節活動度',render:()=>`
+    <div class="card">
+      <div class="sec">上肢</div>
+      <div class="ai"><div class="lbl">過頭舉</div>
+        <div class="achips" id="as-overhead">
+          ${[['ok','正常'],['wn','受限'],['bd','明顯受限'],['wn','左右不對稱']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.overhead===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">肩內/外旋</div>
+        <div class="achips" id="as-shoulder-rot">
+          ${[['ok','正常'],['wn','內旋受限'],['wn','外旋受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.shoulderRot===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">胸椎旋轉</div>
+        <div class="achips" id="as-thoracic-rot">
+          ${[['ok','對稱正常'],['wn','左受限'],['wn','右受限'],['bd','雙側受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.thoracicRot===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">胸椎伸直</div>
+        <div class="achips" id="as-thoracic-ext">
+          ${[['ok','正常'],['wn','受限'],['bd','明顯受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.thoracicExt===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">胸椎彎曲</div>
+        <div class="achips" id="as-thoracic-flex">
+          ${[['ok','正常'],['wn','受限'],['bd','明顯受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.thoracicFlex===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">腰椎伸直</div>
+        <div class="achips" id="as-lumbar-ext">
+          ${[['ok','正常'],['wn','受限'],['bd','明顯受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.lumbarExt===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">腰椎彎曲</div>
+        <div class="achips" id="as-lumbar-flex">
+          ${[['ok','正常'],['wn','受限'],['bd','明顯受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.lumbarFlex===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <textarea class="anote" id="as-upper-rom-note" rows="2" placeholder="上肢/脊椎活動度備註">${window._assessData?.upperRomNote||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="sec">下肢</div>
+      <div class="ai"><div class="lbl">髖屈曲</div>
+        <div class="achips" id="as-hip-flex">
+          ${[['ok','正常'],['wn','受限'],['wn','左右不對稱']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hipFlex===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">髖伸直</div>
+        <div class="achips" id="as-hip-ext">
+          ${[['ok','正常'],['wn','受限'],['wn','左右不對稱']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hipExt===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <textarea class="anote" id="as-hip-flex-note" rows="1" placeholder="髖屈伸備註">${window._assessData?.hipFlexNote||''}</textarea>
+      <div class="ai" style="margin-top:8px"><div class="lbl">髖內旋</div>
+        <div class="achips" id="as-hip-ir">
+          ${[['ok','正常'],['wn','受限'],['wn','左右不對稱']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hipIr===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">髖外旋</div>
+        <div class="achips" id="as-hip-er">
+          ${[['ok','正常'],['wn','受限'],['wn','左右不對稱']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hipEr===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <textarea class="anote" id="as-hip-rot-note" rows="1" placeholder="髖旋轉備註（左右差異、限制角度等）">${window._assessData?.hipRotNote||''}</textarea>
+    </div>`,
+    collect:()=>({
+      overhead:document.querySelector('#as-overhead .chip.on')?.textContent.trim(),
+      shoulderRot:document.querySelector('#as-shoulder-rot .chip.on')?.textContent.trim(),
+      thoracicRot:document.querySelector('#as-thoracic-rot .chip.on')?.textContent.trim(),
+      thoracicExt:document.querySelector('#as-thoracic-ext .chip.on')?.textContent.trim(),
+      thoracicFlex:document.querySelector('#as-thoracic-flex .chip.on')?.textContent.trim(),
+      lumbarExt:document.querySelector('#as-lumbar-ext .chip.on')?.textContent.trim(),
+      lumbarFlex:document.querySelector('#as-lumbar-flex .chip.on')?.textContent.trim(),
+      upperRomNote:document.getElementById('as-upper-rom-note')?.value.trim(),
+      hipFlex:document.querySelector('#as-hip-flex .chip.on')?.textContent.trim(),
+      hipExt:document.querySelector('#as-hip-ext .chip.on')?.textContent.trim(),
+      hipFlexNote:document.getElementById('as-hip-flex-note')?.value.trim(),
+      hipIr:document.querySelector('#as-hip-ir .chip.on')?.textContent.trim(),
+      hipEr:document.querySelector('#as-hip-er .chip.on')?.textContent.trim(),
+      hipRotNote:document.getElementById('as-hip-rot-note')?.value.trim()
+    })},
+  // ── 頁4：動態評估（水平/垂直分開）──
+  {name:'動態評估',render:()=>`
+    <div class="card">
+      <div class="sec">深蹲 ／ 後側鏈</div>
       <div class="ai"><div class="lbl">深蹲深度</div>
         <div class="achips" id="as-sq-depth">
-          ${[['ok','大腿平行以下'],['ok','大腿平行'],['wn','半蹲'],['bd','四分之一蹲']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.sqDepth===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+          ${[['ok','全蹲'],['wn','半蹲'],['bd','明顯受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.sqDepth===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
         </div>
       </div>
-      <div class="ai"><div class="lbl">膝蓋追蹤</div>
+      <textarea class="anote" id="as-sq-note" rows="1" placeholder="深蹲備註（限制因素、代償模式）">${window._assessData?.sqNote||''}</textarea>
+      <div class="ai" style="margin-top:8px"><div class="lbl">膝蓋追蹤</div>
         <div class="achips" id="as-sq-knee">
-          ${[['ok','良好'],['wn','輕微內夾'],['bd','明顯內夾'],['bd','外偏']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.sqKnee===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+          ${[['ok','對齊腳尖'],['wn','膝內扣'],['wn','膝外翻']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.sqKnee===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
         </div>
       </div>
-      <div class="ai"><div class="lbl">軀幹角度</div>
-        <div class="achips" id="as-sq-trunk">
-          ${[['ok','直立'],['wn','輕微前傾'],['bd','過度前傾']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.sqTrunk===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+      <div class="ai"><div class="lbl">髖主導能力</div>
+        <div class="achips" id="as-hip-dom">
+          ${[['ok','可主動髖屈'],['wn','腰椎主導'],['bd','無法分離']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hipDom===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
         </div>
       </div>
-      <div class="ai"><div class="lbl">腳踝活動度</div>
-        <div class="achips" id="as-sq-ankle">
-          ${[['ok','足夠'],['wn','略不足'],['bd','明顯受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.sqAnkle===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
-        </div>
-      </div>
-      <textarea class="anote" id="as-sq-note" rows="2" placeholder="深蹲補充">${window._assessData?.sqNote||''}</textarea>
-    </div>`,
-    collect:()=>({sqDepth:document.querySelector('#as-sq-depth .chip.on')?.textContent.trim(),
-      sqKnee:document.querySelector('#as-sq-knee .chip.on')?.textContent.trim(),
-      sqTrunk:document.querySelector('#as-sq-trunk .chip.on')?.textContent.trim(),
-      sqAnkle:document.querySelector('#as-sq-ankle .chip.on')?.textContent.trim(),
-      sqNote:document.getElementById('as-sq-note')?.value.trim(),
-      squat:[document.querySelector('#as-sq-depth .chip.on')?.textContent.trim(),document.querySelector('#as-sq-knee .chip.on')?.textContent.trim()].filter(Boolean).join('/')||''})},
-  {name:'髖主導',render:()=>`
-    <div class="card"><div class="sec">髖主導動作評估</div>
-      <div class="ai"><div class="lbl">RDL / 硬舉起始</div>
-        <div class="achips" id="as-hip-rdl">
-          ${[['ok','良好'],['wn','腰椎輕微屈曲'],['bd','明顯屈曲'],['bd','無法髖鉸鏈']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hipRdl===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
-        </div>
-      </div>
-      <div class="ai"><div class="lbl">臀橋 / 臀推啟動</div>
-        <div class="achips" id="as-hip-glute">
-          ${[['ok','臀部主導'],['wn','代償腰椎'],['bd','無法啟動']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hipGlute===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
-        </div>
-      </div>
-      <textarea class="anote" id="as-hip-note" rows="2" placeholder="髖主導補充">${window._assessData?.hipNote||''}</textarea>
-    </div>`,
-    collect:()=>({hipRdl:document.querySelector('#as-hip-rdl .chip.on')?.textContent.trim(),
-      hipGlute:document.querySelector('#as-hip-glute .chip.on')?.textContent.trim(),
-      hipNote:document.getElementById('as-hip-note')?.value.trim(),
-      hip:[document.querySelector('#as-hip-rdl .chip.on')?.textContent.trim()].filter(Boolean).join('/')||''})},
-  {name:'核心 & 肩',render:()=>`
-    <div class="card"><div class="sec">核心穩定</div>
       <div class="ai"><div class="lbl">腹內壓建立</div>
-        <div class="achips" id="as-core-iap">
-          ${[['ok','良好'],['wn','需提醒'],['bd','無法建立']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.coreIap===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        <div class="achips" id="as-iap">
+          ${[['ok','可主動建立'],['wn','部分'],['bd','無法理解']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.iap===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
         </div>
       </div>
-      <div class="ai"><div class="lbl">抗旋轉能力</div>
-        <div class="achips" id="as-core-rot">
-          ${[['ok','穩定'],['wn','輕微不穩'],['bd','明顯不穩']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.coreRot===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+      <textarea class="anote" id="as-lower-dyn-note" rows="2" placeholder="整體下肢動作模式備註">${window._assessData?.lowerDynNote||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="sec">推拉模式</div>
+      <div class="ai"><div class="lbl">水平推</div>
+        <div class="achips" id="as-hpush">
+          ${[['ok','正常'],['wn','肩胛不穩'],['bd','無法執行']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hPush===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
         </div>
+      </div>
+      <div class="ai"><div class="lbl">垂直推</div>
+        <div class="achips" id="as-vpush">
+          ${[['ok','正常'],['wn','活動度受限'],['bd','無法執行']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.vPush===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">水平拉</div>
+        <div class="achips" id="as-hpull">
+          ${[['ok','正常'],['wn','肩胛活動不足'],['bd','無法執行']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.hPull===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <div class="ai"><div class="lbl">垂直拉</div>
+        <div class="achips" id="as-vpull">
+          ${[['ok','正常'],['wn','肩胛活動不足'],['bd','無法執行']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.vPull===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+        </div>
+      </div>
+      <textarea class="anote" id="as-push-pull-note" rows="2" placeholder="推拉模式備註（肩胛穩定度、代償等）">${window._assessData?.pushPullNote||''}</textarea>
+    </div>`,
+    collect:()=>({
+      sqDepth:document.querySelector('#as-sq-depth .chip.on')?.textContent.trim(),
+      sqNote:document.getElementById('as-sq-note')?.value.trim(),
+      sqKnee:document.querySelector('#as-sq-knee .chip.on')?.textContent.trim(),
+      hipDom:document.querySelector('#as-hip-dom .chip.on')?.textContent.trim(),
+      iap:document.querySelector('#as-iap .chip.on')?.textContent.trim(),
+      lowerDynNote:document.getElementById('as-lower-dyn-note')?.value.trim(),
+      hPush:document.querySelector('#as-hpush .chip.on')?.textContent.trim(),
+      vPush:document.querySelector('#as-vpush .chip.on')?.textContent.trim(),
+      hPull:document.querySelector('#as-hpull .chip.on')?.textContent.trim(),
+      vPull:document.querySelector('#as-vpull .chip.on')?.textContent.trim(),
+      pushPullNote:document.getElementById('as-push-pull-note')?.value.trim(),
+      squat:[document.querySelector('#as-sq-depth .chip.on')?.textContent.trim(),document.querySelector('#as-sq-knee .chip.on')?.textContent.trim()].filter(Boolean).join('/')||'',
+      hip:document.querySelector('#as-hip-dom .chip.on')?.textContent.trim()||'',
+      core:document.querySelector('#as-iap .chip.on')?.textContent.trim()||''
+    })},
+  // ── 頁5：第一堂課評估 ──
+  {name:'第一堂評估',render:()=>`
+    <div class="card">
+      <div class="flabel">今日狀態</div>
+      <div class="star-row" id="assess-star-row">${[1,2,3,4,5].map(i=>`<span class="star${i<=(window._assessData?.sessionStars||0)?' on':''}" onclick="setAssessStars(${i})">★</span>`).join('')}</div>
+      <div class="star-lbl" id="assess-star-lbl">${SLAB[window._assessData?.sessionStars||0]||'點選評分'}</div>
+    </div>
+    <div class="card">
+      <div class="flabel">訓練動作 <span class="opt">每行一個</span></div>
+      <textarea id="as-exercises" rows="6" placeholder="深蹲 3×10（空槓）\n啞鈴肩推 3×12（8kg）">${window._assessData?.exercises||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="flabel">教練觀察 <span class="opt">動作質量、學習反應、身體感知</span></div>
+      <textarea id="as-obs" rows="4" placeholder="例：動作提示一次就能修正，本體感覺良好，但深蹲時慣性前傾">${window._assessData?.obs||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="flabel">表現亮點</div>
+      <textarea id="as-good" rows="2" placeholder="學習意願高，動作提示一次就能修正">${window._assessData?.good||''}</textarea>
+    </div>`,
+    collect:()=>({
+      sessionStars:window._assessData?.sessionStars||0,
+      exercises:document.getElementById('as-exercises')?.value.trim(),
+      obs:document.getElementById('as-obs')?.value.trim(),
+      good:document.getElementById('as-good')?.value.trim()
+    })},
+  // ── 頁6：後續規劃 ──
+  {name:'後續規劃',render:()=>`
+    <div class="card">
+      <div class="flabel">下一階段訓練方向</div>
+      <textarea id="as-next-dir" rows="3" placeholder="接下來 4–6 週建立六大動作基礎">${window._assessData?.nextDir||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="flabel">優先改善項目</div>
+      <textarea id="as-priority" rows="3" placeholder="例：腳踝背屈受限 → 優先做踝關節活動度訓練">${window._assessData?.priority||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="flabel">上課頻率建議</div>
+      <div class="chip-group" id="as-freq-chips">
+        ${['彈性單堂','每週 1 次','每週 2 次','每週 3 次'].map(v=>`<div class="chip${window._assessData?.freq===v?' sel':''}" onclick="togS(this,'as-freq-chips')">${v}</div>`).join('')}
       </div>
     </div>
-    <div class="card"><div class="sec">肩關節</div>
-      <div class="ai"><div class="lbl">外旋 / 上舉活動度</div>
-        <div class="achips" id="as-shoulder">
-          ${[['ok','正常'],['wn','略受限'],['bd','明顯受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.shoulder===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
-        </div>
-      </div>
-      <div class="ai"><div class="lbl">胸椎活動度</div>
-        <div class="achips" id="as-thoracic">
-          ${[['ok','良好'],['wn','略受限'],['bd','明顯受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.thoracic===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
-        </div>
-      </div>
-      <textarea class="anote" id="as-shoulder-note" rows="2" placeholder="肩 / 胸椎補充">${window._assessData?.shoulderNote||''}</textarea>
+    <div class="card">
+      <div class="flabel">下次預約 <span class="opt">選填</span></div>
+      <input type="text" id="as-nextbook" placeholder="例：下週六早上" value="${window._assessData?.nextBook||''}">
     </div>`,
-    collect:()=>({coreIap:document.querySelector('#as-core-iap .chip.on')?.textContent.trim(),
-      coreRot:document.querySelector('#as-core-rot .chip.on')?.textContent.trim(),
-      shoulder:document.querySelector('#as-shoulder .chip.on')?.textContent.trim(),
-      thoracic:document.querySelector('#as-thoracic .chip.on')?.textContent.trim(),
-      shoulderNote:document.getElementById('as-shoulder-note')?.value.trim(),
-      core:document.querySelector('#as-core-iap .chip.on')?.textContent.trim()||''})},
-  {name:'身體組成',render:()=>`
-    <div class="card"><div class="sec">身體組成（選填）</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><div class="flabel">體脂肪 %</div><input type="text" inputmode="decimal" id="as-bf" placeholder="%" value="${window._assessData?.bf||''}"></div>
-        <div><div class="flabel">骨骼肌量 kg</div><input type="text" inputmode="decimal" id="as-muscle" placeholder="kg" value="${window._assessData?.muscleKg||''}"></div>
-        <div><div class="flabel">BMI</div><input type="text" inputmode="decimal" id="as-bmi" placeholder="" value="${window._assessData?.bmi||''}"></div>
-        <div><div class="flabel">腰圍 cm</div><input type="text" inputmode="decimal" id="as-waist" placeholder="cm" value="${window._assessData?.waist||''}"></div>
-      </div>
-    </div>`,
-    collect:()=>({bf:document.getElementById('as-bf')?.value.trim(),
-      muscleKg:document.getElementById('as-muscle')?.value.trim(),
-      bmi:document.getElementById('as-bmi')?.value.trim(),
-      waist:document.getElementById('as-waist')?.value.trim()})},
-  {name:'初始體能',render:()=>`
-    <div class="card"><div class="sec">初始體能測試（選填）</div>
-      <div class="flabel">深蹲最大次數</div><input type="text" inputmode="decimal" id="as-sqmax" placeholder="次" value="${window._assessData?.sqMax||''}">
-      <div class="flabel" style="margin-top:10px">伏地挺身最大次數</div><input type="text" inputmode="decimal" id="as-pumax" placeholder="次" value="${window._assessData?.puMax||''}">
-      <div class="flabel" style="margin-top:10px">平板支撐最長秒數</div><input type="text" inputmode="decimal" id="as-plank" placeholder="秒" value="${window._assessData?.plank||''}">
-    </div>`,
-    collect:()=>({sqMax:document.getElementById('as-sqmax')?.value.trim(),
-      puMax:document.getElementById('as-pumax')?.value.trim(),
-      plank:document.getElementById('as-plank')?.value.trim()})},
-  {name:'教練筆記',render:()=>`
-    <div class="card"><div class="flabel">教練整體評估</div><textarea id="as-note" rows="5" placeholder="整體觀察、訓練重點方向、注意事項等">${window._assessData?.note||''}</textarea></div>
-    <div class="card"><div class="flabel">訓練優先順序</div><textarea id="as-priority" rows="3" placeholder="例：1. 改善深蹲活動度 2. 建立基礎力量 3. 核心穩定性">${window._assessData?.priority||''}</textarea></div>`,
-    collect:()=>({note:document.getElementById('as-note')?.value.trim(),
-      priority:document.getElementById('as-priority')?.value.trim()})}
+    collect:()=>({
+      nextDir:document.getElementById('as-next-dir')?.value.trim(),
+      priority:document.getElementById('as-priority')?.value.trim(),
+      freq:document.querySelector('#as-freq-chips .chip.sel')?.textContent.trim(),
+      nextBook:document.getElementById('as-nextbook')?.value.trim()
+    })},
+  // ── 頁7（原頁8）：報告預覽 ──
+  {name:'預覽傳送',render:()=>{
+    const a=window._assessData||{};
+    const student=assessStudent||a.name||'學員';
+    const r=buildAssessReport(a, student, assessDate||'');
+    return `<div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">評估報告預覽</div>
+      <div class="pbox" id="assess-report-box" style="white-space:pre-wrap;font-size:12px;line-height:1.8">${r.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <button onclick="copyAssessReport()" style="width:100%;margin-top:12px;padding:13px;border-radius:4px;background:var(--green);color:#fff;border:none;font-size:15px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif">複製 Line 訊息</button>`;
+  }, collect:()=>({})}
 ];
 
+function setAssessStars(v){
+  if(!window._assessData) window._assessData={};
+  window._assessData.sessionStars=v;
+  document.querySelectorAll('#assess-star-row .star').forEach((s,i)=>s.classList.toggle('on',i<v));
+  const lbl=document.getElementById('assess-star-lbl');
+  if(lbl) lbl.textContent=SLAB[v]||'';
+}
+
+function copyAssessReport(){
+  const box=document.getElementById('assess-report-box');
+  if(box) copyText(box.textContent,'✅ 評估報告已複製！');
+}
 function renderAssessPage(){
   const page=ASSESS_PAGES[assessCur];
   if(!page)return;
