@@ -1090,17 +1090,10 @@ function openDietEdit(ts){
   h+='<div class="flabel" style="margin-top:10px;margin-bottom:6px">碳水類型</div><div class="chip-group" id="edit-carb-chips">';
   carbTypes.forEach(p=>{ h+='<div class="chip'+((e.carbType||'正常')===p?' sel':'')+'" onclick="togS(this,\'edit-carb-chips\')">'+p+'</div>'; });
   h+='</div>';
-  h+='<div style="font-size:11px;color:#ff8c42;font-weight:600;margin-top:12px;margin-bottom:4px">🔴 高碳日目標攝取量</div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px">';
   h+='<div><div style="font-size:10px;color:var(--green);margin-bottom:4px">蛋白質 g</div><input type="text" inputmode="decimal" id="edit-protein" value="'+e.protein+'" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--green);text-align:center"></div>';
   h+='<div><div style="font-size:10px;color:var(--amber);margin-bottom:4px">碳水 g</div><input type="text" inputmode="decimal" id="edit-carb" value="'+e.carb+'" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--amber);text-align:center"></div>';
   h+='<div><div style="font-size:10px;color:var(--red);margin-bottom:4px">脂肪 g</div><input type="text" inputmode="decimal" id="edit-fat" value="'+e.fat+'" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--red);text-align:center"></div>';
-  h+='</div>';
-  h+='<div style="font-size:11px;color:#5b9bd5;font-weight:600;margin-top:12px;margin-bottom:4px">🔵 低碳日目標攝取量</div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
-  h+='<div><div style="font-size:10px;color:var(--green);margin-bottom:4px">蛋白質 g</div><input type="text" inputmode="decimal" id="edit-protein2" value="'+(e.col2?.protein||'')+'" placeholder="0" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--green);text-align:center"></div>';
-  h+='<div><div style="font-size:10px;color:var(--amber);margin-bottom:4px">碳水 g</div><input type="text" inputmode="decimal" id="edit-carb2" value="'+(e.col2?.carb||'')+'" placeholder="0" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--amber);text-align:center"></div>';
-  h+='<div><div style="font-size:10px;color:var(--red);margin-bottom:4px">脂肪 g</div><input type="text" inputmode="decimal" id="edit-fat2" value="'+(e.col2?.fat||'')+'" placeholder="0" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--red);text-align:center"></div>';
   h+='</div>';
   h+='<div class="flabel" style="margin-top:10px">飲水目標</div>';
   h+='<input type="text" id="edit-water" value="'+(e.water||'')+'" placeholder="例：2000ml" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);margin-top:4px">';
@@ -1125,10 +1118,6 @@ function saveDietEdit(){
   e.carbType=document.querySelector('#edit-carb-chips .chip.sel')?.textContent||e.carbType;
   e.water=(document.getElementById('edit-water')?.value||'').trim();
   e.note=(document.getElementById('edit-note')?.value||'').trim();
-  const p2=parseFloat(document.getElementById('edit-protein2')?.value)||0;
-  const c2v=parseFloat(document.getElementById('edit-carb2')?.value)||0;
-  const f2=parseFloat(document.getElementById('edit-fat2')?.value)||0;
-  if(p2||c2v||f2){const pK2=Math.round(p2*4),cK2=Math.round(c2v*4),fK2=Math.round(f2*9),total2=pK2+cK2+fK2;e.col2={protein:p2,carb:c2v,fat:f2,pKcal:pK2,cKcal:cK2,fKcal:fK2,total:total2};}else{delete e.col2;}
   saveDietData();
   backToStudent();switchStudentTab('diet');
 }
@@ -1347,35 +1336,20 @@ function renderStudentDiet(){
     html+='<div class="chip'+(i===3?' sel':'')+'" onclick="togS(this,\'diet-carb-type-chips\')">'+p+'</div>';
   });
   html+='</div></div>';
-  // 高碳日三大營養素
-  html+='<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:6px">';
-  html+='<div style="font-size:11px;color:#ff8c42;font-weight:600;margin-bottom:8px;font-family:\'DM Mono\',monospace">🔴 高碳日目標攝取量</div>';
+  // 三大營養素單一輸入區（標籤動態顯示類型）
+  html+='<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px">';
+  html+='<div id="diet-col-label" style="font-size:11px;color:var(--acc-light);font-weight:600;margin-bottom:8px;font-family:\'DM Mono\',monospace">今日目標攝取量</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
   html+='<div><div style="font-size:10px;color:var(--green);margin-bottom:4px">蛋白質 g</div><input type="text" inputmode="decimal" id="sd-protein" placeholder="0" oninput="calcStudentMacros()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--green);text-align:center"></div>';
   html+='<div><div style="font-size:10px;color:var(--amber);margin-bottom:4px">碳水 g</div><input type="text" inputmode="decimal" id="sd-carb" placeholder="0" oninput="calcStudentMacros()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--amber);text-align:center"></div>';
   html+='<div><div style="font-size:10px;color:var(--red);margin-bottom:4px">脂肪 g</div><input type="text" inputmode="decimal" id="sd-fat" placeholder="0" oninput="calcStudentMacros()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--red);text-align:center"></div>';
   html+='</div></div>';
-  // 即時計算（高碳日）
-  html+='<div id="sd-result" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:6px">';
+  // 即時計算
+  html+='<div id="sd-result" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px">';
   html+='<div style="text-align:center;margin-bottom:8px"><span style="font-size:26px;font-weight:600;color:var(--text)" id="sd-total">0</span><span style="font-size:11px;color:var(--text3);margin-left:4px">kcal</span></div>';
   html+='<div style="height:10px;border-radius:5px;overflow:hidden;display:flex;margin-bottom:8px" id="sd-bar"></div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;font-size:11px">';
   html+='<div style="color:var(--green)" id="sd-p-info">—</div><div style="color:var(--amber)" id="sd-c-info">—</div><div style="color:var(--red)" id="sd-f-info">—</div>';
-  html+='</div></div>';
-  // 低碳日三大營養素
-  html+='<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px">';
-  html+='<div style="font-size:11px;color:#5b9bd5;font-weight:600;margin-bottom:8px;font-family:\'DM Mono\',monospace">🔵 低碳日目標攝取量</div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
-  html+='<div><div style="font-size:10px;color:var(--green);margin-bottom:4px">蛋白質 g</div><input type="text" inputmode="decimal" id="sd-protein2" placeholder="0" oninput="calcStudentMacros2()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--green);text-align:center"></div>';
-  html+='<div><div style="font-size:10px;color:var(--amber);margin-bottom:4px">碳水 g</div><input type="text" inputmode="decimal" id="sd-carb2" placeholder="0" oninput="calcStudentMacros2()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--amber);text-align:center"></div>';
-  html+='<div><div style="font-size:10px;color:var(--red);margin-bottom:4px">脂肪 g</div><input type="text" inputmode="decimal" id="sd-fat2" placeholder="0" oninput="calcStudentMacros2()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 4px;font-size:20px;font-weight:600;color:var(--red);text-align:center"></div>';
-  html+='</div></div>';
-  // 即時計算（低碳日）
-  html+='<div id="sd-result2" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px">';
-  html+='<div style="text-align:center;margin-bottom:8px"><span style="font-size:26px;font-weight:600;color:var(--text)" id="sd-total2">0</span><span style="font-size:11px;color:var(--text3);margin-left:4px">kcal</span></div>';
-  html+='<div style="height:10px;border-radius:5px;overflow:hidden;display:flex;margin-bottom:8px" id="sd-bar2"></div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;font-size:11px">';
-  html+='<div style="color:var(--green)" id="sd-p2-info">—</div><div style="color:var(--amber)" id="sd-c2-info">—</div><div style="color:var(--red)" id="sd-f2-info">—</div>';
   html+='</div></div>';
   // 飲水填空
   html+='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">';
@@ -1416,7 +1390,7 @@ function renderStudentDiet(){
         if(e.phase) html+='<span style="font-size:11px;padding:2px 7px;border-radius:5px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc)">'+e.phase+'</span>';
         if(e.dayType) html+='<span style="font-size:11px;padding:2px 7px;border-radius:5px;background:var(--bg3);color:var(--text2)">'+e.dayType+'</span>';
         html+='<span style="font-size:11px;color:var(--text3);font-family:\'DM Mono\',monospace">'+e.date+'</span>';
-        html+='<span style="font-size:15px;font-weight:600;color:var(--text)">'+(e.col2?e.total+' / '+e.col2.total:e.total)+' kcal</span>';
+        html+='<span style="font-size:15px;font-weight:600;color:var(--text)">'+e.total+' kcal</span>';
         html+='</div>';
         html+='<div style="display:flex;align-items:center;gap:10px">';
         html+='<span onclick="event.stopPropagation();deleteDietEntryByTs('+e.ts+')" style="font-size:16px;cursor:pointer;color:var(--text3)" title="刪除">🗑</span>';
@@ -1429,15 +1403,12 @@ function renderStudentDiet(){
         html+='<div style="width:'+cPct+'%;background:var(--amber)"></div>';
         html+='<div style="flex:1;background:var(--red)"></div>';
         html+='</div>';
-        if(e.col2){const _c2=e.col2,_p2=_c2.total?Math.round(_c2.pKcal/_c2.total*100):0,_c2p=_c2.total?Math.round(_c2.cKcal/_c2.total*100):0;html+='<div style="height:4px;border-radius:3px;overflow:hidden;display:flex;margin-top:2px"><div style="width:'+_p2+'%;background:var(--green);opacity:0.5"></div><div style="width:'+_c2p+'%;background:var(--amber);opacity:0.5"></div><div style="flex:1;background:var(--red);opacity:0.5"></div></div>';}
         // 摘要列
-        if(e.col2) html+='<div style="font-size:9px;color:#ff8c42;font-weight:600;margin-top:8px">🔴 高碳日</div>';
-        html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;margin-top:'+(e.col2?'2':'8')+'px;font-size:11px">';
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;margin-top:8px;font-size:11px">';
         html+='<div style="color:var(--green)">蛋白質 '+e.protein+'g<br>'+e.pKcal+'kcal ('+pPct+'%)</div>';
         html+='<div style="color:var(--amber)">碳水 '+e.carb+'g<br>'+e.cKcal+'kcal ('+cPct+'%)</div>';
         html+='<div style="color:var(--red)">脂肪 '+e.fat+'g<br>'+e.fKcal+'kcal ('+fPct+'%)</div>';
         html+='</div>';
-        if(e.col2){const c2=e.col2,p2p=c2.total?Math.round(c2.pKcal/c2.total*100):0,c2p=c2.total?Math.round(c2.cKcal/c2.total*100):0,f2p=100-p2p-c2p;html+='<div style="font-size:9px;color:#5b9bd5;font-weight:600;margin-top:6px">🔵 低碳日</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;margin-top:2px;font-size:11px"><div style="color:var(--green)">蛋白質 '+c2.protein+'g<br>'+c2.pKcal+'kcal ('+p2p+'%)</div><div style="color:var(--amber)">碳水 '+c2.carb+'g<br>'+c2.cKcal+'kcal ('+c2p+'%)</div><div style="color:var(--red)">脂肪 '+c2.fat+'g<br>'+c2.fKcal+'kcal ('+f2p+'%)</div></div>';}
         if(e.note) html+='<div style="font-size:11px;color:var(--text3);margin-top:6px;background:var(--bg3);border-radius:6px;padding:6px 8px">'+e.note+'</div>';
         html+='<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:right">點擊進入編輯 ›</div>';
         html+='</div>';
@@ -1484,34 +1455,13 @@ function updateDietColLabel(){
   if(lbl) lbl.textContent=(dayType||carbType)?[dayType,carbType].filter(Boolean).join(' · ')+' 目標攝取量':'今日目標攝取量';
 }
 
-function calcStudentMacros2(){
-  const p=parseFloat(document.getElementById('sd-protein2')?.value)||0;
-  const c=parseFloat(document.getElementById('sd-carb2')?.value)||0;
-  const f=parseFloat(document.getElementById('sd-fat2')?.value)||0;
-  const pK=p*4,cK=c*4,fK=f*9,total=pK+cK+fK;
-  const res=document.getElementById('sd-result2');if(!res)return;
-  if(!total){res.style.display='none';return;}
-  res.style.display='block';
-  const pP=total?Math.round(pK/total*100):0;
-  const cP=total?Math.round(cK/total*100):0;
-  document.getElementById('sd-total2').textContent=Math.round(total);
-  document.getElementById('sd-bar2').innerHTML=
-    `<div style='width:${pP}%;background:var(--green)'></div>`+
-    `<div style='width:${cP}%;background:var(--amber)'></div>`+
-    `<div style='flex:1;background:var(--red)'></div>`;
-  document.getElementById('sd-p2-info').textContent=`蛋白質 ${Math.round(pK)}kcal (${pP}%)`;
-  document.getElementById('sd-c2-info').textContent=`碳水 ${Math.round(cK)}kcal (${cP}%)`;
-  document.getElementById('sd-f2-info').textContent=`脂肪 ${Math.round(fK)}kcal (${100-pP-cP}%)`;
-}
+function calcStudentMacros2(){} // 保留相容性
 
 function saveStudentMacros(){
   const p=parseFloat(document.getElementById('sd-protein')?.value)||0;
   const c=parseFloat(document.getElementById('sd-carb')?.value)||0;
   const f=parseFloat(document.getElementById('sd-fat')?.value)||0;
-  const p2=parseFloat(document.getElementById('sd-protein2')?.value)||0;
-  const c2=parseFloat(document.getElementById('sd-carb2')?.value)||0;
-  const f2=parseFloat(document.getElementById('sd-fat2')?.value)||0;
-  if(!p&&!c&&!f&&!p2&&!c2&&!f2){alert('請填入至少一項數值');return;}
+  if(!p&&!c&&!f){alert('請填入至少一項數值');return;}
   const today=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
   const pK=Math.round(p*4),cK=Math.round(c*4),fK=Math.round(f*9),total=pK+cK+fK;
   const phase=[...document.querySelectorAll('#diet-phase-chips .chip.sel')].map(el=>el.textContent.trim()).join('');
@@ -1521,10 +1471,6 @@ function saveStudentMacros(){
   const water=(document.getElementById('sdh-water-input')?.value||'').trim();
   if(!dietData[curStudentName])dietData[curStudentName]={macros:[],habits:{}};
   const entry={date:today,ts:Date.now(),protein:p,carb:c,fat:f,pKcal:pK,cKcal:cK,fKcal:fK,total,phase,dayType,carbType,note,water};
-  if(p2||c2||f2){
-    const pK2=Math.round(p2*4),cK2=Math.round(c2*4),fK2=Math.round(f2*9),total2=pK2+cK2+fK2;
-    entry.col2={protein:p2,carb:c2,fat:f2,pKcal:pK2,cKcal:cK2,fKcal:fK2,total:total2};
-  }
   dietData[curStudentName].macros.unshift(entry);
   if(water){if(!dietData[curStudentName].habits)dietData[curStudentName].habits={};dietData[curStudentName].habits.water=water;}
   if(note){if(!dietData[curStudentName].habits)dietData[curStudentName].habits={};dietData[curStudentName].habits.note=note;}
@@ -1590,7 +1536,7 @@ function exportDietEntryByTs(ts){
   if(e.phase) m+='　階段：'+e.phase;
   if(e.dayType) m+='　'+e.dayType;
   m+='\n'+'─'.repeat(22)+'\n\n';
-  m+=(e.col2?'🔴 高碳日目標攝取量\n':'📊 每日營養目標\n');
+  m+='📊 每日營養目標\n';
   m+='總熱量：'+e.total+' kcal\n\n';
   m+='🟢 蛋白質：'+e.protein+'g → '+e.pKcal+'kcal ('+pPct+'%)\n';
   m+='🟡 碳水：'+e.carb+'g → '+e.cKcal+'kcal ('+cPct+'%)\n';
@@ -1600,7 +1546,7 @@ function exportDietEntryByTs(ts){
     const p2Pct=c2.total?Math.round(c2.pKcal/c2.total*100):0;
     const c2Pct=c2.total?Math.round(c2.cKcal/c2.total*100):0;
     const f2Pct=100-p2Pct-c2Pct;
-    m+='\n🔵 低碳日目標攝取量\n總熱量：'+c2.total+' kcal\n\n';
+    m+='\n📊 備選方案（欄2）\n總熱量：'+c2.total+' kcal\n';
     m+='🟢 蛋白質：'+c2.protein+'g → '+c2.pKcal+'kcal ('+p2Pct+'%)\n';
     m+='🟡 碳水：'+c2.carb+'g → '+c2.cKcal+'kcal ('+c2Pct+'%)\n';
     m+='🔴 脂肪：'+c2.fat+'g → '+c2.fKcal+'kcal ('+f2Pct+'%)\n';
