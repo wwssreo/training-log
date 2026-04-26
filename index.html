@@ -420,7 +420,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 <!-- STUDENT SCREEN -->
 <div class="screen" id="s-student">
   <div class="ed-hdr">
-    <div class="back" onclick="show('s-home')">←</div>
+    <div class="back" onclick="show('s-home');renderHome()">←</div>
     <div class="ed-title-wrap">
       <div class="ed-title" id="student-title">學員</div>
       <div class="ed-sub" id="student-sub"></div>
@@ -454,7 +454,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 <!-- DIET SCREEN -->
 <div class="screen" id="s-diet">
   <div class="ed-hdr">
-    <div class="back" onclick="show('s-home')">←</div>
+    <div class="back" onclick="show('s-home');renderHome()">←</div>
     <div class="ed-title-wrap">
       <div class="ed-title">飲食紀錄</div>
       <div class="ed-sub" id="diet-sub">選擇學員</div>
@@ -579,7 +579,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--acc)}
 <!-- BACKUP SCREEN -->
 <div class="screen" id="s-backup">
   <div class="ed-hdr">
-    <div class="back" onclick="show('s-home')">←</div>
+    <div class="back" onclick="show('s-home');renderHome()">←</div>
     <div class="ed-title-wrap">
       <div class="ed-title">備份 / 匯入</div>
       <div class="ed-sub">資料安全保護</div>
@@ -2829,7 +2829,7 @@ function saveAssess(){
   show('s-student');switchStudentTab('assess');renderStudentAssess();
 }
 
-function closeAssess(){show('s-home');}
+function closeAssess(){show('s-home');renderHome();}
 
 // ══════════════════════════════════════════
 // ── 飲食紀錄邏輯 ──
