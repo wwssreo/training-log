@@ -988,7 +988,7 @@ const expandedStudents=new Set();
 
 function renderHome(){
   const list=document.getElementById('nb-list');
-  if(!notebooks.length&&!Object.keys(dietData).length){
+  if(!notebooks.length&&!Object.keys(dietData).length&&!clientList.length){
     list.innerHTML='<div class="empty">還沒有任何客戶<br>點上方「新增客戶」開始</div>';return;
   }
   list.innerHTML='';
@@ -996,6 +996,7 @@ function renderHome(){
   const studentSet=new Set();
   notebooks.forEach(n=>{if((n.student||'').trim()) studentSet.add(n.student.trim());});
   Object.keys(dietData).forEach(s=>{if(s.trim()) studentSet.add(s.trim());});
+  clientList.forEach(s=>{if((s||'').trim()) studentSet.add(s.trim());});
   if(!studentSet.size){list.innerHTML='<div class="empty">尚無客戶資料<br>點上方「新增客戶」開始</div>';return;}
 
   const students=[...studentSet].sort((a,b)=>{
@@ -1049,6 +1050,7 @@ function createNewClient(){
   const name=document.getElementById('modal-client-name').value.trim();
   if(!name){alert('請輸入客戶姓名');return;}
   document.getElementById('modal-new-client').classList.add('hidden');
+  if(!clientList.includes(name)){clientList.push(name);saveClientList();}
   openStudent(name);
 }
 
@@ -1056,7 +1058,8 @@ function deleteStudent(student){
   if(!confirm(`確定刪除「${student}」的所有資料？\n包含評估、飲食、所有課程記錄，此操作無法復原。`)) return;
   notebooks=notebooks.filter(n=>(n.student||'').trim()!==student);
   delete dietData[student];
-  persist();saveDietData();renderHome();
+  clientList=clientList.filter(s=>s!==student);
+  persist();saveDietData();saveClientList();renderHome();
 }
 
 function quickAssess(student){
@@ -3031,6 +3034,11 @@ let dietData={};
 function loadDietData(){try{dietData=JSON.parse(localStorage.getItem('tlog_diet')||'{}')}catch(e){dietData={};}}
 function saveDietData(){try{localStorage.setItem('tlog_diet',JSON.stringify(dietData))}catch(e){}}
 
+// 客戶名單（確保新增但無資料的客戶也能顯示）
+let clientList=[];
+function loadClientList(){try{clientList=JSON.parse(localStorage.getItem('tlog_clients')||'[]')}catch(e){clientList=[];}}
+function saveClientList(){try{localStorage.setItem('tlog_clients',JSON.stringify(clientList))}catch(e){}}
+
 // ══════════════════════════════════════════
 // ── 備份 / 匯入邏輯 ──
 // ══════════════════════════════════════════
@@ -3048,6 +3056,7 @@ function exportBackup(){
     exportDate:new Date().toISOString(),
     notebooks,
     dietData,
+    clientList,
     // 各學員各動作最高強度摘要
     strengthSummary:{}
   };
@@ -3159,6 +3168,11 @@ function importBackup(){
       });
       saveDietData();
     }
+    // 合併 clientList
+    if(Array.isArray(data.clientList)){
+      data.clientList.forEach(s=>{if(s&&!clientList.includes(s)) clientList.push(s);});
+      saveClientList();
+    }
     persist();renderHome();
     document.getElementById('import-json').value='';
     alert(`✅ 匯入成功！新增 ${added} 筆資料。`);
@@ -3167,6 +3181,7 @@ function importBackup(){
 // ── INIT ──
 load();
 loadDietData();
+loadClientList();
 renderHome();
 renderStars();
 document.getElementById('home-date').textContent=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
