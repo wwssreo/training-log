@@ -4,293 +4,158 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="訓練記錄">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="教練工具">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#F5F2EE">
-<title>訓練記錄</title>
+<meta name="theme-color" content="#F0EDE8">
+<title>教練工具</title>
+<!-- PWA Home Screen Icon (SVG→PNG via canvas not needed; use inline SVG as data URI) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23F0EDE8'/%3E%3Crect x='156' y='148' width='200' height='3' rx='1.5' fill='%236B5E4A' opacity='.5'/%3E%3Crect x='156' y='176' width='160' height='2' rx='1' fill='%236B5E4A' opacity='.3'/%3E%3Crect x='156' y='198' width='140' height='2' rx='1' fill='%236B5E4A' opacity='.3'/%3E%3Crect x='156' y='240' width='200' height='3' rx='1.5' fill='%236B5E4A' opacity='.5'/%3E%3Crect x='156' y='268' width='120' height='2' rx='1' fill='%236B5E4A' opacity='.3'/%3E%3Crect x='156' y='290' width='160' height='2' rx='1' fill='%236B5E4A' opacity='.3'/%3E%3Crect x='156' y='332' width='200' height='3' rx='1.5' fill='%235C4A30' opacity='.7'/%3E%3Crect x='156' y='360' width='80' height='2' rx='1' fill='%235C4A30' opacity='.4'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F0EDE8'/%3E%3Crect x='8' y='9' width='16' height='1.5' rx='.75' fill='%235C4A30'/%3E%3Crect x='8' y='13' width='12' height='1' rx='.5' fill='%236B5E4A' opacity='.6'/%3E%3Crect x='8' y='16.5' width='14' height='1' rx='.5' fill='%236B5E4A' opacity='.6'/%3E%3Crect x='8' y='21' width='16' height='1.5' rx='.75' fill='%235C4A30'/%3E%3Crect x='8' y='25' width='8' height='1' rx='.5' fill='%236B5E4A' opacity='.5'/%3E%3C/svg%3E">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
 :root{
-  --bg:#F5F2EE;--bg2:#FDFCFA;--bg3:#EEE9E2;--bg4:#E6E0D8;
-  --border:#D8D0C4;--border2:#C8BFB0;
-  --text:#2C2416;--text2:#6B5E4A;--text3:#A89880;
-  --acc:#5C4A30;--acc-bg:#EDE8E0;--acc-light:#8B6F47;
-  --green:#4A7C59;--green-bg:#EAF0EB;--green-b:#8BB89A;
-  --amber:#8B6914;--amber-bg:#F5EDD8;--amber-b:#C9A84C;
-  --red:#8B3A2E;--red-bg:#F5E8E6;--red-b:#C97A70;
-  --purple:#5C4A7A;--purple-bg:#EDE8F5;--purple-b:#9B8ABB;
+  --bg:#F0EDE8;--bg2:#FAF9F7;--bg3:#E8E4DF;--bg4:#DDD8D2;
+  --border:#DDD8D2;--border2:#C8C0B6;
+  --text:#1E1810;--text2:#5A4E3C;--text3:#9A8870;
+  --acc:#5C4A30;--acc-bg:#EAE6DE;--acc-light:#7A6348;
+  --green:#4D7A5A;--green-bg:#E8EFE9;--green-b:#9DBFA8;
+  --amber:#8B6914;--amber-bg:#F2EAD6;--amber-b:#C4A055;
+  --red:#8B3A2E;--red-bg:#F2E8E6;--red-b:#C48078;
+  --purple:#5C4A7A;--purple-bg:#EAE6F2;--purple-b:#9888BB;
+  --shadow:0 1px 3px rgba(42,33,24,.06);
+  --shadow-md:0 2px 10px rgba(42,33,24,.09);
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;font-weight:300;letter-spacing:.01em}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;font-weight:300}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;letter-spacing:.02em;-webkit-font-smoothing:antialiased}
 .app{max-width:430px;margin:0 auto}
 .screen{display:none;min-height:100vh}.screen.active{display:block}
-
-/* HOME */
-.home-hdr{padding:1.5rem 1.2rem .8rem;display:flex;align-items:center;justify-content:space-between}
-.logo{font-family:'DM Mono',monospace;font-size:12px;color:var(--acc-light);letter-spacing:.12em}
-.home-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)}
+.home-hdr{padding:1.4rem 1.2rem .8rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.logo{font-family:'Noto Serif TC',serif;font-size:13px;color:var(--acc);letter-spacing:.2em;font-weight:500}
+.home-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
 .home-body{padding:0 1.2rem 6rem}
-.h-title{font-size:22px;font-weight:500;margin-bottom:3px;font-family:'Noto Serif TC',serif;letter-spacing:.05em}
-.h-sub{font-size:13px;color:var(--text2);margin-bottom:1.3rem}
-.new-btn{width:100%;padding:13px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:1.2rem}
-.new-btn:active{opacity:.8}
-.sec-lbl{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px}
-.nb-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:1rem;margin-bottom:10px;cursor:pointer;transition:border-color .12s}
-.nb-card:active{border-color:var(--acc)}
+.h-title{font-size:21px;font-weight:500;margin-bottom:3px;font-family:'Noto Serif TC',serif;letter-spacing:.06em}
+.h-sub{font-size:12px;color:var(--text3);margin-bottom:1.3rem;letter-spacing:.04em}
+.new-btn{width:100%;padding:13px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:14px;font-weight:400;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:1.2rem;letter-spacing:.1em;transition:opacity .15s}
+.new-btn:active{opacity:.75}
+.sec-lbl{font-size:9px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:9px}
+.nb-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:.95rem 1rem;margin-bottom:9px;cursor:pointer;transition:border-color .12s;box-shadow:var(--shadow)}
+.nb-card:active{border-color:var(--acc-light)}
 .nb-row{display:flex;align-items:flex-start;justify-content:space-between}
 .nb-info{flex:1}
-.nb-name{font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px}
-.nb-meta{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:5px}
-.nb-exs{font-size:12px;color:var(--text2);line-height:1.6}
-.tag{display:inline-block;padding:2px 9px;border-radius:4px;font-size:11px;font-weight:500;margin-right:4px;margin-bottom:4px}
+.nb-name{font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px;letter-spacing:.03em}
+.nb-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:5px;letter-spacing:.05em}
+.nb-exs{font-size:12px;color:var(--text2);line-height:1.7}
+.tag{display:inline-block;padding:2px 8px;border-radius:2px;font-size:10px;font-weight:400;margin-right:4px;margin-bottom:4px;letter-spacing:.05em}
 .tag-prep{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b)}
 .tag-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
-.nb-del{font-size:18px;color:var(--text3);cursor:pointer;padding:3px 5px;border-radius:6px;line-height:1;user-select:none}
+.nb-del{font-size:17px;color:var(--text3);cursor:pointer;padding:3px 5px;border-radius:3px;line-height:1;user-select:none}
 .nb-del:active{color:var(--red)}
-.empty{text-align:center;padding:3rem 1rem;color:var(--text3);font-size:13px;line-height:1.9}
-
-/* EDITOR */
-.ed-hdr{padding:.9rem 1.2rem;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:20}
-.back{font-size:22px;color:var(--text2);cursor:pointer;line-height:1;padding:2px 4px}
+.empty{text-align:center;padding:3rem 1rem;color:var(--text3);font-size:12px;line-height:2;letter-spacing:.06em}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:.9rem 1rem;margin-bottom:10px;box-shadow:var(--shadow)}
+.ed-hdr{padding:.85rem 1.2rem;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:20}
+.back{font-size:18px;color:var(--text2);cursor:pointer;line-height:1;padding:2px 4px}
 .ed-title-wrap{flex:1;min-width:0}
-.ed-title{font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ed-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
-.save-btn{padding:8px 14px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif;flex-shrink:0}
+.ed-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.05em}
+.ed-sub{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.06em}
+.save-btn{padding:7px 13px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:12px;font-weight:400;cursor:pointer;font-family:'Noto Sans TC',sans-serif;flex-shrink:0;letter-spacing:.06em}
 .ed-body{padding:0 1.2rem 5rem}
-
-/* TABS */
-.tabs{display:flex;gap:0;margin:.9rem 0;background:var(--bg3);border-radius:4px;padding:3px}
-.tab{flex:1;padding:8px 0;text-align:center;font-size:13px;color:var(--text3);cursor:pointer;border-radius:3px;transition:all .15s;font-family:'Noto Sans TC',sans-serif}
-.tab.on{background:var(--bg2);color:var(--text);font-weight:500;border:1px solid var(--border)}
+.tabs{display:flex;gap:0;margin:.9rem 0;background:var(--bg3);border-radius:2px;padding:2px;border:1px solid var(--border)}
+.tab{flex:1;padding:8px 0;text-align:center;font-size:12px;color:var(--text3);cursor:pointer;border-radius:2px;transition:all .15s;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em}
+.tab.on{background:var(--bg2);color:var(--acc);font-weight:500;border:1px solid var(--border)}
 .tc{display:none}.tc.on{display:block}
-
-/* CARD */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.9rem 1rem;margin-bottom:10px}
-.sec{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.sec{font-size:9px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border)}
 .lbl{font-size:13px;color:var(--text);font-weight:500;margin-bottom:5px}
 .flabel{font-size:13px;color:var(--text2);font-weight:500;margin-bottom:5px}
-.opt{font-size:11px;color:var(--text3);font-weight:400;margin-left:4px}
-input[type=text],input[type=number],textarea,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:9px 11px;font-size:15px;color:var(--text);font-family:'Noto Sans TC',sans-serif;line-height:1.5;resize:none;-webkit-appearance:none}
-input:focus,textarea:focus{outline:none;border-color:var(--acc)}
-::placeholder{color:var(--text3);font-size:13px}
-
-/* CHIPS */
+.opt{font-size:11px;color:var(--text3);font-weight:300;margin-left:4px}
+input[type=text],input[type=number],textarea,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:9px 11px;font-size:15px;color:var(--text);font-family:'Noto Sans TC',sans-serif;line-height:1.5;resize:none;-webkit-appearance:none;font-weight:300;letter-spacing:.02em}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
+::placeholder{color:var(--text3);font-size:12px;font-weight:300;letter-spacing:.03em}
 .chip-group{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
-.chip{padding:7px 13px;border-radius:3px;border:1px solid var(--border2);font-size:13px;color:var(--text2);cursor:pointer;background:var(--bg3);transition:all .12s;user-select:none;font-family:'Noto Sans TC',sans-serif;line-height:1}
-.chip.sel{background:var(--acc-bg);border-color:var(--acc);color:var(--acc-light)}
+.chip{padding:7px 13px;border-radius:2px;border:1px solid var(--border2);font-size:12px;color:var(--text2);cursor:pointer;background:var(--bg3);transition:all .12s;user-select:none;font-family:'Noto Sans TC',sans-serif;line-height:1;letter-spacing:.03em}
+.chip.sel{background:var(--acc-bg);border-color:var(--border2);color:var(--acc);font-weight:500}
 .achips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px}
-.achips .chip{padding:6px 12px;font-size:12px;opacity:.35}.achips .chip.on{opacity:1}
+.achips .chip{padding:6px 12px;font-size:11px;opacity:.7}.achips .chip.on{opacity:1;font-weight:500}
 .ok{border-color:var(--green-b)!important;color:var(--green)!important;background:var(--green-bg)!important}
 .wn{border-color:var(--amber-b)!important;color:var(--amber)!important;background:var(--amber-bg)!important}
 .bd{border-color:var(--red-b)!important;color:var(--red)!important;background:var(--red-bg)!important}
 .ai{margin-bottom:11px}
-.anote{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:7px 10px;font-size:13px;color:var(--text);font-family:'Noto Sans TC',sans-serif;resize:none}
+.anote{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:7px 10px;font-size:13px;color:var(--text);font-family:'Noto Sans TC',sans-serif;resize:none;font-weight:300}
 .anote:focus{outline:none;border-color:var(--acc)}
-
-/* STARS */
 .star-row{display:flex;gap:12px;margin:4px 0 6px}
-.star{font-size:28px;cursor:pointer;color:var(--border2);transition:color .12s;user-select:none;line-height:1}
-.star.on{color:var(--acc-light)}
-.star-lbl{font-size:13px;color:var(--text2);min-height:18px;font-weight:500}
-
-/* MUSCLE SCROLLER */
+.star{font-size:26px;cursor:pointer;color:var(--border2);transition:color .12s;user-select:none;line-height:1}
+.star.on{color:var(--amber)}
+.star-lbl{font-size:12px;color:var(--text2);min-height:18px;font-weight:400;letter-spacing:.04em}
 .msc{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:9px;scrollbar-width:none}
 .msc::-webkit-scrollbar{display:none}
-.mbtn{flex-shrink:0;padding:7px 13px;border-radius:3px;border:1px solid var(--border2);font-size:13px;color:var(--text2);cursor:pointer;background:var(--bg3);white-space:nowrap;font-family:'Noto Sans TC',sans-serif;transition:all .12s}
-.mbtn.on{background:var(--acc-bg);border-color:var(--acc);color:var(--acc-light)}
+.mbtn{flex-shrink:0;padding:7px 13px;border-radius:2px;border:1px solid var(--border2);font-size:12px;color:var(--text2);cursor:pointer;background:var(--bg3);white-space:nowrap;font-family:'Noto Sans TC',sans-serif;transition:all .12s}
+.mbtn.on{background:var(--acc-bg);border-color:var(--border2);color:var(--acc)}
 .mbtn .cnt{font-size:10px;margin-left:3px;color:var(--green);font-family:'DM Mono',monospace}
-
-/* EX LIST */
-.ex-list{border-radius:4px;border:1px solid var(--border);max-height:240px;overflow-y:auto;margin-top:8px}
-.ex-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;transition:background .1s}
+.ex-list{border-radius:2px;border:1px solid var(--border);max-height:240px;overflow-y:auto;margin-top:8px}
+.ex-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;transition:background .1s;letter-spacing:.02em}
 .ex-item:last-child{border-bottom:none}
 .ex-item:active{background:var(--bg4)}
 .ex-item.added{color:var(--acc-light);background:var(--acc-bg)}
-.ex-ico{font-size:18px;color:var(--text3);flex-shrink:0;margin-left:8px}
+.ex-ico{font-size:16px;color:var(--text3);flex-shrink:0;margin-left:8px}
 .ex-item.added .ex-ico{color:var(--green)}
-
-/* HISTORY BADGE */
-.hist-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:7px;font-size:11px;font-family:'DM Mono',monospace;margin-left:5px;vertical-align:middle}
+.hist-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:2px;font-size:10px;font-family:'DM Mono',monospace;margin-left:5px;vertical-align:middle;letter-spacing:.04em}
 .hist-best{background:var(--purple-bg);border:1px solid var(--purple-b);color:var(--purple)}
-.hist-none{background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
-
-/* PERF BADGE — 純文字標籤，非按鈕 */
-.pb{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:500;vertical-align:middle;margin-left:4px;cursor:default;user-select:none}
+.hist-none{background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--border2)}
+.pb{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:2px;font-size:10px;font-weight:400;vertical-align:middle;margin-left:4px;cursor:default;user-select:none;letter-spacing:.04em}
 .pb-up{background:var(--green-bg);border:1px solid var(--green-b);color:var(--green)}
 .pb-same{background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
 .pb-down{background:var(--red-bg);border:1px solid var(--red-b);color:var(--red)}
 .pb-new{background:var(--amber-bg);border:1px solid var(--amber-b);color:var(--amber)}
-
-/* GROUP BLOCK */
 .group-block{margin-bottom:12px}
-.group-lbl{font-size:11px;font-family:'DM Mono',monospace;color:var(--acc-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px;padding:3px 8px;background:var(--acc-bg);border-radius:6px;display:inline-block}
-
-/* WLOG */
-.wlog{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:.85rem .95rem;margin-bottom:7px}
+.group-lbl{font-size:10px;font-family:'DM Mono',monospace;color:var(--acc-light);letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px;padding:3px 8px;background:var(--acc-bg);border-radius:2px;display:inline-block}
+.wlog{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:.85rem .95rem;margin-bottom:7px;box-shadow:var(--shadow)}
 .wlog-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
 .wlog-name{font-size:13px;color:var(--text);font-weight:500;flex:1;line-height:1.5}
 .wlog-name-text{display:block;margin-bottom:4px}
 .wlog-badges{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.wlog-del{font-size:16px;color:var(--text3);cursor:pointer;padding:0 4px;flex-shrink:0}.wlog-del:active{color:var(--red)}
-.wlog-hist{font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 9px;background:var(--bg3);border-radius:3px;border:1px solid var(--border);line-height:1.7}
-.wlog-hist strong{color:var(--purple)}
-.wlog-hist .hist-row-item{display:flex;align-items:center;justify-content:space-between;padding:2px 0}
-.wlog-hist .hr-label{color:var(--text3);min-width:32px}
-.wlog-hist .hr-val{color:var(--purple);font-family:'DM Mono',monospace;font-size:11px}
-
-/* PLAN SETS GRID */
-.plan-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:7px}
-.plan-grid-lbl{font-size:10px;color:var(--text3);text-align:center;font-family:'DM Mono',monospace;margin-bottom:3px}
-.plan-inp{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:8px 4px;font-size:15px;color:var(--text);text-align:center;width:100%;font-family:'Noto Sans TC',sans-serif;-webkit-appearance:none}
-.plan-inp:focus{outline:none;border-color:var(--acc)}
-
-/* SET ROWS */
-.set-labels{display:grid;grid-template-columns:20px 1fr 1fr 1fr 20px;gap:5px;margin-bottom:3px}
-.set-label{font-size:10px;color:var(--text3);text-align:center;font-family:'DM Mono',monospace}
-.set-row{display:grid;grid-template-columns:20px 1fr 1fr 1fr 20px;gap:5px;align-items:center;margin-bottom:5px}
+.wlog-del{font-size:15px;color:var(--text3);cursor:pointer;padding:0 4px;flex-shrink:0}.wlog-del:active{color:var(--red)}
+.wlog-hist{font-size:11px;color:var(--text3);padding:5px 8px;background:var(--bg3);border-radius:2px;margin-bottom:7px;border-left:2px solid var(--border2);line-height:1.7;letter-spacing:.03em}
+.wlog-note{width:100%;font-size:12px;color:var(--text2);background:transparent;border:none;border-top:1px solid var(--border);padding-top:7px;margin-top:5px;resize:none;font-family:'Noto Sans TC',sans-serif;font-weight:300}
+.wlog-note:focus{outline:none}
+.set-labels{display:grid;grid-template-columns:24px 1fr 1fr 1fr 28px;gap:5px;margin-bottom:4px;font-size:9px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;text-align:center}
+.set-label{text-align:center}
+.set-row{display:grid;grid-template-columns:24px 1fr 1fr 1fr 28px;gap:5px;margin-bottom:5px;align-items:center}
 .set-num{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center}
-.set-inp{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 4px;font-size:14px;color:var(--text);text-align:center;width:100%;font-family:'Noto Sans TC',sans-serif;-webkit-appearance:none}
-.set-inp:focus{outline:none;border-color:var(--acc)}
-.set-del{font-size:14px;color:var(--text3);cursor:pointer;text-align:center}.set-del:active{color:var(--red)}
-.add-set{width:100%;padding:7px;border-radius:7px;background:transparent;border:1px dashed var(--border2);color:var(--text3);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:2px}
-.add-set:active{background:var(--bg4)}
-.wlog-note{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12px;color:var(--text2);font-family:'Noto Sans TC',sans-serif;resize:none;margin-top:6px}
-.wlog-note:focus{outline:none;border-color:var(--acc)}
-
-/* PREVIEW */
-.pbox{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1rem;font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.9;word-break:break-all;font-family:'Noto Sans TC',sans-serif}
-.cbtn{width:100%;padding:13px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:16px;font-weight:600;cursor:pointer;margin-top:10px;font-family:'Noto Sans TC',sans-serif}
-.cbtn:active{opacity:.8}
-.hint{text-align:center;font-size:12px;color:var(--text3);margin-top:8px}
-
-/* MODAL */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;z-index:100}
-.modal-bg.hidden{display:none}
-.modal{background:var(--bg2);border-radius:20px 20px 0 0;padding:1.4rem 1.2rem 2rem;width:100%;max-width:430px;margin:0 auto}
-.modal-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:1rem}
-.modal-lbl{font-size:13px;color:var(--text2);margin-bottom:5px;font-weight:500}
-.modal-inp{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:11px 12px;font-size:15px;color:var(--text);font-family:'Noto Sans TC',sans-serif;-webkit-appearance:none;margin-bottom:12px}
+.set-inp{background:var(--bg);border:1px solid var(--border);border-radius:2px;font-size:15px;font-weight:300;color:var(--text);text-align:center;padding:7px 2px}
+.set-inp:focus{border-color:var(--acc);outline:none}
+.set-del{font-size:13px;color:var(--text3);cursor:pointer;text-align:center;padding:4px;user-select:none}.set-del:active{color:var(--red)}
+.add-set{width:100%;padding:9px;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px dashed var(--border2);font-size:11px;letter-spacing:.08em;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:6px;font-weight:300}
+.new-ex-hint{background:var(--amber-bg);border:1px solid var(--amber-b);border-radius:2px;padding:6px 10px;margin-bottom:7px;font-size:11px;color:var(--amber);letter-spacing:.03em}
+.modal-wrap{position:fixed;inset:0;background:rgba(42,33,24,.35);z-index:100;display:flex;align-items:center;justify-content:center;padding:0 1.5rem}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1.4rem;width:100%;max-width:340px;box-shadow:var(--shadow-md)}
+.modal-title{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:500;margin-bottom:12px;letter-spacing:.06em}
+.modal-lbl{font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:400;letter-spacing:.04em}
+.modal-inp{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:11px 12px;font-size:15px;color:var(--text);font-family:'Noto Sans TC',sans-serif;-webkit-appearance:none;margin-bottom:12px;font-weight:300}
 .modal-inp:focus{outline:none;border-color:var(--acc)}
 .modal-row{display:flex;gap:10px;margin-top:4px}
-.m-cancel{flex:1;padding:13px;border-radius:4px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);font-size:15px;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
-.m-ok{flex:1;padding:13px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
-
-/* HIST SCREEN */
+.m-cancel{flex:1;padding:12px;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:300}
+.m-ok{flex:1;padding:12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:14px;font-weight:400;cursor:pointer;font-family:'Noto Sans TC',sans-serif;letter-spacing:.06em}
 .hist-body{padding:1rem 1.2rem 5rem}
-.hcard{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:.9rem;margin-bottom:10px}
-.hcard-date{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
-.hcard-rows{}
+.hcard{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:.9rem;margin-bottom:10px;box-shadow:var(--shadow)}
+.hcard-date{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;letter-spacing:.06em}
 .hrow{display:grid;grid-template-columns:40px 1fr 1fr 80px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
 .hrow:last-child{border-bottom:none}
 .hrow-reps{color:var(--text3);font-family:'DM Mono',monospace;font-size:11px}
 .hrow-kg{color:var(--purple);font-family:'DM Mono',monospace;font-weight:500}
 .hrow-sets{color:var(--text2);font-size:11px}
-.hrow-badge{text-align:right}
-
-/* ── MUJI OVERRIDE ── */
-:root{
-  --shadow:0 1px 4px rgba(44,36,22,.07);
-  --shadow-md:0 2px 12px rgba(44,36,22,.10);
-}
-
-/* 整體字重調輕 */
-*{font-weight:300}
-h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on{font-weight:500}
-
-/* 首頁 */
-.home-hdr{border-bottom:1px solid var(--border);padding-bottom:1rem}
-.logo{font-family:'Noto Serif TC',serif;font-size:13px;color:var(--acc);letter-spacing:.18em;font-weight:500}
-.home-date{color:var(--text3);font-size:11px}
-.h-title{font-family:'Noto Serif TC',serif}
-.h-sub{font-size:12px;color:var(--text3);letter-spacing:.03em}
-
-/* 按鈕 */
-.new-btn{background:var(--acc);border-radius:2px;font-weight:400;letter-spacing:.08em;font-size:14px;box-shadow:none;transition:opacity .15s}
-.new-btn:active{opacity:.75}
-.save-btn{background:var(--acc);border-radius:2px;font-size:12px;letter-spacing:.06em;font-weight:400}
-
-/* 卡片 */
-.card{border-radius:3px;box-shadow:var(--shadow);border-color:var(--border)}
-.nb-card{border-radius:3px;box-shadow:var(--shadow);border-color:var(--border);background:var(--bg2)}
-.nb-card:active{border-color:var(--acc-light)}
-
-/* 標籤 */
-.sec{font-size:9px;letter-spacing:.15em;color:var(--text3);border-bottom-color:var(--border);font-family:'DM Mono',monospace}
-.sec-lbl{font-size:9px;letter-spacing:.15em}
-.tag{border-radius:2px;font-size:10px;letter-spacing:.05em}
-.tag-prep{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b)}
-.tag-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
-
-/* Chips */
-.chip{border-radius:2px;font-size:12px;letter-spacing:.03em;font-weight:400;transition:all .1s}
-.chip.sel{background:var(--acc-bg);border-color:var(--border2);color:var(--acc);font-weight:500}
-.achips .chip{border-radius:2px;font-size:11px}
-
-/* 輸入框 */
-input[type=text],input[type=number],textarea,select{
-  border-radius:2px;background:var(--bg);border-color:var(--border);
-  font-size:14px;font-weight:300;
-}
-input:focus,textarea:focus,select:focus{border-color:var(--acc);outline:none}
-::placeholder{color:var(--text3);font-size:12px;font-weight:300}
-
-/* 導覽 */
-.ed-hdr{background:var(--bg);border-bottom:1px solid var(--border);box-shadow:none}
-.back{color:var(--text2);font-size:18px}
-.ed-title{font-family:'Noto Serif TC',serif;font-size:14px;font-weight:500;letter-spacing:.05em}
-.ed-sub{font-size:10px;color:var(--text3);letter-spacing:.05em}
-
-/* 分頁 */
-.tabs{background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:2px}
-.tab{border-radius:2px;font-size:12px;letter-spacing:.05em;font-weight:300}
-.tab.on{background:var(--bg2);color:var(--acc);font-weight:500;border:1px solid var(--border)}
-
-/* 評估 chips */
-.ok{background:var(--green-bg)!important;border-color:var(--green-b)!important;color:var(--green)!important}
-.wn{background:var(--amber-bg)!important;border-color:var(--amber-b)!important;color:var(--amber)!important}
-.bd{background:var(--red-bg)!important;border-color:var(--red-b)!important;color:var(--red)!important}
-
-/* 進度條 */
-.prog-bar{background:var(--bg3);height:3px;border-radius:1px}
-.prog-fill{background:var(--acc);height:3px;border-radius:1px;transition:width .3s}
-
-/* Modal */
-.modal{border-radius:4px;background:var(--bg2);border:1px solid var(--border);box-shadow:var(--shadow-md)}
-.modal-title{font-family:'Noto Serif TC',serif;font-size:16px;font-weight:500;letter-spacing:.05em}
-.modal-inp{border-radius:2px}
-.m-ok{background:var(--acc);border-radius:2px;font-weight:400;letter-spacing:.06em}
-.m-cancel{background:var(--bg3);color:var(--text2);border-radius:2px;font-weight:300}
-
-/* 星星 */
-.star{color:var(--border2)}
-.star.on{color:var(--amber)}
-
-/* 預覽區 */
-.pbox{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1rem;font-size:12px;line-height:1.9;color:var(--text2);letter-spacing:.02em}
-
-/* 複製按鈕 */
-.cbtn{width:100%;padding:12px;border-radius:2px;background:var(--acc);color:var(--bg);border:none;font-size:14px;font-weight:400;letter-spacing:.1em;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:10px}
-
-/* 空狀態 */
-.empty{color:var(--text3);font-size:12px;letter-spacing:.05em}
-
-/* 訓練紀錄 set 輸入 */
-.set-inp{background:var(--bg);border:1px solid var(--border);border-radius:2px;font-size:16px;font-weight:300;color:var(--text);text-align:center}
-.set-inp:focus{border-color:var(--acc);outline:none}
-.add-set{width:100%;padding:9px;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px dashed var(--border2);font-size:12px;letter-spacing:.08em;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-top:6px;font-weight:300}
-.hist-badge{font-size:10px;padding:2px 7px;border-radius:2px;border:1px solid;letter-spacing:.04em}
-.hist-none{background:var(--acc-bg);color:var(--acc-light);border-color:var(--acc)}
-
-/* 備份頁 */
+.prog-bar{background:var(--bg3);height:2px;border-radius:1px}
+.prog-fill{background:var(--acc);height:2px;border-radius:1px;transition:width .3s}
+.pbox{background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:1rem;font-size:12px;line-height:1.9;color:var(--text2);letter-spacing:.03em}
 textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-color:var(--border)}
-
-/* scrollbar */
-::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-
+h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font-weight:500}
+.hidden{display:none!important}
+.modal-bg{position:fixed;inset:0;background:rgba(42,33,24,.38);z-index:100;display:flex;align-items:center;justify-content:center;padding:0 1.5rem}
 </style>
+</head>
+
 </head>
 <body>
 <div class="app">
@@ -457,7 +322,7 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
     <!-- 報告 -->
     <div class="tc" id="tc-report">
       <div style="margin:0 0 .6rem;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase">預覽報告</div>
-      <div class="pbox" id="preview"></div>
+      <div class="pbox" id="preview" style="white-space:pre-wrap;line-height:1.8"></div>
       <button class="cbtn" id="copybtn" onclick="doCopy()">複製 Line 訊息</button>
       <p class="hint">複製後直接貼到 Line 傳給學員</p>
       <div style="height:2rem"></div>
@@ -478,20 +343,20 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
 </div>
 
 <!-- MODAL 新增客戶 -->
-<div class="modal-bg hidden" id="modal-new-client">
+<div class="modal-bg" id="modal-new-client" style="display:none">
   <div class="modal">
     <div class="modal-title">新增客戶</div>
     <div class="modal-lbl">客戶姓名</div>
     <input class="modal-inp" id="modal-client-name" placeholder="輸入客戶姓名">
     <div class="modal-row">
-      <button class="m-cancel" onclick="document.getElementById('modal-new-client').classList.add('hidden')">取消</button>
+      <button class="m-cancel" onclick="closeNewClientModal()">取消</button>
       <button class="m-ok" onclick="createNewClient()">建立</button>
     </div>
   </div>
 </div>
 
 <!-- MODAL 新增課程 -->
-<div class="modal-bg hidden" id="modal">
+<div class="modal-bg" id="modal" style="display:none">
   <div class="modal">
     <div class="modal-title">新增訓練課程</div>
     <div class="modal-lbl">課程日期</div>
@@ -506,7 +371,7 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
 </div>
 
 <!-- MODAL 新增評估 -->
-<div class="modal-bg hidden" id="modal-assess">
+<div class="modal-bg" id="modal-assess" style="display:none">
   <div class="modal">
     <div class="modal-title">新增評估</div>
     <div class="modal-lbl">學員姓名</div>
@@ -528,13 +393,13 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
       <div class="ed-title" id="student-title">學員</div>
       <div class="ed-sub" id="student-sub"></div>
     </div>
-    <button class="save-btn" style="background:var(--purple);color:#fff;padding:8px 12px;font-size:13px" onclick="exportStudent()">📤 匯出</button>
+    <button class="save-btn" style="background:var(--purple);color:#fff;padding:8px 12px;font-size:13px" onclick="exportStudent()">匯出</button>
   </div>
   <div style="padding:0 1.2rem 5rem;margin-top:.6rem">
     <div class="tabs" id="student-tabs">
-      <div class="tab on" onclick="switchStudentTab('assess')">📋 評估</div>
-      <div class="tab" onclick="switchStudentTab('diet')">🥗 飲食</div>
-      <div class="tab" onclick="switchStudentTab('sessions')">💪 課程</div>
+      <div class="tab on" onclick="switchStudentTab('assess')">評估</div>
+      <div class="tab" onclick="switchStudentTab('diet')">飲食</div>
+      <div class="tab" onclick="switchStudentTab('sessions')">課程</div>
     </div>
     <div id="student-assess-tab" class="tc on"></div>
     <div id="student-diet-tab" class="tc"></div>
@@ -587,40 +452,58 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
         </div>
 
         <!-- 高碳日目標攝取量 -->
-        <div style="background:var(--amber-bg);border:1px solid var(--amber-b);border-radius:6px;padding:12px;margin-bottom:10px">
+        <div style="background:var(--amber-bg);border:1px solid var(--amber-b);border-radius:4px;padding:12px;margin-bottom:10px">
           <div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:10px">高碳日　目標攝取量</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
             <div>
-              <div style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:5px">蛋白質 g</div>
-              <input type="text" inputmode="decimal" id="diet-hc-protein" placeholder="0" style="background:var(--bg2);border:1px solid var(--amber-b);border-radius:4px;padding:10px 4px;font-size:18px;font-weight:600;color:var(--green);text-align:center;width:100%">
+              <div style="font-size:11px;color:#7A9E8B;font-family:'DM Mono',monospace;margin-bottom:5px">蛋白質 g</div>
+              <input type="text" inputmode="decimal" id="diet-hc-protein" placeholder="0" oninput="calcDietPreview()" style="background:var(--bg2);border:1px solid var(--amber-b);border-radius:2px;padding:10px 4px;font-size:18px;font-weight:500;color:var(--text);text-align:center;width:100%">
             </div>
             <div>
-              <div style="font-size:11px;color:var(--amber);font-family:'DM Mono',monospace;margin-bottom:5px">碳水 g</div>
-              <input type="text" inputmode="decimal" id="diet-hc-carb" placeholder="0" style="background:var(--bg2);border:1px solid var(--amber-b);border-radius:4px;padding:10px 4px;font-size:18px;font-weight:600;color:var(--amber);text-align:center;width:100%">
+              <div style="font-size:11px;color:#C4A055;font-family:'DM Mono',monospace;margin-bottom:5px">碳水 g</div>
+              <input type="text" inputmode="decimal" id="diet-hc-carb" placeholder="0" oninput="calcDietPreview()" style="background:var(--bg2);border:1px solid var(--amber-b);border-radius:2px;padding:10px 4px;font-size:18px;font-weight:500;color:var(--text);text-align:center;width:100%">
             </div>
             <div>
-              <div style="font-size:11px;color:var(--red);font-family:'DM Mono',monospace;margin-bottom:5px">脂肪 g</div>
-              <input type="text" inputmode="decimal" id="diet-hc-fat" placeholder="0" style="background:var(--bg2);border:1px solid var(--amber-b);border-radius:4px;padding:10px 4px;font-size:18px;font-weight:600;color:var(--red);text-align:center;width:100%">
+              <div style="font-size:11px;color:#A88AB0;font-family:'DM Mono',monospace;margin-bottom:5px">脂肪 g</div>
+              <input type="text" inputmode="decimal" id="diet-hc-fat" placeholder="0" oninput="calcDietPreview()" style="background:var(--bg2);border:1px solid var(--amber-b);border-radius:2px;padding:10px 4px;font-size:18px;font-weight:500;color:var(--text);text-align:center;width:100%">
             </div>
+          </div>
+          <!-- 即時熱量+百分比 -->
+          <div id="diet-hc-preview" style="display:none;background:var(--bg2);border-radius:2px;padding:8px 10px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+              <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">總熱量</span>
+              <span id="diet-hc-kcal" style="font-size:18px;font-weight:600;color:var(--text)">0 <span style="font-size:10px;font-weight:300;color:var(--text3)">kcal</span></span>
+            </div>
+            <div id="diet-hc-bar" style="height:4px;border-radius:2px;overflow:hidden;background:var(--bg3);margin-bottom:4px;display:flex"></div>
+            <div id="diet-hc-pct" style="display:flex;gap:10px;font-size:10px;font-family:'DM Mono',monospace"></div>
           </div>
         </div>
 
         <!-- 低碳日目標攝取量 -->
-        <div style="background:var(--purple-bg);border:1px solid var(--purple-b);border-radius:6px;padding:12px;margin-bottom:14px">
+        <div style="background:var(--purple-bg);border:1px solid var(--purple-b);border-radius:4px;padding:12px;margin-bottom:14px">
           <div style="font-size:13px;font-weight:600;color:var(--purple);margin-bottom:10px">低碳日　目標攝取量</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
             <div>
-              <div style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:5px">蛋白質 g</div>
-              <input type="text" inputmode="decimal" id="diet-lc-protein" placeholder="0" style="background:var(--bg2);border:1px solid var(--purple-b);border-radius:4px;padding:10px 4px;font-size:18px;font-weight:600;color:var(--green);text-align:center;width:100%">
+              <div style="font-size:11px;color:#7A9E8B;font-family:'DM Mono',monospace;margin-bottom:5px">蛋白質 g</div>
+              <input type="text" inputmode="decimal" id="diet-lc-protein" placeholder="0" oninput="calcDietPreview()" style="background:var(--bg2);border:1px solid var(--purple-b);border-radius:2px;padding:10px 4px;font-size:18px;font-weight:500;color:var(--text);text-align:center;width:100%">
             </div>
             <div>
-              <div style="font-size:11px;color:var(--amber);font-family:'DM Mono',monospace;margin-bottom:5px">碳水 g</div>
-              <input type="text" inputmode="decimal" id="diet-lc-carb" placeholder="0" style="background:var(--bg2);border:1px solid var(--purple-b);border-radius:4px;padding:10px 4px;font-size:18px;font-weight:600;color:var(--amber);text-align:center;width:100%">
+              <div style="font-size:11px;color:#C4A055;font-family:'DM Mono',monospace;margin-bottom:5px">碳水 g</div>
+              <input type="text" inputmode="decimal" id="diet-lc-carb" placeholder="0" oninput="calcDietPreview()" style="background:var(--bg2);border:1px solid var(--purple-b);border-radius:2px;padding:10px 4px;font-size:18px;font-weight:500;color:var(--text);text-align:center;width:100%">
             </div>
             <div>
-              <div style="font-size:11px;color:var(--red);font-family:'DM Mono',monospace;margin-bottom:5px">脂肪 g</div>
-              <input type="text" inputmode="decimal" id="diet-lc-fat" placeholder="0" style="background:var(--bg2);border:1px solid var(--purple-b);border-radius:4px;padding:10px 4px;font-size:18px;font-weight:600;color:var(--red);text-align:center;width:100%">
+              <div style="font-size:11px;color:#A88AB0;font-family:'DM Mono',monospace;margin-bottom:5px">脂肪 g</div>
+              <input type="text" inputmode="decimal" id="diet-lc-fat" placeholder="0" oninput="calcDietPreview()" style="background:var(--bg2);border:1px solid var(--purple-b);border-radius:2px;padding:10px 4px;font-size:18px;font-weight:500;color:var(--text);text-align:center;width:100%">
             </div>
+          </div>
+          <!-- 即時熱量+百分比 -->
+          <div id="diet-lc-preview" style="display:none;background:var(--bg2);border-radius:2px;padding:8px 10px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+              <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">總熱量</span>
+              <span id="diet-lc-kcal" style="font-size:18px;font-weight:600;color:var(--text)">0 <span style="font-size:10px;font-weight:300;color:var(--text3)">kcal</span></span>
+            </div>
+            <div id="diet-lc-bar" style="height:4px;border-radius:2px;overflow:hidden;background:var(--bg3);margin-bottom:4px;display:flex"></div>
+            <div id="diet-lc-pct" style="display:flex;gap:10px;font-size:10px;font-family:'DM Mono',monospace"></div>
           </div>
         </div>
 
@@ -658,20 +541,20 @@ textarea#import-json{font-size:11px;line-height:1.7;background:var(--bg);border-
     <div class="card">
       <div class="sec">匯出完整備份</div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">包含所有學員的評估紀錄、飲食數據、訓練歷史及各動作最高強度，可用於還原資料。</div>
-      <button style="width:100%;padding:12px;border-radius:4px;background:var(--purple);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:8px" onclick="exportBackup()">📤 匯出備份 JSON</button>
-      <button style="width:100%;padding:12px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="exportReadableReport()">📄 匯出可讀報告（文字）</button>
+      <button style="width:100%;padding:12px;border-radius:4px;background:var(--purple);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:8px" onclick="exportBackup()">匯出備份 JSON</button>
+      <button style="width:100%;padding:12px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="exportReadableReport()">匯出可讀報告</button>
     </div>
     <!-- 匯入 -->
     <div class="card">
       <div class="sec">匯入備份</div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">貼上之前匯出的 JSON 備份內容，點擊匯入即可還原所有資料。</div>
       <textarea id="import-json" rows="6" placeholder="貼上 JSON 備份內容..." style="font-size:12px;font-family:'DM Mono',monospace"></textarea>
-      <button style="width:100%;margin-top:8px;padding:12px;border-radius:4px;background:var(--green);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="importBackup()">📥 匯入還原</button>
+      <button style="width:100%;margin-top:8px;padding:12px;border-radius:4px;background:var(--green);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="importBackup()">匯入還原</button>
     </div>
     <!-- 備份預覽 -->
     <div id="backup-preview-wrap" style="display:none">
       <div class="sec-lbl" style="margin-top:4px">備份內容預覽</div>
-      <div class="pbox" id="backup-preview" style="font-size:11px;font-family:'DM Mono',monospace;max-height:300px;overflow-y:auto"></div>
+      <div class="pbox" id="backup-preview" style="white-space:pre-wrap;font-size:11px;font-family:'DM Mono',monospace;max-height:320px;overflow-y:auto;line-height:1.8"></div>
       <button class="cbtn" onclick="copyBackup()" style="margin-top:8px">複製備份內容</button>
     </div>
   </div>
@@ -1013,7 +896,7 @@ function evalProgress(curSets, prevSets){
 function strengthBadge(r, newPRReps){
   if(newPRReps&&newPRReps.length){
     const desc=newPRReps.map(p=>`${p.reps}下${p.kg}kg`).join(' / ');
-    return `<span class="pb pb-up">🎉 新紀錄 ${desc}</span>`;
+    return `<span class="pb pb-up">▲ 新紀錄 ${desc}</span>`;
   }
   if(r==='up') return `<span class="pb pb-up">▲ 強度↑</span>`;
   if(r==='same') return `<span class="pb pb-same">● 強度持平</span>`;
@@ -1077,7 +960,7 @@ function renderHome(){
         <div>
           <div style="font-size:16px;font-weight:600;color:var(--text)">${student}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-            ${assessments.length?`<span style="font-size:11px;color:var(--amber)">📋 ${assessments.length} 評估</span>`:''}
+            ${assessments.length?`<span style="font-size:11px;color:var(--amber)">${assessments.length} 評估</span>`:''}
             ${dietEntries.length?`<span style="font-size:11px;color:var(--green)">🥗 ${dietEntries.length} 飲食</span>`:''}
             <span style="font-size:11px;color:var(--acc-light)">💪 ${doneCount} 堂</span>
             ${lastDate?`<span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${lastDate}</span>`:''}
@@ -1087,9 +970,9 @@ function renderHome(){
       </div>
       <!-- 快速新增按鈕 + 刪除 -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 36px;gap:7px">
-        <button data-action="assess" data-student="${student}" style="padding:8px 4px;border-radius:9px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif">📋 評估</button>
-        <button data-action="diet" data-student="${student}" style="padding:8px 4px;border-radius:9px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif">🥗 飲食</button>
-        <button data-action="session" data-student="${student}" style="padding:8px 4px;border-radius:9px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif">💪 課程</button>
+        <button data-action="assess" data-student="${student}" style="padding:8px 4px;border-radius:9px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif">評估</button>
+        <button data-action="diet" data-student="${student}" style="padding:8px 4px;border-radius:9px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif">飲食</button>
+        <button data-action="session" data-student="${student}" style="padding:8px 4px;border-radius:9px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif">課程</button>
         <button data-action="delete" data-student="${student}" style="padding:8px 4px;border-radius:9px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);font-size:14px;cursor:pointer" title="刪除客戶">🗑</button>
       </div>`;
     list.appendChild(card);
@@ -1097,15 +980,20 @@ function renderHome(){
 }
 
 function openNewClientModal(){
-  document.getElementById('modal-new-client').classList.remove('hidden');
+  document.getElementById('modal-new-client').style.display='flex';
   document.getElementById('modal-client-name').value='';
   setTimeout(()=>document.getElementById('modal-client-name').focus(),100);
+}
+
+function closeNewClientModal(){
+  document.getElementById('modal-new-client').style.display='none';
+  document.getElementById('modal-client-name').value='';
 }
 
 function createNewClient(){
   const name=document.getElementById('modal-client-name').value.trim();
   if(!name){alert('請輸入客戶姓名');return;}
-  document.getElementById('modal-new-client').classList.add('hidden');
+  document.getElementById('modal-new-client').style.display='none';
   if(!clientList.includes(name)){clientList.push(name);saveClientList();}
   openStudent(name);
 }
@@ -1120,7 +1008,7 @@ function deleteStudent(student){
 
 function quickAssess(student){
   const today=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
-  document.getElementById('modal-assess').classList.remove('hidden');
+  document.getElementById('modal-assess').style.display='flex';
   document.getElementById('modal-assess-student').value=student;
   document.getElementById('modal-assess-date').value=today;
   setTimeout(()=>document.getElementById('modal-assess-date').focus(),100);
@@ -1267,7 +1155,7 @@ function exportReadableReport(){
   let report=`📊 教練工具完整資料報告\n匯出時間：${new Date().toLocaleString('zh-TW')}\n${'═'.repeat(30)}\n\n`;
 
   students.forEach(student=>{
-    report+=`👤 ${student}\n${'─'.repeat(20)}\n`;
+    report+=`${student}\n${'─'.repeat(20)}\n`;
 
     // ── 最新評估報告（與複製給客戶LINE完全一致）──
     const assessNbs=notebooks.filter(n=>n.isAssess&&(n.student||'').trim()===student)
@@ -1288,7 +1176,7 @@ function exportReadableReport(){
     notebooks.filter(n=>n.done&&(n.student||'').trim()===student&&!n.isAssess)
       .forEach(n=>(n.exercises||[]).forEach(ex=>allExNames.add(ex.name)));
     if(allExNames.size){
-      report+=`💪 各動作以10下為基準的最高重量\n`;
+      report+=`＿各動作以10下為基準的最高重量\n`;
       allExNames.forEach(exName=>{
         const best=getLifetimeBestByReps(student,exName,null);
         if(best.size){
@@ -1536,7 +1424,7 @@ function renderPlanLog(){
     let hintHtml='';
     if(isNew){
       hintHtml=`<div class="wlog-hist" style="border-color:var(--amber-b);background:var(--amber-bg)">
-        <span style="color:var(--amber);font-weight:500">✨ 新動作</span>
+        <span style="color:var(--amber);font-weight:500">新動作</span>
         <span style="color:var(--text3);margin-left:6px">此客戶首次訓練，備課時填寫預計目標</span>
       </div>`;
     } else if(lifetimeBest.size){
@@ -1648,7 +1536,7 @@ function renderClassLog(){
     if(isNewExercise){
       // 全新動作：顯示「新動作」提示
       histHtml=`<div class="wlog-hist" style="border-color:var(--amber-b);background:var(--amber-bg)">
-        <span style="color:var(--amber);font-weight:500">✨ 新動作</span>
+        <span style="color:var(--amber);font-weight:500">新動作</span>
         <span style="color:var(--text3);margin-left:6px">此客戶首次訓練，請根據測試重量填寫</span>
       </div>`;
     } else if(prevSets&&prevSets.length){
@@ -1686,14 +1574,14 @@ function renderClassLog(){
       });
       if(newPRReps.length){
         const desc=newPRReps.map(p=>`${p.reps}下 ${p.kg}kg`).join(' / ');
-        badgeHtml=`<span class="pb pb-up">🎉 新紀錄 ${desc}</span>`;
+        badgeHtml=`<span class="pb pb-up">▲ 新紀錄 ${desc}</span>`;
       } else if(curValidSets.length&&!isNewExercise){
         // 看是否比歷史最高「任何次數」有進步
         let anyProgress=false;
         curMap.forEach((kg,reps)=>{const best=lifetimeBest.get(reps)||0;if(kg>best*0)anyProgress=true;});
       }
     } else if(isNewExercise&&curValidSets.length){
-      badgeHtml=`<span class="pb pb-new">✨ 首次記錄</span>`;
+      badgeHtml=`<span class="pb pb-new"> 首次記錄</span>`;
     }
 
     // ── Set rows（組欄可填） ──
@@ -1867,8 +1755,8 @@ function renderReport(){
   });
 
   let report='';
-  report+=`💪 訓練報告｜${student}｜${date}\n`;
-  if(name) report+=`📋 ${name}\n`;
+  report+=`訓練報告｜${student}｜${date}\n`;
+  if(name) report+=`${name}\n`;
   if(type) report+=`分類：${type}\n`;
   report+=`\n`;
   if(starVal) report+=`今日狀態：${'★'.repeat(starVal)}${'☆'.repeat(5-starVal)}（${SLAB[starVal]||''}）\n`;
@@ -1883,20 +1771,20 @@ function renderReport(){
   if(condition) report+=`備註：${condition}\n`;
   report+='\n';
   if(exLines){
-    report+=`📊 訓練內容\n`;
+    report+=`＿訓練內容\n`;
     report+=exLines+'\n';
   }
   if(prLines){
-    report+=`🏆 今日進步\n${prLines}\n`;
+    report+=`＿今日進步\n${prLines}\n`;
   }
   if(intensity||prog) report+=`強度：${intensity}　表現：${prog}\n\n`;
-  if(good) report+=`✅ 表現亮點\n${good}\n\n`;
-  if(improve) report+=`🔧 需要加強\n${improve}\n\n`;
-  if(obs) report+=`👁 教練觀察\n${obs}\n\n`;
-  if(next) report+=`🎯 下一堂方向\n${next}\n\n`;
-  if(diet) report+=`🥗 飲食提醒\n${diet}\n\n`;
-  if(msg) report+=`💬 給 ${student} 的話\n${msg}\n\n`;
-  if(freq) report+=`📅 建議頻率：${freq}\n`;
+  if(good) report+=`＿表現亮點\n${good}\n\n`;
+  if(improve) report+=`＿需要加強\n${improve}\n\n`;
+  if(obs) report+=`＿教練觀察\n${obs}\n\n`;
+  if(next) report+=`＿下一堂方向\n${next}\n\n`;
+  if(diet) report+=`飲食提醒\n${diet}\n\n`;
+  if(msg) report+=`給 ${student} 的話\n${msg}\n\n`;
+  if(freq) report+=`＿建議頻率：${freq}\n`;
   if(nextbook) report+=`下次預約：${nextbook}\n`;
 
   document.getElementById('preview').textContent=report.trim();
@@ -2017,10 +1905,10 @@ function openModal(){
   const today=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
   document.getElementById('modal-name').value=today;
   document.getElementById('modal-student').value='';
-  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('modal').style.display='flex';
   setTimeout(()=>document.getElementById('modal-student').focus(),100);
 }
-function closeModal(){document.getElementById('modal').classList.add('hidden');}
+function closeModal(){document.getElementById('modal').style.display='none';}
 
 function createNB(){
   const date=document.getElementById('modal-name').value.trim();
@@ -2082,7 +1970,7 @@ function renderStudentAssess(){
   const el=document.getElementById('student-assess-tab');
   if(!el)return;
   const assessNbs=notebooks.filter(n=>n.isAssess&&(n.student||'').trim()===curStudentName);
-  let html=`<div style="margin-bottom:8px"><button onclick="quickAssess('${curStudentName.replace(/'/g,"\\'")}');curStudentName='${curStudentName.replace(/'/g,"\\'")}'" style="width:100%;padding:10px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">📋 新增評估</button></div>`;
+  let html=`<div style="margin-bottom:8px"><button onclick="quickAssess('${curStudentName.replace(/'/g,"\\'")}');curStudentName='${curStudentName.replace(/'/g,"\\'")}'" style="width:100%;padding:10px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">新增評估</button></div>`;
   if(!assessNbs.length){
     html+='<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">尚無評估紀錄</div>';
     el.innerHTML=html;return;
@@ -2186,7 +2074,7 @@ function detectProgress(validSets, prevSets, lifetimeBest, exShortName){
 // ── 統一評估報告產生函式 ──
 // ══════════════════════════════════════════
 function buildAssessReport(a, student, date){
-  let r=`🏆 第一堂評估報告\n學員：${student||'—'}`;
+  let r=`[ 第一堂評估報告 ]\n學員：${student||'—'}`;
   if(a.age) r+=`　${a.age}歲`;
   if(a.sex) r+=`　${a.sex}`;
   if(a.height) r+=`　${a.height}cm`;
@@ -2198,11 +2086,11 @@ function buildAssessReport(a, student, date){
   if(a.bf) bodyParts.push(`體脂肪：${a.bf}%`);
   if(a.visceralFat) bodyParts.push(`內臟脂肪：${a.visceralFat}`);
   if(a.bmi) bodyParts.push(`BMI：${a.bmi}`);
-  if(bodyParts.length) r+=`📊 身體組成\n${bodyParts.map(p=>'  '+p).join('\n')}\n\n`;
-  if(a.goals) r+=`🎯 課程目標\n${a.goals}\n\n`;
-  if(a.injury) r+=`⚠️ 注意事項\n${a.injury}\n\n`;
+  if(bodyParts.length) r+=`＿身體組成\n${bodyParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(a.goals) r+=`＿課程目標\n${a.goals}\n\n`;
+  if(a.injury) r+=`＿注意事項\n${a.injury}\n\n`;
   if(a.meals||a.protein||a.water||a.suppl){
-    r+=`🥗 飲食水分\n`;
+    r+=`飲食水分\n`;
     if(a.meals) r+=`  餐數：${a.meals}\n`;
     if(a.protein) r+=`  蛋白質：${a.protein}\n`;
     if(a.water) r+=`  飲水：${a.water}\n`;
@@ -2211,7 +2099,7 @@ function buildAssessReport(a, student, date){
     r+='\n';
   }
   if(a.sleepHrs||a.sleepQ){
-    r+=`😴 睡眠\n  時數：${a.sleepHrs||'—'}　品質：${a.sleepQ||'—'}\n`;
+    r+=`＿睡眠\n  時數：${a.sleepHrs||'—'}　品質：${a.sleepQ||'—'}\n`;
     if(a.sleepSuggest) r+=`  建議：${a.sleepSuggest}\n`;
     r+='\n';
   }
@@ -2224,7 +2112,7 @@ function buildAssessReport(a, student, date){
   if(a.pelvis) staticParts.push(`骨盆：${a.pelvis}`);
   if(a.kneeAlign) staticParts.push(`膝蓋：${a.kneeAlign}`);
   if(a.foot) staticParts.push(`足弓：${a.foot}`);
-  if(staticParts.length) r+=`🔍 靜態評估\n${staticParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(staticParts.length) r+=`＿靜態評估\n${staticParts.map(p=>'  '+p).join('\n')}\n\n`;
   const romParts=[];
   if(a.overhead) romParts.push(`過頭舉：${a.overhead}`);
   if(a.shoulderRot) romParts.push(`肩旋轉：${a.shoulderRot}`);
@@ -2235,7 +2123,7 @@ function buildAssessReport(a, student, date){
   if(a.lumbarFlex) romParts.push(`腰椎彎曲：${a.lumbarFlex}`);
   if(a.hipFlex||a.hipExt) romParts.push(`髖屈曲：${a.hipFlex||'—'}　髖伸直：${a.hipExt||'—'}`);
   if(a.hipIr||a.hipEr) romParts.push(`髖內旋：${a.hipIr||'—'}　髖外旋：${a.hipEr||'—'}`);
-  if(romParts.length) r+=`💪 關節活動度\n${romParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(romParts.length) r+=`＿關節活動度\n${romParts.map(p=>'  '+p).join('\n')}\n\n`;
   const dynParts=[];
   if(a.sqDepth) dynParts.push(`深蹲：${a.sqDepth}${a.sqKnee?' / 膝'+a.sqKnee:''}`);
   if(a.hipDom) dynParts.push(`髖主導：${a.hipDom}`);
@@ -2244,24 +2132,24 @@ function buildAssessReport(a, student, date){
   if(a.vPush) dynParts.push(`垂直推：${a.vPush}`);
   if(a.hPull) dynParts.push(`水平拉：${a.hPull}`);
   if(a.vPull) dynParts.push(`垂直拉：${a.vPull}`);
-  if(dynParts.length) r+=`⚙️ 動態評估\n${dynParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(dynParts.length) r+=`＿動態評估\n${dynParts.map(p=>'  '+p).join('\n')}\n\n`;
   if(a.sessionStars) r+=`今日狀態：${'★'.repeat(a.sessionStars)}${'☆'.repeat(5-a.sessionStars)}（${SLAB[a.sessionStars]||''}）\n`;
-  if(a.exercises) r+=`\n📊 第一堂訓練\n${a.exercises.split('\n').map(l=>'  '+l).join('\n')}\n\n`;
-  if(a.obs) r+=`👁 教練觀察\n${a.obs}\n\n`;
-  if(a.good) r+=`✅ 表現亮點\n${a.good}\n\n`;
-  if(a.nextDir) r+=`🎯 下一階段方向\n${a.nextDir}\n\n`;
-  if(a.priority) r+=`📌 優先改善\n${a.priority}\n\n`;
-  if(a.freq) r+=`📅 建議頻率：${a.freq}\n`;
+  if(a.exercises) r+=`\n＿第一堂訓練\n${a.exercises.split('\n').map(l=>'  '+l).join('\n')}\n\n`;
+  if(a.obs) r+=`＿教練觀察\n${a.obs}\n\n`;
+  if(a.good) r+=`＿表現亮點\n${a.good}\n\n`;
+  if(a.nextDir) r+=`＿下一階段方向\n${a.nextDir}\n\n`;
+  if(a.priority) r+=`＿優先改善\n${a.priority}\n\n`;
+  if(a.freq) r+=`＿建議頻率：${a.freq}\n`;
   if(a.nextBook) r+=`下次預約：${a.nextBook}\n`;
   return r.trim();
 }
 
 // ── 統一飲食報告產生函式 ──
 function buildDietReport(macros, student){
-  let r=`🥗 飲食計畫報告｜${student}\n匯出：${new Date().toLocaleDateString('zh-TW')}\n${'─'.repeat(20)}\n\n`;
+  let r=`飲食計畫報告｜${student}\n匯出：${new Date().toLocaleDateString('zh-TW')}\n${'─'.repeat(20)}\n\n`;
   if(!macros||!macros.length){r+='尚無飲食紀錄';return r.trim();}
   macros.forEach(m=>{
-    r+=`📅 ${m.date||'—'}${m.dayType?' ('+m.dayType+')':''}\n`;
+    r+=`${m.date||'—'}${m.dayType?' ('+m.dayType+')':''}\n`;
     if(m.hcKcal!=null){
       if(m.hcKcal) r+=`  高碳日：${m.hcKcal}kcal　蛋${m.hcProtein||0}g 碳${m.hcCarb||0}g 脂${m.hcFat||0}g\n`;
       if(m.lcKcal) r+=`  低碳日：${m.lcKcal}kcal　蛋${m.lcProtein||0}g 碳${m.lcCarb||0}g 脂${m.lcFat||0}g\n`;
@@ -2306,6 +2194,28 @@ function deleteAssess(nbId){
 }
 
 // ── 飲食計畫新增（對應新UI） ──
+function calcDietPreview(){
+  function updateBlock(pfx, pId, cId, fId){
+    const p=parseFloat(document.getElementById(pId)?.value)||0;
+    const ca=parseFloat(document.getElementById(cId)?.value)||0;
+    const f=parseFloat(document.getElementById(fId)?.value)||0;
+    const kcal=Math.round(p*4+ca*4+f*9);
+    const prev=document.getElementById(pfx+'-preview');
+    if(!prev) return;
+    if(!kcal){prev.style.display='none';return;}
+    prev.style.display='block';
+    const kcalEl=document.getElementById(pfx+'-kcal');
+    if(kcalEl) kcalEl.innerHTML=`${kcal} <span style="font-size:10px;font-weight:300;color:var(--text3)">kcal</span>`;
+    const pp=Math.round(p*4/kcal*100),cp=Math.round(ca*4/kcal*100),fp=Math.round(f*9/kcal*100);
+    const bar=document.getElementById(pfx+'-bar');
+    if(bar) bar.innerHTML=`<div style="width:${pp}%;background:#7A9E8B"></div><div style="width:${cp}%;background:#C4A055"></div><div style="width:${fp}%;background:#A88AB0"></div>`;
+    const pct=document.getElementById(pfx+'-pct');
+    if(pct) pct.innerHTML=`<span style="color:#7A9E8B">蛋 ${pp}%</span><span style="color:#C4A055">碳 ${cp}%</span><span style="color:#A88AB0">脂 ${fp}%</span>`;
+  }
+  updateBlock('diet-hc','diet-hc-protein','diet-hc-carb','diet-hc-fat');
+  updateBlock('diet-lc','diet-lc-protein','diet-lc-carb','diet-lc-fat');
+}
+
 function saveDietPlan(){
   if(!curStudentName){alert('請先選擇學員');return;}
   const dayType=document.querySelector('#diet-daytype .chip.sel')?.textContent.trim()||'';
@@ -2350,7 +2260,7 @@ function renderStudentDiet(){
   const data=dietData[curStudentName]||{};
   const macros=(data.macros||[]).sort((a,b)=>b.ts-a.ts);
   let html=`<div style="margin-bottom:8px">
-    <button onclick="openDietFor('${curStudentName.replace(/'/g,"\\'")}');" style="width:100%;padding:10px;border-radius:4px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">🥗 記錄飲食</button>
+    <button onclick="openDietFor('${curStudentName.replace(/'/g,"\\'")}');" style="width:100%;padding:10px;border-radius:4px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">記錄飲食</button>
   </div>`;
   if(!macros.length){html+='<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">尚無飲食數據</div>';el.innerHTML=html;return;}
   html+=`<div class="sec-lbl" style="margin:4px 0 8px">飲食紀錄（${macros.length} 筆）</div>`;
@@ -2361,41 +2271,77 @@ function renderStudentDiet(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div>
           <span style="font-size:13px;font-weight:500">${m.date||'—'}</span>
-          ${m.dayType?`<span style="font-size:11px;color:var(--acc-light);margin-left:6px;background:var(--acc-bg);padding:1px 6px;border-radius:3px">${m.dayType}</span>`:''}
+          ${m.dayType?`<span style="font-size:11px;color:var(--acc-light);margin-left:6px;background:var(--acc-bg);padding:1px 6px;border-radius:2px">${m.dayType}</span>`:''}
         </div>
-        <div style="display:flex;gap:6px">
-          <button onclick="previewSingleDietReport(${m.ts})" style="padding:3px 8px;border-radius:3px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:11px;font-family:'Noto Sans TC',sans-serif">報告</button>
-          <button onclick="openDietEditEntry(${m.ts})" style="padding:3px 8px;border-radius:3px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:11px;font-family:'Noto Sans TC',sans-serif">編輯</button>
-          <button onclick="deleteDietEntry(${m.ts})" style="padding:3px 8px;border-radius:3px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:11px;font-family:'Noto Sans TC',sans-serif">刪除</button>
+        <div style="display:flex;gap:5px">
+          <button onclick="previewSingleDietReport(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">報告</button>
+          <button onclick="openDietEditEntry(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif">編輯</button>
+          <button onclick="deleteDietEntry(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif">刪除</button>
         </div>
       </div>`;
     if(isNew){
       if(m.hcKcal){
-        html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:12px;color:var(--amber);font-weight:500">高碳日</span>
-          <span style="font-size:16px;font-weight:600;color:var(--text)">${m.hcKcal} <span style="font-size:10px;color:var(--text3)">kcal</span></span>
-        </div>
-        <div style="font-size:11px;color:var(--text3)">蛋 ${m.hcProtein||0}g　碳 ${m.hcCarb||0}g　脂 ${m.hcFat||0}g</div>`;
+        const hcP=m.hcProtein||0,hcC=m.hcCarb||0,hcF=m.hcFat||0,hcK=m.hcKcal||1;
+        const hcPp=Math.round(hcP*4/hcK*100),hcCp=Math.round(hcC*4/hcK*100),hcFp=Math.round(hcF*9/hcK*100);
+        html+=`<div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+            <span style="font-size:11px;color:var(--amber);font-weight:500">高碳日</span>
+            <span style="font-size:14px;font-weight:600;color:var(--text)">${m.hcKcal}<span style="font-size:10px;font-weight:300;color:var(--text3);margin-left:2px">kcal</span></span>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:5px;font-family:'DM Mono',monospace;letter-spacing:.03em">蛋 ${hcP}g · 碳 ${hcC}g · 脂 ${hcF}g</div>
+          <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--bg3);margin-bottom:3px">
+            <div style="width:${hcPp}%;background:#7A9E8B"></div>
+            <div style="width:${hcCp}%;background:#C4A055"></div>
+            <div style="width:${hcFp}%;background:#A88AB0"></div>
+          </div>
+          <div style="display:flex;gap:10px;font-size:10px;font-family:'DM Mono',monospace;color:var(--text3)">
+            <span style="color:#7A9E8B">蛋 ${hcPp}%</span><span style="color:#C4A055">碳 ${hcCp}%</span><span style="color:#A88AB0">脂 ${hcFp}%</span>
+          </div>
+        </div>`;
       }
       if(m.lcKcal){
-        html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;margin-bottom:4px">
-          <span style="font-size:12px;color:var(--purple);font-weight:500">低碳日</span>
-          <span style="font-size:16px;font-weight:600;color:var(--text)">${m.lcKcal} <span style="font-size:10px;color:var(--text3)">kcal</span></span>
-        </div>
-        <div style="font-size:11px;color:var(--text3)">蛋 ${m.lcProtein||0}g　碳 ${m.lcCarb||0}g　脂 ${m.lcFat||0}g</div>`;
+        const lcP=m.lcProtein||0,lcC=m.lcCarb||0,lcF=m.lcFat||0,lcK=m.lcKcal||1;
+        const lcPp=Math.round(lcP*4/lcK*100),lcCp=Math.round(lcC*4/lcK*100),lcFp=Math.round(lcF*9/lcK*100);
+        html+=`<div style="margin-bottom:4px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+            <span style="font-size:11px;color:var(--purple);font-weight:500">低碳日</span>
+            <span style="font-size:14px;font-weight:600;color:var(--text)">${m.lcKcal}<span style="font-size:10px;font-weight:300;color:var(--text3);margin-left:2px">kcal</span></span>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:5px;font-family:'DM Mono',monospace;letter-spacing:.03em">蛋 ${lcP}g · 碳 ${lcC}g · 脂 ${lcF}g</div>
+          <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--bg3);margin-bottom:3px">
+            <div style="width:${lcPp}%;background:#7A9E8B"></div>
+            <div style="width:${lcCp}%;background:#C4A055"></div>
+            <div style="width:${lcFp}%;background:#A88AB0"></div>
+          </div>
+          <div style="display:flex;gap:10px;font-size:10px;font-family:'DM Mono',monospace;color:var(--text3)">
+            <span style="color:#7A9E8B">蛋 ${lcPp}%</span><span style="color:#C4A055">碳 ${lcCp}%</span><span style="color:#A88AB0">脂 ${lcFp}%</span>
+          </div>
+        </div>`;
       }
-      if(m.water) html+=`<div style="font-size:12px;color:var(--text2);margin-top:6px">💧 ${m.water}</div>`;
+      if(m.water) html+=`<div style="font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.03em">飲水 ${m.water}</div>`;
     } else {
-      html+=`<div style="font-size:20px;font-weight:600;text-align:center;color:var(--text);margin-bottom:6px">${m.total||0} <span style="font-size:12px;color:var(--text3)">kcal</span></div>
-      <div style="font-size:11px;color:var(--text3);text-align:center">蛋白 ${m.protein||0}g　碳水 ${m.carb||0}g　脂肪 ${m.fat||0}g</div>`;
+      const p=m.protein||0,ca=m.carb||0,f=m.fat||0,tot=m.total||1;
+      const pp=Math.round(p*4/tot*100),cp=Math.round(ca*4/tot*100),fp=Math.round(f*9/tot*100);
+      html+=`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace">蛋 ${p}g · 碳 ${ca}g · 脂 ${f}g</span>
+        <span style="font-size:14px;font-weight:600;color:var(--text)">${m.total||0}<span style="font-size:10px;font-weight:300;color:var(--text3);margin-left:2px">kcal</span></span>
+      </div>
+      <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--bg3);margin-bottom:3px">
+        <div style="width:${pp}%;background:#7A9E8B"></div>
+        <div style="width:${cp}%;background:#C4A055"></div>
+        <div style="width:${fp}%;background:#A88AB0"></div>
+      </div>
+      <div style="display:flex;gap:10px;font-size:10px;font-family:'DM Mono',monospace;color:var(--text3)">
+        <span style="color:#7A9E8B">蛋 ${pp}%</span><span style="color:#C4A055">碳 ${cp}%</span><span style="color:#A88AB0">脂 ${fp}%</span>
+      </div>`;
     }
-    if(m.note) html+=`<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.6">${m.note}</div>`;
+    if(m.note) html+=`<div style="font-size:11px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);line-height:1.6">${m.note}</div>`;
     html+=`</div>`;
   });
   el.innerHTML=html;
 }
 
-// ── 飲食紀錄編輯入口（從學員飲食頁） ──
+// ── 飲食紀錄編輯入口（從學員飲食頁）──
 function openDietEditEntry(ts){
   // 帶入舊資料到飲食頁表單並切換過去
   const macros=dietData[curStudentName]?.macros||[];
@@ -2412,6 +2358,7 @@ function openDietEditEntry(ts){
       ['diet-water-goal',e.water||''],['diet-note',e.note||''],
       ['diet-date-input',e.date||'']];
     ids.forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+    calcDietPreview();
     // 改按鈕文字為更新
     const btn=document.querySelector('[onclick="saveDietPlan()"]');
     if(btn){btn.textContent='更新飲食紀錄';btn.onclick=()=>updateDietPlan(ts);}
@@ -2450,7 +2397,7 @@ function exportStudent(){
   // 所有飲食紀錄
   const allDiet=(dietData[student]?.macros||[]).sort((a,b)=>b.ts-a.ts);
 
-  let text=`👤 學員資料：${student}\n匯出時間：${new Date().toLocaleString('zh-TW')}\n${'═'.repeat(25)}\n\n`;
+  let text=`[ 學員資料 ] ${student}\n匯出時間：${new Date().toLocaleString('zh-TW')}\n${'═'.repeat(25)}\n\n`;
 
   // 最新評估（完整格式）
   if(latestAssess&&latestAssess.assessData){
@@ -2466,7 +2413,7 @@ function exportStudent(){
   const allExNames=new Set();
   sessions.forEach(nb=>(nb.exercises||[]).forEach(ex=>allExNames.add(ex.name)));
   if(allExNames.size){
-    text+=`💪 各動作以10下為基準的最高重量\n`;
+    text+=`＿各動作以10下為基準的最高重量\n`;
     allExNames.forEach(exName=>{
       const best=getLifetimeBestByReps(student,exName,null);
       if(!best.size)return;
@@ -2499,7 +2446,7 @@ function renderStudentSessions(){
   const sessions=notebooks.filter(n=>!n.isAssess&&(n.student||'').trim()===curStudentName)
     .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id));
   const sn=curStudentName.replace(/'/g,"\\'");
-  let html=`<div style="margin-bottom:8px"><button onclick="quickSession('${sn}')" style="width:100%;padding:10px;border-radius:4px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">💪 新增課程</button></div>`;
+  let html=`<div style="margin-bottom:8px"><button onclick="quickSession('${sn}')" style="width:100%;padding:10px;border-radius:4px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">新增課程</button></div>`;
   if(!sessions.length){html+='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px">尚無課程記錄</div>';el.innerHTML=html;return;}
   sessions.forEach(nb=>{
     const exNames=(nb.exercises||[]).map(e=>e.name.split('（')[0]).join('、');
@@ -2570,7 +2517,7 @@ function openSessionDetail(nbId){
   // 加報告按鈕
   const reportBtn=document.createElement('button');
   reportBtn.style.cssText='width:100%;margin-top:10px;padding:13px;border-radius:4px;background:var(--green);color:#fff;border:none;font-size:15px;font-weight:500;cursor:pointer;font-family:\'Noto Sans TC\',sans-serif';
-  reportBtn.textContent='📋 產出課程報告';
+  reportBtn.textContent='產出課程報告';
   reportBtn.onclick=()=>previewSessionReport(nbId);
   body.appendChild(reportBtn);
   show('s-session-detail');
@@ -2580,8 +2527,8 @@ function previewSessionReport(nbId){
   const nb=notebooks.find(n=>n.id===nbId);if(!nb)return;
   const student=nb.student||'學員';
   // 組裝報告文字（複用 renderReport 邏輯）
-  let r=`💪 訓練報告｜${student}｜${nb.date||''}\n`;
-  if(nb.name) r+=`📋 ${nb.name}\n`;
+  let r=`訓練報告｜${student}｜${nb.date||''}\n`;
+  if(nb.name) r+=`${nb.name}\n`;
   if(nb.type) r+=`分類：${nb.type}\n`;
   r+='\n';
   if(nb.stars) r+=`今日狀態：${'★'.repeat(nb.stars)}${'☆'.repeat(5-nb.stars)}（${SLAB[nb.stars]||''}）\n`;
@@ -2608,16 +2555,16 @@ function previewSessionReport(nbId){
     const progressItems=detectProgress(validSets,prevSets2,lifetimeBest2,ex.name.split('（')[0]);
     progressItems.forEach(p=>prLines+=`  ${p}\n`);
   });
-  if(exLines) r+=`📊 訓練內容\n${exLines}\n`;
-  if(prLines) r+=`🏆 今日進步\n${prLines}\n`;
+  if(exLines) r+=`＿訓練內容\n${exLines}\n`;
+  if(prLines) r+=`＿今日進步\n${prLines}\n`;
   if(nb.intensity||nb.prog) r+=`強度：${nb.intensity||'—'}　表現：${nb.prog||'—'}\n\n`;
-  if(nb.good) r+=`✅ 表現亮點\n${nb.good}\n\n`;
-  if(nb.improve) r+=`🔧 需要加強\n${nb.improve}\n\n`;
-  if(nb.obs) r+=`👁 教練觀察\n${nb.obs}\n\n`;
-  if(nb.next) r+=`🎯 下一堂方向\n${nb.next}\n\n`;
-  if(nb.diet) r+=`🥗 飲食提醒\n${nb.diet}\n\n`;
-  if(nb.msg) r+=`💬 給 ${student} 的話\n${nb.msg}\n\n`;
-  if(nb.freq) r+=`📅 建議頻率：${nb.freq}\n`;
+  if(nb.good) r+=`＿表現亮點\n${nb.good}\n\n`;
+  if(nb.improve) r+=`＿需要加強\n${nb.improve}\n\n`;
+  if(nb.obs) r+=`＿教練觀察\n${nb.obs}\n\n`;
+  if(nb.next) r+=`＿下一堂方向\n${nb.next}\n\n`;
+  if(nb.diet) r+=`飲食提醒\n${nb.diet}\n\n`;
+  if(nb.msg) r+=`給 ${student} 的話\n${nb.msg}\n\n`;
+  if(nb.freq) r+=`＿建議頻率：${nb.freq}\n`;
   if(nb.nextbook) r+=`下次預約：${nb.nextbook}\n`;
   showReport('課程報告', student+' · 課程報告 '+nb.date, r.trim(), 'sessions');
 }
@@ -2784,21 +2731,82 @@ function renderDietHistory(){
   macros.slice(0,10).forEach(m=>{
     const isNew=m.hcKcal!=null;
     html+=`<div class="card" style="margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
         <div>
           <span style="font-size:13px;font-weight:500">${m.date||'—'}</span>
           ${m.dayType?`<span style="font-size:11px;color:var(--acc-light);margin-left:6px">${m.dayType}</span>`:''}
         </div>
+        <div style="display:flex;gap:5px">
+          <button onclick="previewSingleDietReport(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">報告</button>
+          <button onclick="openDietEditEntry(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif">編輯</button>
+          <button onclick="deleteDietEntry(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif">刪除</button>
+        </div>
       </div>`;
     if(isNew){
-      if(m.hcKcal) html+=`<div style="font-size:12px;color:var(--amber)">高碳：${m.hcKcal}kcal  蛋${m.hcProtein||0}g 碳${m.hcCarb||0}g 脂${m.hcFat||0}g</div>`;
-      if(m.lcKcal) html+=`<div style="font-size:12px;color:var(--purple)">低碳：${m.lcKcal}kcal  蛋${m.lcProtein||0}g 碳${m.lcCarb||0}g 脂${m.lcFat||0}g</div>`;
-      if(m.water) html+=`<div style="font-size:11px;color:var(--text3)">💧 ${m.water}</div>`;
+      // 高碳日
+      if(m.hcKcal){
+        const hcP=m.hcProtein||0,hcC=m.hcCarb||0,hcF=m.hcFat||0,hcK=m.hcKcal||1;
+        const hcPp=Math.round(hcP*4/hcK*100),hcCp=Math.round(hcC*4/hcK*100),hcFp=Math.round(hcF*9/hcK*100);
+        html+=`<div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+            <span style="font-size:11px;color:var(--amber);font-weight:500">高碳日</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text)">${m.hcKcal} <span style="font-size:10px;font-weight:300;color:var(--text3)">kcal</span></span>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px">蛋 ${hcP}g　碳 ${hcC}g　脂 ${hcF}g</div>
+          <div style="display:flex;gap:3px;height:5px;border-radius:2px;overflow:hidden;background:var(--bg3)">
+            <div style="width:${hcPp}%;background:#7A9E8B;border-radius:2px 0 0 2px"></div>
+            <div style="width:${hcCp}%;background:#C4A055"></div>
+            <div style="width:${hcFp}%;background:#A88AB0;border-radius:0 2px 2px 0"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:3px;font-size:10px;font-family:'DM Mono',monospace;color:var(--text3)">
+            <span style="color:#7A9E8B">蛋 ${hcPp}%</span>
+            <span style="color:#C4A055">碳 ${hcCp}%</span>
+            <span style="color:#A88AB0">脂 ${hcFp}%</span>
+          </div>
+        </div>`;
+      }
+      // 低碳日
+      if(m.lcKcal){
+        const lcP=m.lcProtein||0,lcC=m.lcCarb||0,lcF=m.lcFat||0,lcK=m.lcKcal||1;
+        const lcPp=Math.round(lcP*4/lcK*100),lcCp=Math.round(lcC*4/lcK*100),lcFp=Math.round(lcF*9/lcK*100);
+        html+=`<div style="margin-bottom:4px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+            <span style="font-size:11px;color:var(--purple);font-weight:500">低碳日</span>
+            <span style="font-size:13px;font-weight:600;color:var(--text)">${m.lcKcal} <span style="font-size:10px;font-weight:300;color:var(--text3)">kcal</span></span>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px">蛋 ${lcP}g　碳 ${lcC}g　脂 ${lcF}g</div>
+          <div style="display:flex;gap:3px;height:5px;border-radius:2px;overflow:hidden;background:var(--bg3)">
+            <div style="width:${lcPp}%;background:#7A9E8B;border-radius:2px 0 0 2px"></div>
+            <div style="width:${lcCp}%;background:#C4A055"></div>
+            <div style="width:${lcFp}%;background:#A88AB0;border-radius:0 2px 2px 0"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:3px;font-size:10px;font-family:'DM Mono',monospace;color:var(--text3)">
+            <span style="color:#7A9E8B">蛋 ${lcPp}%</span>
+            <span style="color:#C4A055">碳 ${lcCp}%</span>
+            <span style="color:#A88AB0">脂 ${lcFp}%</span>
+          </div>
+        </div>`;
+      }
+      if(m.water) html+=`<div style="font-size:11px;color:var(--text3);margin-top:2px">飲水 ${m.water}</div>`;
     } else {
-      html+=`<div style="font-size:13px;font-weight:600;color:var(--text)">${m.total||0} kcal</div>
-      <div style="font-size:11px;color:var(--text3)">蛋 ${m.protein||0}g　碳 ${m.carb||0}g　脂 ${m.fat||0}g</div>`;
+      const p=m.protein||0,ca=m.carb||0,f=m.fat||0,tot=m.total||1;
+      const pp=Math.round(p*4/tot*100),cp=Math.round(ca*4/tot*100),fp=Math.round(f*9/tot*100);
+      html+=`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+        <span style="font-size:11px;color:var(--text2)">蛋 ${p}g　碳 ${ca}g　脂 ${f}g</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text)">${m.total||0} <span style="font-size:10px;font-weight:300;color:var(--text3)">kcal</span></span>
+      </div>
+      <div style="display:flex;gap:3px;height:5px;border-radius:2px;overflow:hidden;background:var(--bg3)">
+        <div style="width:${pp}%;background:#7A9E8B;border-radius:2px 0 0 2px"></div>
+        <div style="width:${cp}%;background:#C4A055"></div>
+        <div style="width:${fp}%;background:#A88AB0;border-radius:0 2px 2px 0"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:3px;font-size:10px;font-family:'DM Mono',monospace;color:var(--text3)">
+        <span style="color:#7A9E8B">蛋 ${pp}%</span>
+        <span style="color:#C4A055">碳 ${cp}%</span>
+        <span style="color:#A88AB0">脂 ${fp}%</span>
+      </div>`;
     }
-    if(m.note) html+=`<div style="font-size:12px;color:var(--text2);margin-top:4px">${m.note}</div>`;
+    if(m.note) html+=`<div style="font-size:11px;color:var(--text2);margin-top:5px;border-top:1px solid var(--border);padding-top:5px">${m.note}</div>`;
     html+=`</div>`;
   });
   el.innerHTML=html;
@@ -3282,7 +3290,7 @@ function collectAssessPage(){
   if(assessCur===0&&data.name) assessStudent=data.name;
 }
 
-function closeAssessModal(){document.getElementById('modal-assess').classList.add('hidden');}
+function closeAssessModal(){document.getElementById('modal-assess').style.display='none';}
 
 function startAssess(){
   const student=(document.getElementById('modal-assess-student')?.value||'').trim();
