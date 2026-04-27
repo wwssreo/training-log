@@ -4,14 +4,73 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="教練工具">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CT">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#F0EDE8">
-<title>教練工具</title>
-<!-- PWA Home Screen Icon (SVG→PNG via canvas not needed; use inline SVG as data URI) -->
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23F0EDE8'/%3E%3Crect x='156' y='148' width='200' height='3' rx='1.5' fill='%236B5E4A' opacity='.5'/%3E%3Crect x='156' y='176' width='160' height='2' rx='1' fill='%236B5E4A' opacity='.3'/%3E%3Crect x='156' y='198' width='140' height='2' rx='1' fill='%236B5E4A' opacity='.3'/%3E%3Crect x='156' y='240' width='200' height='3' rx='1.5' fill='%236B5E4A' opacity='.5'/%3E%3Crect x='156' y='268' width='120' height='2' rx='1' fill='%236B5E4A' opacity='.3'/%3E%3Crect x='156' y='290' width='160' height='2' rx='1' fill='%236B5E4A' opacity='.3'/%3E%3Crect x='156' y='332' width='200' height='3' rx='1.5' fill='%235C4A30' opacity='.7'/%3E%3Crect x='156' y='360' width='80' height='2' rx='1' fill='%235C4A30' opacity='.4'/%3E%3C/svg%3E">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F0EDE8'/%3E%3Crect x='8' y='9' width='16' height='1.5' rx='.75' fill='%235C4A30'/%3E%3Crect x='8' y='13' width='12' height='1' rx='.5' fill='%236B5E4A' opacity='.6'/%3E%3Crect x='8' y='16.5' width='14' height='1' rx='.5' fill='%236B5E4A' opacity='.6'/%3E%3Crect x='8' y='21' width='16' height='1.5' rx='.75' fill='%235C4A30'/%3E%3Crect x='8' y='25' width='8' height='1' rx='.5' fill='%236B5E4A' opacity='.5'/%3E%3C/svg%3E">
+<title>CT · Coach Tool</title>
+<script>
+// ── 動態生成 PNG 圖示（Safari 不支援 SVG data URI apple-touch-icon）──
+(function(){
+  function makeIcon(size){
+    const c=document.createElement('canvas');
+    c.width=c.height=size;
+    const ctx=c.getContext('2d');
+    const r=size*0.22;
+    // 背景：無印米色
+    ctx.fillStyle='#F0EDE8';
+    ctx.beginPath();
+    ctx.roundRect(0,0,size,size,r);
+    ctx.fill();
+    // 細線裝飾（模擬筆記本/文件感）
+    const s=size/512;
+    const lines=[
+      {x:156,y:148,w:200,h:3,op:1.0,col:'#5C4A30'},   // 粗線1
+      {x:156,y:176,w:200,h:1.5,op:0.5,col:'#7A6348'},  // 細線
+      {x:156,y:196,w:160,h:1.5,op:0.5,col:'#7A6348'},
+      {x:156,y:216,w:180,h:1.5,op:0.5,col:'#7A6348'},
+      {x:156,y:250,w:200,h:3,op:1.0,col:'#5C4A30'},   // 粗線2
+      {x:156,y:278,w:140,h:1.5,op:0.5,col:'#7A6348'},
+      {x:156,y:298,w:200,h:1.5,op:0.5,col:'#7A6348'},
+      {x:156,y:352,w:200,h:3,op:1.0,col:'#5C4A30'},   // 粗線3
+      {x:156,y:380,w:80,h:1.5,op:0.4,col:'#7A6348'},
+    ];
+    lines.forEach(l=>{
+      ctx.globalAlpha=l.op;
+      ctx.fillStyle=l.col;
+      ctx.beginPath();
+      ctx.roundRect(l.x*s,l.y*s,l.w*s,l.h*s,1);
+      ctx.fill();
+    });
+    ctx.globalAlpha=1;
+    // 左側裝飾豎線
+    ctx.fillStyle='#9A8870';
+    ctx.globalAlpha=0.4;
+    ctx.fillRect(128*s,140*s,3*s,250*s);
+    ctx.globalAlpha=1;
+    return c.toDataURL('image/png');
+  }
+  function setIcon(){
+    if(!document.getElementById('_pwa_icon')){
+      const link=document.createElement('link');
+      link.id='_pwa_icon';
+      link.rel='apple-touch-icon';
+      link.href=makeIcon(512);
+      document.head.appendChild(link);
+    }
+    const fav=document.getElementById('_fav_icon');
+    if(!fav){
+      const link=document.createElement('link');
+      link.id='_fav_icon';
+      link.rel='icon';
+      link.href=makeIcon(64);
+      document.head.appendChild(link);
+    }
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',setIcon);}
+  else{setIcon();}
+})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
 :root{
@@ -167,8 +226,8 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
     <span class="home-date" id="home-date"></span>
   </div>
   <div class="home-body">
-    <div class="h-title">教練工具</div>
-    <div class="h-sub">評估 · 飲食 · 訓練記錄 · 歷史強度</div>
+    <div class="h-title" style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:.14em;font-weight:500">COACH TOOL</div>
+    <div class="h-sub" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text3)">Assess · Diet · Training · History</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.4rem">
       <button class="new-btn" style="margin-bottom:0;background:var(--acc)" onclick="openNewClientModal()">＋ 新增客戶</button>
       <button class="new-btn" style="margin-bottom:0;background:var(--bg3);color:var(--purple);border:1px solid var(--purple-b);font-size:13px" onclick="openBackupScreen()">💾 備份 / 匯入</button>
@@ -1981,9 +2040,9 @@ function renderStudentAssess(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:14px;font-weight:500">${nb.date||'評估'}</div>
         <div style="display:flex;gap:6px">
-          <button onclick="previewAssessReport(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">報告</button>
-          <button onclick="openAssessEdit(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">編輯</button>
-          <button onclick="deleteAssess(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">刪除</button>
+          <button onclick="previewAssessReport(${nb.id})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">報告</button>
+          <button onclick="openAssessEdit(${nb.id})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">編輯</button>
+          <button onclick="deleteAssess(${nb.id})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">刪除</button>
         </div>
       </div>`;
     // 基本資訊
@@ -2146,19 +2205,52 @@ function buildAssessReport(a, student, date){
 
 // ── 統一飲食報告產生函式 ──
 function buildDietReport(macros, student){
-  let r=`飲食計畫報告｜${student}\n匯出：${new Date().toLocaleDateString('zh-TW')}\n${'─'.repeat(20)}\n\n`;
+  // 用全形空格對齊欄位
+  function pad(n,width){return String(n).padStart(width,' ');}
+  let r=`─────────────────────\n`;
+  r+=`飲食計畫　${student}\n`;
+  r+=`─────────────────────\n\n`;
   if(!macros||!macros.length){r+='尚無飲食紀錄';return r.trim();}
-  macros.forEach(m=>{
-    r+=`${m.date||'—'}${m.dayType?' ('+m.dayType+')':''}\n`;
-    if(m.hcKcal!=null){
-      if(m.hcKcal) r+=`  高碳日：${m.hcKcal}kcal　蛋${m.hcProtein||0}g 碳${m.hcCarb||0}g 脂${m.hcFat||0}g\n`;
-      if(m.lcKcal) r+=`  低碳日：${m.lcKcal}kcal　蛋${m.lcProtein||0}g 碳${m.lcCarb||0}g 脂${m.lcFat||0}g\n`;
-      if(m.water) r+=`  飲水目標：${m.water}\n`;
-    } else {
-      r+=`  ${m.total||0}kcal　蛋白${m.protein||0}g 碳水${m.carb||0}g 脂肪${m.fat||0}g\n`;
-    }
-    if(m.note) r+=`  備註：${m.note}\n`;
+  macros.forEach((m,i)=>{
+    r+=`📅 ${m.date||'—'}`;
+    if(m.dayType) r+=`　${m.dayType}`;
     r+='\n';
+    if(m.hcKcal!=null){
+      // 取最大克數位數，對齊兩欄
+      const hcP=m.hcProtein||0,hcC=m.hcCarb||0,hcF=m.hcFat||0,hcK=m.hcKcal||1;
+      const lcP=m.lcProtein||0,lcC=m.lcCarb||0,lcF=m.lcFat||0,lcK=m.lcKcal||1;
+      const hcPp=Math.round(hcP*4/hcK*100),hcCp=Math.round(hcC*4/hcK*100),hcFp=Math.round(hcF*9/hcK*100);
+      const lcPp=Math.round(lcP*4/lcK*100),lcCp=Math.round(lcC*4/lcK*100),lcFp=Math.round(lcF*9/lcK*100);
+      const gw=Math.max(String(hcP).length,String(hcC).length,String(hcF).length,
+                        String(lcP).length,String(lcC).length,String(lcF).length,2);
+      const pw=Math.max(String(hcPp).length,String(hcCp).length,String(hcFp).length,
+                        String(lcPp).length,String(lcCp).length,String(lcFp).length,2);
+      const kw=Math.max(String(hcK).length,String(lcK).length);
+      if(m.hcKcal){
+        r+=`\n【高碳日】  ${pad(hcK,kw)} kcal\n`;
+        r+=`  蛋白  ${pad(hcP,gw)}g  (${pad(hcPp,pw)}%)\n`;
+        r+=`  碳水  ${pad(hcC,gw)}g  (${pad(hcCp,pw)}%)\n`;
+        r+=`  脂肪  ${pad(hcF,gw)}g  (${pad(hcFp,pw)}%)\n`;
+      }
+      if(m.lcKcal){
+        r+=`\n【低碳日】  ${pad(lcK,kw)} kcal\n`;
+        r+=`  蛋白  ${pad(lcP,gw)}g  (${pad(lcPp,pw)}%)\n`;
+        r+=`  碳水  ${pad(lcC,gw)}g  (${pad(lcCp,pw)}%)\n`;
+        r+=`  脂肪  ${pad(lcF,gw)}g  (${pad(lcFp,pw)}%)\n`;
+      }
+      if(m.water) r+=`\n  飲水　${m.water}\n`;
+    } else {
+      const p=m.protein||0,ca=m.carb||0,f=m.fat||0,tot=m.total||1;
+      const pp=Math.round(p*4/tot*100),cp=Math.round(ca*4/tot*100),fp=Math.round(f*9/tot*100);
+      const gw=Math.max(String(p).length,String(ca).length,String(f).length,2);
+      const pw=Math.max(String(pp).length,String(cp).length,String(fp).length,2);
+      r+=`\n${tot} kcal\n`;
+      r+=`  蛋白  ${pad(p,gw)}g  (${pad(pp,pw)}%)\n`;
+      r+=`  碳水  ${pad(ca,gw)}g  (${pad(cp,pw)}%)\n`;
+      r+=`  脂肪  ${pad(f,gw)}g  (${pad(fp,pw)}%)\n`;
+    }
+    if(m.note) r+=`\n  📝 ${m.note}\n`;
+    if(i<macros.length-1) r+=`\n· · ·\n\n`;
   });
   return r.trim();
 }
@@ -2274,9 +2366,9 @@ function renderStudentDiet(){
           ${m.dayType?`<span style="font-size:11px;color:var(--acc-light);margin-left:6px;background:var(--acc-bg);padding:1px 6px;border-radius:2px">${m.dayType}</span>`:''}
         </div>
         <div style="display:flex;gap:5px">
-          <button onclick="previewSingleDietReport(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">報告</button>
-          <button onclick="openDietEditEntry(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif">編輯</button>
-          <button onclick="deleteDietEntry(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif">刪除</button>
+          <button onclick="previewSingleDietReport(${m.ts})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">報告</button>
+          <button onclick="openDietEditEntry(${m.ts})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">編輯</button>
+          <button onclick="deleteDietEntry(${m.ts})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">刪除</button>
         </div>
       </div>`;
     if(isNew){
@@ -2460,9 +2552,9 @@ function renderStudentSessions(){
           ${exNames?`<div class="nb-exs" style="margin-top:4px">${exNames}</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-          <button onclick="event.stopPropagation();editSession(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">編輯</button>
-          <button onclick="event.stopPropagation();previewSessionReport(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">報告</button>
-          <button onclick="event.stopPropagation();deleteSession(${nb.id})" style="padding:5px 10px;border-radius:3px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif">刪除</button>
+          <button onclick="event.stopPropagation();previewSessionReport(${nb.id})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">報告</button>
+          <button onclick="event.stopPropagation();editSession(${nb.id})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">編輯</button>
+          <button onclick="event.stopPropagation();deleteSession(${nb.id})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">刪除</button>
         </div>
       </div>
     </div>`;
@@ -2737,9 +2829,9 @@ function renderDietHistory(){
           ${m.dayType?`<span style="font-size:11px;color:var(--acc-light);margin-left:6px">${m.dayType}</span>`:''}
         </div>
         <div style="display:flex;gap:5px">
-          <button onclick="previewSingleDietReport(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">報告</button>
-          <button onclick="openDietEditEntry(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif">編輯</button>
-          <button onclick="deleteDietEntry(${m.ts})" style="padding:3px 7px;border-radius:2px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:10px;font-family:'Noto Sans TC',sans-serif">刪除</button>
+          <button onclick="previewSingleDietReport(${m.ts})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--green);border:1px solid var(--green-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">報告</button>
+          <button onclick="openDietEditEntry(${m.ts})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--amber);border:1px solid var(--amber-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">編輯</button>
+          <button onclick="deleteDietEntry(${m.ts})" style="padding:5px 12px;border-radius:3px;background:transparent;color:var(--red);border:1px solid var(--red-b);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;letter-spacing:.04em">刪除</button>
         </div>
       </div>`;
     if(isNew){
