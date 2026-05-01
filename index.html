@@ -1764,8 +1764,9 @@ function renderReport(){
       const kg=parseFloat(s.weight)||0;
       return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
     }).join(' / ');
-    exLines+=`\n・${ex.name.split('（')[0]}  ${setDesc}\n`;
-    if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;
+    const exDisplay2=ex.name.includes('（')?ex.name.split('（')[0]+'（'+ex.name.split('（')[1]:ex.name;
+    exLines+=`\n・${exDisplay2}  ${setDesc}\n`;
+    if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;    
 
     // 進步比對（同重量次數進步 / 同次數重量進步）
     const prevSets=getLastSessionSets(student,ex.name,curTs,nb.id);
@@ -2605,7 +2606,8 @@ function previewSessionReport(nbId){
       const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
       return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
     }).join(' / ');
-    exLines+=`\n・${ex.name.split('（')[0]}  ${setDesc}\n`;
+    const exDisplay=ex.name.includes('（')?ex.name.split('（')[0]+'（'+ex.name.split('（')[1]:ex.name;
+    exLines+=`\n・${exDisplay}  ${setDesc}\n`;
     if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;
     const prevSets2=getLastSessionSets(student,ex.name,curTs,nb.id);
     const lifetimeBest2=getLifetimeBestByReps(student,ex.name,nb.id);
