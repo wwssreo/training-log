@@ -1764,7 +1764,7 @@ function renderReport(){
       const kg=parseFloat(s.weight)||0;
       return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
     }).join(' / ');
-    exLines+=`\n· ${ex.name.split('（')[0]}  ${setDesc}\n`;
+    exLines+=`\n・${ex.name.split('（')[0]}  ${setDesc}\n`;
     if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;
 
     // 進步比對（同重量次數進步 / 同次數重量進步）
@@ -2605,7 +2605,7 @@ function previewSessionReport(nbId){
       const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
       return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
     }).join(' / ');
-    exLines+=`\n· ${ex.name.split('（')[0]}  ${setDesc}\n`;
+    exLines+=`\n・${ex.name.split('（')[0]}  ${setDesc}\n`;
     if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;
     const prevSets2=getLastSessionSets(student,ex.name,curTs,nb.id);
     const lifetimeBest2=getLifetimeBestByReps(student,ex.name,nb.id);
@@ -2872,10 +2872,9 @@ function renderDietHistory(){
 // ── 自訂動作存入動作庫 ──
 function saveCustomToEX(name){
   if(!name) return;
-  if(!EX['自訂']) EX['自訂']=[];
+  if(!EX['自訂']) EX['自訂']=[];   // 確保「自訂」分類存在
   if(!EX['自訂'].includes(name)){
     EX['自訂'].push(name);
-    // 存入 localStorage 以便持久保留
     try{
       const saved=JSON.parse(localStorage.getItem('_custom_ex')||'[]');
       if(!saved.includes(name)) saved.push(name);
@@ -2890,11 +2889,10 @@ function addCustomExPlan(){
   const name=(inp?.value||'').trim();
   if(!name){inp?.focus();return;}
   saveCustomToEX(name);
+  selMuscle='自訂';
   toggleExercise(name);
   inp.value='';
   renderExList();
-  // 更新肌群按鈕（確保「自訂」出現）
-  renderMuscleScroller('msc', selMuscle);
 }
 
 // ── 自訂動作（上課）──
@@ -2911,9 +2909,9 @@ function addCustomExClass(){
   persist();
   inp.value='';
   renderClassLog();
-  // 更新動作列表（面板保持開啟）
+  selMuscle='自訂';
   renderClassExList();
-  renderMuscleScroller('msc-class', '');
+  renderMuscleScroller('msc-class','自訂');
 }
 let _reportBackTab='diet';
 // ── iOS PWA 安全確認框（取代 confirm()）──
