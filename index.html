@@ -107,7 +107,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
 .pb-new{background:var(--amber-bg);border:1px solid var(--amber-b);color:var(--amber)}
 .group-block{margin-bottom:12px}
 .group-lbl{font-size:10px;font-family:'DM Mono',monospace;color:var(--acc-light);letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px;padding:3px 8px;background:var(--acc-bg);border-radius:2px;display:inline-block}
-.wlog{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:.85rem .95rem;margin-bottom:7px;box-shadow:var(--shadow)}
+.wlog{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:.85rem .95rem;margin-bottom:16px;box-shadow:var(--shadow)}
 .wlog-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px}
 .wlog-name{font-size:13px;color:var(--text);font-weight:500;flex:1;line-height:1.5}
 .wlog-name-text{display:block;margin-bottom:4px}
@@ -222,6 +222,11 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
         <div class="msc" id="msc"></div>
         <input type="text" id="ex-search" placeholder="搜尋動作…" oninput="renderExList()" style="margin-bottom:0">
         <div class="ex-list" id="ex-list"></div>
+        <!-- 自訂動作 -->
+        <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+          <input type="text" id="custom-ex-plan" placeholder="自訂動作名稱（動作庫沒有時使用）" style="flex:1;margin-bottom:0;font-size:12px">
+          <button onclick="addCustomExPlan()" style="flex-shrink:0;padding:9px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;letter-spacing:.04em">加入</button>
+        </div>
       </div>
       <div>
         <div class="sec-lbl" style="margin-top:6px">已加入動作（點名稱查歷史）</div>
@@ -274,10 +279,15 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
             ＋ 新增 / 替換動作
           </button>
         </div>
-        <div id="class-ex-panel" style="display:none;margin-bottom:10px;background:var(--bg3);border-radius:4px;padding:10px">
+        <div id="class-ex-panel" style="display:none;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:10px">
           <div class="msc" id="msc-class"></div>
           <input type="text" id="ex-search-class" placeholder="搜尋動作…" oninput="renderClassExList()" style="margin-bottom:0;font-size:13px">
           <div class="ex-list" id="ex-list-class" style="max-height:200px"></div>
+          <!-- 自訂動作 -->
+          <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+            <input type="text" id="custom-ex-class" placeholder="自訂動作名稱" style="flex:1;margin-bottom:0;font-size:12px">
+            <button onclick="addCustomExClass()" style="flex-shrink:0;padding:9px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;letter-spacing:.04em">加入</button>
+          </div>
         </div>
         <div id="class-log"></div>
         <div id="class-log-empty" style="font-size:13px;color:var(--text3);padding:6px 0">先在備課頁或上方新增動作</div>
@@ -647,6 +657,17 @@ const EX={
 const SLAB=['','狀態不佳','有些疲憊','狀態普通','狀態良好','狀態極佳'];
 let notebooks=[], curNB=null, stars=0, selMuscle='';
 
+// ── 載入自訂動作庫 ──
+(function loadCustomEX(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('_custom_ex')||'[]');
+    if(saved.length){
+      if(!EX['自訂']) EX['自訂']=[];
+      saved.forEach(n=>{if(!EX['自訂'].includes(n)) EX['自訂'].push(n);});
+    }
+  }catch(e){}
+})();
+
 // ── STORAGE ──
 // 全域複製函式，相容 iOS Safari 和各種瀏覽器
 function copyText(text, msg){
@@ -998,11 +1019,12 @@ function createNewClient(){
 }
 
 function deleteStudent(student){
-  if(!confirm(`確定刪除「${student}」的所有資料？\n包含評估、飲食、所有課程記錄，此操作無法復原。`)) return;
-  notebooks=notebooks.filter(n=>(n.student||'').trim()!==student);
-  delete dietData[student];
-  clientList=clientList.filter(s=>s!==student);
-  persist();saveDietData();saveClientList();renderHome();
+  confirmDel(`確定刪除「${student}」？\n包含所有評估、飲食、課程記錄，無法復原。`,()=>{
+    notebooks=notebooks.filter(n=>(n.student||'').trim()!==student);
+    delete dietData[student];
+    clientList=clientList.filter(s=>s!==student);
+    persist();saveDietData();saveClientList();renderHome();
+  });
 }
 
 function quickAssess(student){
@@ -1742,8 +1764,8 @@ function renderReport(){
       const kg=parseFloat(s.weight)||0;
       return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
     }).join(' / ');
-    exLines+=`  • ${ex.name.split('（')[0]}  ${setDesc}\n`;
-    if(ex.classNote) exLines+=`    ↳ ${ex.classNote}\n`;
+    exLines+=`\n· ${ex.name.split('（')[0]}  ${setDesc}\n`;
+    if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;
 
     // 進步比對（同重量次數進步 / 同次數重量進步）
     const prevSets=getLastSessionSets(student,ex.name,curTs,nb.id);
@@ -1763,7 +1785,7 @@ function renderReport(){
     report+=`生活狀況：`;
     const parts=[];
     if(sleep)parts.push('睡眠 '+sleep);
-    if(food)parts.push('飲食 '+food);
+    if(food)parts.push('飲食/水分 '+food);
     if(body)parts.push('身體 '+body);
     report+=parts.join(' ｜ ')+'\n';
   }
@@ -2220,9 +2242,10 @@ function previewSingleDietReport(ts){
 }
 
 function deleteAssess(nbId){
-  if(!confirm('確定刪除此評估？')) return;
-  notebooks=notebooks.filter(n=>n.id!==nbId);
-  persist();renderStudentAssess();
+  confirmDel('確定刪除此評估？此操作無法復原。',()=>{
+    notebooks=notebooks.filter(n=>n.id!==nbId);
+    persist();renderStudentAssess();
+  });
 }
 
 // ── 飲食計畫新增（對應新UI） ──
@@ -2466,10 +2489,11 @@ function exportStudent(){
 }
 
 function deleteDietEntry(ts){
-  if(!confirm('刪除此筆飲食紀錄？')) return;
-  if(!dietData[curStudentName]?.macros) return;
-  dietData[curStudentName].macros=dietData[curStudentName].macros.filter(m=>m.ts!==ts);
-  saveDietData();renderStudentDiet();
+  confirmDel('確定刪除此筆飲食紀錄？',()=>{
+    if(!dietData[curStudentName]?.macros) return;
+    dietData[curStudentName].macros=dietData[curStudentName].macros.filter(m=>m.ts!==ts);
+    saveDietData();renderStudentDiet();
+  });
 }
 
 function renderStudentSessions(){
@@ -2509,9 +2533,10 @@ function editSession(nbId){
 }
 
 function deleteSession(nbId){
-  if(!confirm('確定刪除此課程？')) return;
-  notebooks=notebooks.filter(n=>n.id!==nbId);
-  persist();renderStudentSessions();
+  confirmDel('確定刪除此課程？此操作無法復原。',()=>{
+    notebooks=notebooks.filter(n=>n.id!==nbId);
+    persist();renderStudentSessions();
+  });
 }
 
 function openSessionDetail(nbId){
@@ -2566,7 +2591,7 @@ function previewSessionReport(nbId){
   if(nb.stars) r+=`今日狀態：${'★'.repeat(nb.stars)}${'☆'.repeat(5-nb.stars)}（${SLAB[nb.stars]||''}）\n`;
   const lifeParts=[];
   if(nb.sleep) lifeParts.push('睡眠 '+nb.sleep);
-  if(nb.food) lifeParts.push('飲食 '+nb.food);
+  if(nb.food) lifeParts.push('飲食/水分 '+nb.food);
   if(nb.body) lifeParts.push('身體 '+nb.body);
   if(lifeParts.length) r+=`生活狀況：${lifeParts.join(' ｜ ')}\n`;
   if(nb.condition) r+=`備註：${nb.condition}\n`;
@@ -2580,8 +2605,8 @@ function previewSessionReport(nbId){
       const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
       return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
     }).join(' / ');
-    exLines+=`  • ${ex.name.split('（')[0]}  ${setDesc}\n`;
-    if(ex.classNote) exLines+=`    ↳ ${ex.classNote}\n`;
+    exLines+=`\n· ${ex.name.split('（')[0]}  ${setDesc}\n`;
+    if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;
     const prevSets2=getLastSessionSets(student,ex.name,curTs,nb.id);
     const lifetimeBest2=getLifetimeBestByReps(student,ex.name,nb.id);
     const progressItems=detectProgress(validSets,prevSets2,lifetimeBest2,ex.name.split('（')[0]);
@@ -2844,8 +2869,69 @@ function renderDietHistory(){
   el.innerHTML=html;
 }
 
-// ── 通用報告展示 ──
+// ── 自訂動作存入動作庫 ──
+function saveCustomToEX(name){
+  if(!name) return;
+  if(!EX['自訂']) EX['自訂']=[];
+  if(!EX['自訂'].includes(name)){
+    EX['自訂'].push(name);
+    // 存入 localStorage 以便持久保留
+    try{
+      const saved=JSON.parse(localStorage.getItem('_custom_ex')||'[]');
+      if(!saved.includes(name)) saved.push(name);
+      localStorage.setItem('_custom_ex',JSON.stringify(saved));
+    }catch(e){}
+  }
+}
+
+// ── 自訂動作（備課）──
+function addCustomExPlan(){
+  const inp=document.getElementById('custom-ex-plan');
+  const name=(inp?.value||'').trim();
+  if(!name){inp?.focus();return;}
+  saveCustomToEX(name);
+  toggleExercise(name);
+  inp.value='';
+  renderExList();
+  // 更新肌群按鈕（確保「自訂」出現）
+  renderMuscleScroller('msc', selMuscle);
+}
+
+// ── 自訂動作（上課）──
+function addCustomExClass(){
+  const inp=document.getElementById('custom-ex-class');
+  const name=(inp?.value||'').trim();
+  if(!name){inp?.focus();return;}
+  saveCustomToEX(name);
+  if(!curNB) return;
+  if(!curNB.exercises) curNB.exercises=[];
+  if(!curNB.exercises.find(e=>e.name===name)){
+    curNB.exercises.push({name, sets:[{sets:'',reps:'',weight:''}], classNote:''});
+  }
+  persist();
+  inp.value='';
+  renderClassLog();
+  // 更新動作列表（面板保持開啟）
+  renderClassExList();
+  renderMuscleScroller('msc-class', '');
+}
 let _reportBackTab='diet';
+// ── iOS PWA 安全確認框（取代 confirm()）──
+function confirmDel(msg, onOk){
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;inset:0;background:rgba(42,33,24,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:0 1.5rem';
+  wrap.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1.4rem;width:100%;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.15)">
+    <div style="font-size:14px;color:var(--text);line-height:1.7;margin-bottom:1.2rem;font-family:'Noto Sans TC',sans-serif">${msg}</div>
+    <div style="display:flex;gap:10px">
+      <button id="_cd_cancel" style="flex:1;padding:11px;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">取消</button>
+      <button id="_cd_ok" style="flex:1;padding:11px;border-radius:2px;background:var(--red);color:#fff;border:none;font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">確定刪除</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelector('#_cd_cancel').onclick=()=>document.body.removeChild(wrap);
+  wrap.querySelector('#_cd_ok').onclick=()=>{document.body.removeChild(wrap);onOk();};
+}
+
 function showReport(title, subtitle, text, backTab){
   _reportBackTab=backTab||'diet';
   const titleEl=document.getElementById('diet-export-title');
