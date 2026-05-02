@@ -223,9 +223,18 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
         <input type="text" id="ex-search" placeholder="搜尋動作…" oninput="renderExList()" style="margin-bottom:0">
         <div class="ex-list" id="ex-list"></div>
         <!-- 自訂動作 -->
-        <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
-          <input type="text" id="custom-ex-plan" placeholder="自訂動作名稱（動作庫沒有時使用）" style="flex:1;margin-bottom:0;font-size:12px">
-          <button onclick="addCustomExPlan()" style="flex-shrink:0;padding:9px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;letter-spacing:.04em">加入</button>
+        <div style="margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:8px 10px">
+          <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">新增自訂動作</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+            <input type="text" id="custom-ex-plan" placeholder="動作名稱" style="flex:1;margin-bottom:0;font-size:13px">
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <select id="custom-cat-plan" style="flex:1;margin-bottom:0;font-size:12px;padding:8px 10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:2px">
+              <option value="">選擇分類（或輸入新分類）</option>
+            </select>
+            <input type="text" id="custom-cat-new-plan" placeholder="輸入新分類" style="flex:1;margin-bottom:0;font-size:12px">
+            <button onclick="addCustomExPlan()" style="flex-shrink:0;padding:9px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap">加入</button>
+          </div>
         </div>
       </div>
       <div>
@@ -284,9 +293,18 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
           <input type="text" id="ex-search-class" placeholder="搜尋動作…" oninput="renderClassExList()" style="margin-bottom:0;font-size:13px">
           <div class="ex-list" id="ex-list-class" style="max-height:200px"></div>
           <!-- 自訂動作 -->
-          <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
-            <input type="text" id="custom-ex-class" placeholder="自訂動作名稱" style="flex:1;margin-bottom:0;font-size:12px">
-            <button onclick="addCustomExClass()" style="flex-shrink:0;padding:9px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;letter-spacing:.04em">加入</button>
+          <div style="margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:8px 10px">
+            <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">新增自訂動作</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <input type="text" id="custom-ex-class" placeholder="動作名稱" style="flex:1;margin-bottom:0;font-size:13px">
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <select id="custom-cat-class" style="flex:1;margin-bottom:0;font-size:12px;padding:8px 10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:2px">
+                <option value="">選擇分類（或輸入新分類）</option>
+              </select>
+              <input type="text" id="custom-cat-new-class" placeholder="輸入新分類" style="flex:1;margin-bottom:0;font-size:12px">
+              <button onclick="addCustomExClass()" style="flex-shrink:0;padding:9px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap">加入</button>
+            </div>
           </div>
         </div>
         <div id="class-log"></div>
@@ -661,10 +679,15 @@ let notebooks=[], curNB=null, stars=0, selMuscle='';
 (function loadCustomEX(){
   try{
     const saved=JSON.parse(localStorage.getItem('_custom_ex')||'[]');
-    if(saved.length){
-      if(!EX['自訂']) EX['自訂']=[];
-      saved.forEach(n=>{if(!EX['自訂'].includes(n)) EX['自訂'].push(n);});
-    }
+    saved.forEach(entry=>{
+      // 相容舊格式（字串）和新格式（物件）
+      const name=typeof entry==='string'?entry:entry.name;
+      const cat=typeof entry==='string'?'自訂':entry.cat||'自訂';
+      if(name){
+        if(!EX[cat]) EX[cat]=[];
+        if(!EX[cat].includes(name)) EX[cat].push(name);
+      }
+    });
   }catch(e){}
 })();
 
@@ -1361,6 +1384,7 @@ function renderMuscleScroller(containerId, activeKey){
 function renderExList(){
   selMuscle=selMuscle||Object.keys(EX)[0];
   renderMuscleScroller('msc',selMuscle);
+  fillCustomCatSelect('custom-cat-plan');
   const search=(document.getElementById('ex-search')?.value||'').toLowerCase();
   const list=document.getElementById('ex-list');
   if(!list)return;
@@ -1382,6 +1406,7 @@ function renderExList(){
 
 function renderClassExList(){
   renderMuscleScroller('msc-class',selMuscle);
+  fillCustomCatSelect('custom-cat-class');
   const search=(document.getElementById('ex-search-class')?.value||'').toLowerCase();
   const list=document.getElementById('ex-list-class');
   if(!list)return;
@@ -1453,7 +1478,7 @@ function renderPlanLog(){
       const parts=[...lifetimeBest.entries()].sort((a,b)=>a[0]-b[0]).map(([r,kg])=>`${r}下→${kg}kg`).join(' / ');
       let prevHtml='';
       if(prevSets&&prevSets.length){
-        const validPrev=prevSets.filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+        const validPrev=prevSets.filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
         if(validPrev.length){
           const lastDesc=validPrev.map(s=>{
             const g=parseInt(s.sets)||1,r=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
@@ -1562,7 +1587,7 @@ function renderClassLog(){
       </div>`;
     } else if(prevSets&&prevSets.length){
       // 有上次紀錄：顯示上次數據，提示今日參考
-      const validPrev=prevSets.filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+      const validPrev=prevSets.filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
       if(validPrev.length){
         const rows=validPrev.map(s=>{
           const g=parseInt(s.sets)||1,r=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
@@ -1756,13 +1781,18 @@ function renderReport(){
   let exLines='';
   let prLines=''; // 新紀錄行
   (nb.exercises||[]).forEach(ex=>{
-    const validSets=(ex.sets||[]).filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+    const validSets=(ex.sets||[]).filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
     if(!validSets.length)return;
     const setDesc=validSets.map(s=>{
       const grp=parseInt(s.sets)||1;
       const reps=parseInt(s.reps)||0;
       const kg=parseFloat(s.weight)||0;
-      return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
+      const parts=[];
+      if(grp>0) parts.push(grp+'組');
+      if(reps>0) parts.push(reps+'下');
+      if(kg>0) parts.push('×'+kg+'kg');
+      if(s.note&&!reps&&!kg) parts.push(s.note);
+      return parts.join('').trim();
     }).join(' / ');
     const exDisplay2=ex.name.includes('（')?ex.name.split('（')[0]+'（'+ex.name.split('（')[1]:ex.name;
     exLines+=`\n・${exDisplay2}  ${setDesc}\n`;
@@ -2554,7 +2584,7 @@ function openSessionDetail(nbId){
   if(exs.length){
     html+=`<div class="sec-lbl" style="margin:4px 0 8px">訓練動作</div>`;
     exs.forEach(ex=>{
-      const validSets=(ex.sets||[]).filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+      const validSets=(ex.sets||[]).filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
       html+=`<div class="card" style="margin-bottom:8px">
         <div style="font-size:13px;font-weight:500;margin-bottom:6px">${ex.name.split('（')[0]}</div>`;
       if(validSets.length){
@@ -2600,11 +2630,16 @@ function previewSessionReport(nbId){
   let exLines='';let prLines='';
   const curTs=nb.completedAt||nb.id||Date.now();
   (nb.exercises||[]).forEach(ex=>{
-    const validSets=(ex.sets||[]).filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+    const validSets=(ex.sets||[]).filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
     if(!validSets.length)return;
     const setDesc=validSets.map(s=>{
       const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
-      return `${grp>1?grp+'組':''}${reps?reps+'下':''}${kg?'×'+kg+'kg':''}`.trim();
+      const parts=[];
+      if(grp>0) parts.push(grp+'組');
+      if(reps>0) parts.push(reps+'下');
+      if(kg>0) parts.push('×'+kg+'kg');
+      if(s.note&&!reps&&!kg) parts.push(s.note);
+      return parts.join('').trim();
     }).join(' / ');
     const exDisplay=ex.name.includes('（')?ex.name.split('（')[0]+'（'+ex.name.split('（')[1]:ex.name;
     exLines+=`\n・${exDisplay}  ${setDesc}\n`;
@@ -2653,7 +2688,7 @@ function openHist(exName,student){
   const lifetimeBest=getLifetimeBestByReps(student,exName,null);
   let html='';
   hist.forEach(h=>{
-    const validSets=h.sets.filter(s=>parseInt(s.reps)||parseFloat(s.weight));
+    const validSets=h.sets.filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
     if(!validSets.length) return;
     const {strengthResult,newPRReps}=evalDetailed(h.sets,[],lifetimeBest);
     html+=`<div class="hcard">
@@ -2871,15 +2906,38 @@ function renderDietHistory(){
   el.innerHTML=html;
 }
 
+// ── 填充自訂分類下拉選單 ──
+function fillCustomCatSelect(selectId){
+  const sel=document.getElementById(selectId);
+  if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">選擇分類（或輸入新分類）</option>';
+  Object.keys(EX).forEach(cat=>{
+    const opt=document.createElement('option');
+    opt.value=cat; opt.textContent=cat;
+    sel.appendChild(opt);
+  });
+  if(cur) sel.value=cur;
+}
+
+// ── 取得選擇的分類 ──
+function getCustomCat(selectId, newInputId){
+  const sel=document.getElementById(selectId)?.value||'';
+  const newCat=(document.getElementById(newInputId)?.value||'').trim();
+  return newCat||sel||'自訂';
+}
+
 // ── 自訂動作存入動作庫 ──
-function saveCustomToEX(name){
+function saveCustomToEX(name, cat){
   if(!name) return;
-  if(!EX['自訂']) EX['自訂']=[];   // 確保「自訂」分類存在
-  if(!EX['自訂'].includes(name)){
-    EX['自訂'].push(name);
+  cat=cat||'自訂';
+  if(!EX[cat]) EX[cat]=[];
+  if(!EX[cat].includes(name)){
+    EX[cat].push(name);
     try{
       const saved=JSON.parse(localStorage.getItem('_custom_ex')||'[]');
-      if(!saved.includes(name)) saved.push(name);
+      const entry={name,cat};
+      if(!saved.find(e=>e.name===name)) saved.push(entry);
       localStorage.setItem('_custom_ex',JSON.stringify(saved));
     }catch(e){}
   }
@@ -2890,10 +2948,12 @@ function addCustomExPlan(){
   const inp=document.getElementById('custom-ex-plan');
   const name=(inp?.value||'').trim();
   if(!name){inp?.focus();return;}
-  saveCustomToEX(name);
-  selMuscle='自訂';
+  const cat=getCustomCat('custom-cat-plan','custom-cat-new-plan');
+  saveCustomToEX(name,cat);
+  selMuscle=cat;
   toggleExercise(name);
   inp.value='';
+  if(document.getElementById('custom-cat-new-plan')) document.getElementById('custom-cat-new-plan').value='';
   renderExList();
 }
 
@@ -2902,7 +2962,8 @@ function addCustomExClass(){
   const inp=document.getElementById('custom-ex-class');
   const name=(inp?.value||'').trim();
   if(!name){inp?.focus();return;}
-  saveCustomToEX(name);
+  const cat=getCustomCat('custom-cat-class','custom-cat-new-class');
+  saveCustomToEX(name,cat);
   if(!curNB) return;
   if(!curNB.exercises) curNB.exercises=[];
   if(!curNB.exercises.find(e=>e.name===name)){
@@ -2910,10 +2971,11 @@ function addCustomExClass(){
   }
   persist();
   inp.value='';
+  if(document.getElementById('custom-cat-new-class')) document.getElementById('custom-cat-new-class').value='';
   renderClassLog();
-  selMuscle='自訂';
+  selMuscle=cat;
   renderClassExList();
-  renderMuscleScroller('msc-class','自訂');
+  renderMuscleScroller('msc-class',cat);
 }
 let _reportBackTab='diet';
 // ── iOS PWA 安全確認框（取代 confirm()）──
