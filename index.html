@@ -1350,6 +1350,8 @@ function switchTab(name){
           if(!hasRealSets){
             ex.sets=ex.planRows.map(pr=>({sets:pr.sets||'',reps:pr.reps||'',weight:pr.kg||''}));
           }
+          // 備課備註同步到上課（若上課備註為空）
+          if(!ex.classNote&&ex.note) ex.classNote=ex.note;
         }
       });
       persist();
@@ -1513,8 +1515,13 @@ function renderPlanLog(){
     });
     div.innerHTML=`
       <div class="wlog-top">
-        <div class="wlog-name"><span class="wlog-name-text">${ex.name.split('（')[0]}<span style="font-size:11px;color:var(--text3);font-weight:300"> ${ex.name.includes('（')?'（'+ex.name.split('（')[1]:''}</span></span></div>
-        <span class="wlog-del" onclick="toggleExercise('${ex.name.replace(/'/g,"\\'")}')">✕</span>
+        <div class="wlog-name" style="flex:1">
+          <span class="wlog-name-text">${ex.name.split('（')[0]}<span style="font-size:11px;color:var(--text3);font-weight:300"> ${ex.name.includes('（')?'（'+ex.name.split('（')[1]:''}</span></span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <span onclick="openReplaceModal(${ei},'plan')" style="font-size:11px;color:var(--acc-light);cursor:pointer;padding:3px 7px;border:1px solid var(--border2);border-radius:2px;font-family:'Noto Sans TC',sans-serif;background:var(--bg3)">替換</span>
+          <span class="wlog-del" onclick="toggleExercise('${ex.name.replace(/'/g,"\\'")}')">✕</span>
+        </div>
       </div>
       ${hintHtml}
       <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-family:'DM Mono',monospace">計畫組數</div>
@@ -1653,11 +1660,14 @@ function renderClassLog(){
     div.className='wlog';
     div.innerHTML=`
       <div class="wlog-top">
-        <div class="wlog-name">
+        <div class="wlog-name" style="flex:1">
           <span class="wlog-name-text">${ex.name.split('（')[0]}</span>
           <div class="wlog-badges">${badgeHtml}</div>
         </div>
-        <span class="wlog-del" onclick="removeExFromClass(${ei})">✕</span>
+        <div style="display:flex;gap:6px;align-items:flex-start;flex-shrink:0">
+          <span onclick="openReplaceModal(${ei},'class')" style="font-size:11px;color:var(--acc-light);cursor:pointer;padding:3px 7px;border:1px solid var(--border2);border-radius:2px;font-family:'Noto Sans TC',sans-serif;background:var(--bg3)">替換</span>
+          <span class="wlog-del" onclick="removeExFromClass(${ei})">✕</span>
+        </div>
       </div>
       ${histHtml}
       ${setRowsHtml}
@@ -2978,6 +2988,62 @@ function addCustomExClass(){
   renderMuscleScroller('msc-class',cat);
 }
 let _reportBackTab='diet';
+// ══════════════════════════════════════════
+// ── 替換動作功能 ──
+// ══════════════════════════════════════════
+let _replaceIdx=-1, _replaceMode='plan';
+
+function openReplaceModal(ei, mode){
+  _replaceIdx=ei;
+  _replaceMode=mode;
+  const ex=curNB?.exercises?.[ei];
+  const curEl=document.getElementById('modal-replace-cur');
+  if(curEl) curEl.textContent=`目前：${ex?.name||''}`;
+  document.getElementById('modal-replace-search').value='';
+  document.getElementById('modal-replace-custom').value='';
+  renderReplaceList();
+  document.getElementById('modal-replace').style.display='flex';
+}
+
+function renderReplaceList(){
+  const list=document.getElementById('modal-replace-list');
+  if(!list) return;
+  const search=(document.getElementById('modal-replace-search')?.value||'').toLowerCase();
+  const curName=curNB?.exercises?.[_replaceIdx]?.name||'';
+  const allEx=[];
+  Object.entries(EX).forEach(([cat,arr])=>{
+    arr.forEach(name=>{if(!allEx.includes(name)) allEx.push(name);});
+  });
+  const filtered=allEx.filter(name=>
+    name!==curName&&(!search||name.toLowerCase().includes(search))
+  ).slice(0,50);
+  if(!filtered.length){
+    list.innerHTML='<div style="padding:12px;text-align:center;font-size:12px;color:var(--text3)">沒有符合的動作</div>';
+    return;
+  }
+  list.innerHTML=filtered.map(name=>
+    `<div onclick="doReplace('${name.replace(/'/g,"\\'")}')}" style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);font-family:'Noto Sans TC',sans-serif;active:background:var(--bg3)">
+      ${name.split('（')[0]}<span style="font-size:11px;color:var(--text3)">${name.includes('（')?' （'+name.split('（')[1]:''}</span>
+    </div>`
+  ).join('');
+}
+
+function doReplace(newName){
+  if(_replaceIdx<0||!curNB?.exercises?.[_replaceIdx]) return;
+  curNB.exercises[_replaceIdx].name=newName;
+  persist();
+  document.getElementById('modal-replace').style.display='none';
+  if(_replaceMode==='plan') renderPlanLog();
+  else renderClassLog();
+}
+
+function doReplaceCustom(){
+  const name=(document.getElementById('modal-replace-custom')?.value||'').trim();
+  if(!name) return;
+  saveCustomToEX(name,'自訂');
+  doReplace(name);
+}
+
 // ── iOS PWA 安全確認框（取代 confirm()）──
 function confirmDel(msg, onOk){
   const wrap=document.createElement('div');
@@ -3549,5 +3615,25 @@ document.getElementById('nb-list').addEventListener('click',function(e){
   else if(action==='delete') deleteStudent(student);
 });
 </script>
+<!-- MODAL 替換動作 -->
+<div class="modal-bg" id="modal-replace" style="display:none">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">替換動作</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;font-family:'DM Mono',monospace" id="modal-replace-cur"></div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input class="modal-inp" id="modal-replace-search" placeholder="搜尋動作…" oninput="renderReplaceList()" style="margin-bottom:0;flex:1">
+    </div>
+    <div id="modal-replace-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;margin-bottom:12px"></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">或輸入自訂動作名稱直接替換：</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <input class="modal-inp" id="modal-replace-custom" placeholder="自訂動作名稱" style="margin-bottom:0;flex:1">
+      <button onclick="doReplaceCustom()" style="flex-shrink:0;padding:11px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:13px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">替換</button>
+    </div>
+    <div class="modal-row">
+      <button class="m-cancel" onclick="document.getElementById('modal-replace').style.display='none'">取消</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
