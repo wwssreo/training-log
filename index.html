@@ -2988,45 +2988,153 @@ function addCustomExClass(){
   renderMuscleScroller('msc-class',cat);
 }
 let _reportBackTab='diet';
-// ══════════════════════════════════════════
-// ── 替換動作功能 ──
-// ══════════════════════════════════════════
-let _replaceIdx=-1, _replaceMode='plan';
-
+// ── 替換 Modal：開啟時填入分類下拉 ──
 function openReplaceModal(ei, mode){
   _replaceIdx=ei;
   _replaceMode=mode;
   const ex=curNB?.exercises?.[ei];
   const curEl=document.getElementById('modal-replace-cur');
   if(curEl) curEl.textContent=`目前：${ex?.name||''}`;
+  // 填分類下拉
+  const catSel=document.getElementById('modal-replace-cat');
+  if(catSel){
+    catSel.innerHTML='<option value="">全部分類</option>';
+    Object.keys(EX).forEach(cat=>{
+      const o=document.createElement('option');
+      o.value=cat;o.textContent=cat;catSel.appendChild(o);
+    });
+    catSel.value='';
+  }
   document.getElementById('modal-replace-search').value='';
   document.getElementById('modal-replace-custom').value='';
   renderReplaceList();
   document.getElementById('modal-replace').style.display='flex';
 }
 
+// ══════════════════════════════════════════
+// ── 動作庫管理 ──
+// ══════════════════════════════════════════
+function openExDBManager(){
+  document.getElementById('modal-replace').style.display='none';
+  renderExDBList();
+  fillExDBCatSel();
+  show('s-exdb');
+}
+
+function closeExDBManager(){
+  show(curNB?'s-nb':'s-home');
+}
+
+function fillExDBCatSel(){
+  const sel=document.getElementById('exdb-cat-sel');
+  if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">選擇現有分類</option>';
+  Object.keys(EX).forEach(cat=>{
+    const o=document.createElement('option');o.value=cat;o.textContent=cat;sel.appendChild(o);
+  });
+  if(cur) sel.value=cur;
+}
+
+function renderExDBList(){
+  const container=document.getElementById('exdb-list');
+  if(!container) return;
+  container.innerHTML='';
+  let hasAny=false;
+  Object.entries(EX).forEach(([cat,arr])=>{
+    if(!arr.length) return;
+    hasAny=true;
+    const catWrap=document.createElement('div');
+    catWrap.style.marginBottom='12px';
+    const catLabel=document.createElement('div');
+    catLabel.style.cssText='font-size:10px;font-family:DM Mono,monospace;color:var(--acc-light);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding:3px 8px;background:var(--acc-bg);border-radius:2px;display:inline-block';
+    catLabel.textContent=cat;
+    catWrap.appendChild(catLabel);
+    arr.forEach(name=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:4px';
+      const nameEl=document.createElement('span');
+      nameEl.style.cssText='flex:1;font-size:13px;color:var(--text)';
+      nameEl.textContent=name;
+      const delBtn=document.createElement('span');
+      delBtn.style.cssText='font-size:12px;color:var(--red);cursor:pointer;padding:4px 8px;border:1px solid var(--red-b);border-radius:2px;font-family:Noto Sans TC,sans-serif';
+      delBtn.textContent='刪除';
+      delBtn.addEventListener('click',()=>exdbDelete(name,cat));
+      row.appendChild(nameEl);
+      row.appendChild(delBtn);
+      catWrap.appendChild(row);
+    });
+    container.appendChild(catWrap);
+  });
+  if(!hasAny) container.innerHTML='<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px">動作庫目前為空</div>';
+}
+
+function exdbAdd(){
+  const name=(document.getElementById('exdb-name')?.value||'').trim();
+  const catSel=document.getElementById('exdb-cat-sel')?.value||'';
+  const catNew=(document.getElementById('exdb-cat-new')?.value||'').trim();
+  const cat=catNew||catSel||'自訂';
+  if(!name){alert('請輸入動作名稱');return;}
+  saveCustomToEX(name,cat);
+  document.getElementById('exdb-name').value='';
+  document.getElementById('exdb-cat-new').value='';
+  renderExDBList();
+  fillExDBCatSel();
+}
+
+function exdbDelete(name,cat){
+  confirmDel(`確定從動作庫刪除「${name}」？`,()=>{
+    if(EX[cat]){
+      EX[cat]=EX[cat].filter(n=>n!==name);
+      if(!EX[cat].length) delete EX[cat];
+    }
+    // 同步更新 localStorage 自訂列表
+    try{
+      let saved=JSON.parse(localStorage.getItem('_custom_ex')||'[]');
+      saved=saved.filter(e=>(typeof e==='string'?e:e.name)!==name);
+      localStorage.setItem('_custom_ex',JSON.stringify(saved));
+    }catch(e){}
+    renderExDBList();
+    fillExDBCatSel();
+  });
+}
+
+// ── iOS PWA 安全確認框 ──
+
 function renderReplaceList(){
   const list=document.getElementById('modal-replace-list');
   if(!list) return;
   const search=(document.getElementById('modal-replace-search')?.value||'').toLowerCase();
+  const catFilter=document.getElementById('modal-replace-cat')?.value||'';
   const curName=curNB?.exercises?.[_replaceIdx]?.name||'';
   const allEx=[];
   Object.entries(EX).forEach(([cat,arr])=>{
+    if(catFilter&&cat!==catFilter) return;
     arr.forEach(name=>{if(!allEx.includes(name)) allEx.push(name);});
   });
   const filtered=allEx.filter(name=>
     name!==curName&&(!search||name.toLowerCase().includes(search))
-  ).slice(0,50);
+  ).slice(0,60);
+  list.innerHTML='';
   if(!filtered.length){
     list.innerHTML='<div style="padding:12px;text-align:center;font-size:12px;color:var(--text3)">沒有符合的動作</div>';
     return;
   }
-  list.innerHTML=filtered.map(name=>
-    `<div onclick="doReplace('${name.replace(/'/g,"\\'")}')}" style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);font-family:'Noto Sans TC',sans-serif;active:background:var(--bg3)">
-      ${name.split('（')[0]}<span style="font-size:11px;color:var(--text3)">${name.includes('（')?' （'+name.split('（')[1]:''}</span>
-    </div>`
-  ).join('');
+  filtered.forEach(name=>{
+    const row=document.createElement('div');
+    row.style.cssText='padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);font-family:Noto Sans TC,sans-serif';
+    row.textContent=name.split('（')[0];
+    if(name.includes('（')){
+      const sub=document.createElement('span');
+      sub.style.cssText='font-size:11px;color:var(--text3)';
+      sub.textContent='（'+name.split('（')[1];
+      row.appendChild(sub);
+    }
+    row.addEventListener('click',()=>doReplace(name));
+    list.appendChild(row);
+  });
 }
+
 
 function doReplace(newName){
   if(_replaceIdx<0||!curNB?.exercises?.[_replaceIdx]) return;
@@ -3617,13 +3725,18 @@ document.getElementById('nb-list').addEventListener('click',function(e){
 </script>
 <!-- MODAL 替換動作 -->
 <div class="modal-bg" id="modal-replace" style="display:none">
-  <div class="modal" style="max-width:380px">
+  <div class="modal" style="max-width:400px">
     <div class="modal-title">替換動作</div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:10px;font-family:'DM Mono',monospace" id="modal-replace-cur"></div>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <select id="modal-replace-cat" onchange="renderReplaceList()" style="flex:1;margin-bottom:0;font-size:12px;padding:8px 10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:2px">
+        <option value="">全部分類</option>
+      </select>
+    </div>
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <input class="modal-inp" id="modal-replace-search" placeholder="搜尋動作…" oninput="renderReplaceList()" style="margin-bottom:0;flex:1">
     </div>
-    <div id="modal-replace-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;margin-bottom:12px"></div>
+    <div id="modal-replace-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;margin-bottom:10px"></div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:6px">或輸入自訂動作名稱直接替換：</div>
     <div style="display:flex;gap:6px;margin-bottom:12px">
       <input class="modal-inp" id="modal-replace-custom" placeholder="自訂動作名稱" style="margin-bottom:0;flex:1">
@@ -3631,7 +3744,38 @@ document.getElementById('nb-list').addEventListener('click',function(e){
     </div>
     <div class="modal-row">
       <button class="m-cancel" onclick="document.getElementById('modal-replace').style.display='none'">取消</button>
+      <button class="m-ok" style="background:var(--green)" onclick="openExDBManager()">管理動作庫</button>
     </div>
+  </div>
+</div>
+
+<!-- 動作庫管理畫面 -->
+<div class="screen" id="s-exdb">
+  <div class="ed-hdr">
+    <div class="back" onclick="closeExDBManager()">←</div>
+    <div class="ed-title-wrap">
+      <div class="ed-title">動作庫管理</div>
+      <div class="ed-sub">新增、刪除自訂動作</div>
+    </div>
+  </div>
+  <div style="padding:12px 16px 6rem">
+    <!-- 新增動作 -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="sec">新增動作</div>
+      <div class="flabel" style="margin-top:4px">動作名稱</div>
+      <input type="text" id="exdb-name" placeholder="動作名稱（中文或英文）" style="margin-bottom:8px">
+      <div class="flabel">分類</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <select id="exdb-cat-sel" style="flex:1;margin-bottom:0;font-size:13px;padding:9px 10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:2px">
+          <option value="">選擇現有分類</option>
+        </select>
+        <input type="text" id="exdb-cat-new" placeholder="或輸入新分類" style="flex:1;margin-bottom:0;font-size:13px">
+      </div>
+      <button onclick="exdbAdd()" style="width:100%;padding:11px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;letter-spacing:.06em">加入動作庫</button>
+    </div>
+    <!-- 現有動作列表 -->
+    <div class="sec">現有動作庫</div>
+    <div id="exdb-list"></div>
   </div>
 </div>
 
