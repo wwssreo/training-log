@@ -170,7 +170,7 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
     <div class="h-sub" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text3)">Assess · Diet · Training · History</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.4rem">
       <button class="new-btn" style="margin-bottom:0;background:var(--acc)" onclick="openNewClientModal()">＋ 新增客戶</button>
-      <button class="new-btn" style="margin-bottom:0;background:var(--bg3);color:var(--purple);border:1px solid var(--purple-b);font-size:13px" onclick="openBackupScreen()">💾 備份 / 匯入</button>
+      <button class="new-btn" style="margin-bottom:0;background:var(--bg3);color:var(--acc);border:1px solid var(--border2);font-size:13px" onclick="openBackupScreen()">設定</button>
     </div>
     <div class="sec-lbl">所有學員</div>
     <div id="nb-list"></div>
@@ -559,37 +559,58 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
   <div class="ed-hdr">
     <div class="back" onclick="show('s-home');renderHome()">←</div>
     <div class="ed-title-wrap">
-      <div class="ed-title">備份 / 匯入</div>
-      <div class="ed-sub">資料安全保護</div>
+      <div class="ed-title">設定</div>
+      <div class="ed-sub">資料管理 · 動作庫</div>
     </div>
   </div>
-  <div style="padding:0 1.2rem 5rem;margin-top:.8rem">
-    <!-- 匯出 -->
+  <!-- 設定分頁 -->
+  <div style="padding:0 1.2rem;margin-top:.8rem">
+    <div class="tabs" style="margin-bottom:0">
+      <div class="tab on" id="stab-backup" onclick="switchSettingTab('backup')">備份 / 還原</div>
+      <div class="tab" id="stab-exdb" onclick="switchSettingTab('exdb')">動作庫管理</div>
+    </div>
+  </div>
+
+  <!-- ── Tab：備份還原 ── -->
+  <div id="stc-backup" style="padding:0 1.2rem 5rem;margin-top:.8rem">
     <div class="card">
       <div class="sec">匯出完整備份</div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">包含所有學員的評估紀錄、飲食數據、訓練歷史及各動作最高強度，可用於還原資料。</div>
       <button style="width:100%;padding:12px;border-radius:4px;background:var(--purple);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:8px" onclick="exportBackup()">匯出備份 JSON</button>
       <button style="width:100%;padding:12px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="exportReadableReport()">匯出可讀報告</button>
     </div>
-    <!-- 匯入 -->
     <div class="card">
       <div class="sec">匯入備份</div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">貼上之前匯出的 JSON 備份內容，點擊匯入即可還原所有資料。</div>
       <textarea id="import-json" rows="6" placeholder="貼上 JSON 備份內容..." style="font-size:12px;font-family:'DM Mono',monospace"></textarea>
       <button style="width:100%;margin-top:8px;padding:12px;border-radius:4px;background:var(--green);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="importBackup()">匯入還原</button>
     </div>
-    <!-- 動作庫管理 -->
-    <div class="card">
-      <div class="sec">動作庫管理</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">新增自訂動作、管理分類、刪除不需要的動作。</div>
-      <button style="width:100%;padding:12px;border-radius:4px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--border2);font-size:15px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="openExDBManager()">管理動作庫</button>
-    </div>
-    <!-- 備份預覽 -->
     <div id="backup-preview-wrap" style="display:none">
       <div class="sec-lbl" style="margin-top:4px">備份內容預覽</div>
       <div class="pbox" id="backup-preview" style="white-space:pre-wrap;font-size:11px;font-family:'DM Mono',monospace;max-height:320px;overflow-y:auto;line-height:1.8"></div>
       <button class="cbtn" onclick="copyBackup()" style="margin-top:8px">複製備份內容</button>
     </div>
+  </div>
+
+  <!-- ── Tab：動作庫管理 ── -->
+  <div id="stc-exdb" style="display:none;padding:0 1.2rem 5rem;margin-top:.8rem">
+    <!-- 新增動作 -->
+    <div class="card">
+      <div class="sec">新增動作</div>
+      <div class="flabel">動作名稱</div>
+      <input type="text" id="exdb-name" placeholder="動作名稱（中文或英文）" style="margin-bottom:8px">
+      <div class="flabel">分類</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <select id="exdb-cat-sel" style="flex:1;margin-bottom:0;font-size:13px;padding:9px 10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:2px">
+          <option value="">選擇現有分類</option>
+        </select>
+        <input type="text" id="exdb-cat-new" placeholder="或輸入新分類" style="flex:1;margin-bottom:0;font-size:13px">
+      </div>
+      <button onclick="exdbAdd()" style="width:100%;padding:11px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;letter-spacing:.06em">加入動作庫</button>
+    </div>
+    <!-- 現有動作列表 -->
+    <div class="sec-lbl" style="margin-bottom:8px">現有動作庫</div>
+    <div id="exdb-list"></div>
   </div>
 </div>
 <!-- DIET EDIT SCREEN -->
@@ -1667,7 +1688,7 @@ function renderClassLog(){
     div.innerHTML=`
       <div class="wlog-top">
         <div class="wlog-name" style="flex:1">
-          <span class="wlog-name-text">${ex.name.split('（')[0]}</span>
+          <span class="wlog-name-text">${ex.name.split('（')[0]}<span style="font-size:11px;color:var(--text3);font-weight:300"> ${ex.name.includes('（')?'（'+ex.name.split('（')[1]:''}</span></span>
           <div class="wlog-badges">${badgeHtml}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:flex-start;flex-shrink:0">
@@ -3035,18 +3056,25 @@ function openReplaceModal(ei, mode){
 // ══════════════════════════════════════════
 // ── 動作庫管理 ──
 // ══════════════════════════════════════════
+// ── 設定頁分頁切換 ──
+function switchSettingTab(tab){
+  ['backup','exdb'].forEach(t=>{
+    document.getElementById('stab-'+t)?.classList.toggle('on',t===tab);
+    const tc=document.getElementById('stc-'+t);
+    if(tc) tc.style.display=t===tab?'block':'none';
+  });
+  if(tab==='exdb'){renderExDBList();fillExDBCatSel();}
+}
+
 let _exdbFromScreen='s-backup';
 function openExDBManager(){
-  // 記住來源（排除 s-exdb 本身）
   const active=document.querySelector('.screen.active');
   const fromId=active?.id||'s-backup';
   if(fromId!=='s-exdb') _exdbFromScreen=fromId;
-  // 關閉替換 modal（若從那裡進來）
   const rm=document.getElementById('modal-replace');
   if(rm) rm.style.display='none';
-  renderExDBList();
-  fillExDBCatSel();
-  show('s-exdb');
+  show('s-backup');
+  switchSettingTab('exdb');
 }
 
 function closeExDBManager(){
@@ -3782,36 +3810,6 @@ document.getElementById('nb-list').addEventListener('click',function(e){
     <div class="modal-row">
       <button class="m-cancel" onclick="document.getElementById('modal-replace').style.display='none'">取消</button>
     </div>
-  </div>
-</div>
-
-<!-- 動作庫管理畫面 -->
-<div class="screen" id="s-exdb">
-  <div class="ed-hdr">
-    <div class="back" onclick="closeExDBManager()">←</div>
-    <div class="ed-title-wrap">
-      <div class="ed-title">動作庫管理</div>
-      <div class="ed-sub">新增、刪除自訂動作</div>
-    </div>
-  </div>
-  <div style="padding:12px 16px 6rem">
-    <!-- 新增動作 -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="sec">新增動作</div>
-      <div class="flabel" style="margin-top:4px">動作名稱</div>
-      <input type="text" id="exdb-name" placeholder="動作名稱（中文或英文）" style="margin-bottom:8px">
-      <div class="flabel">分類</div>
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        <select id="exdb-cat-sel" style="flex:1;margin-bottom:0;font-size:13px;padding:9px 10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:2px">
-          <option value="">選擇現有分類</option>
-        </select>
-        <input type="text" id="exdb-cat-new" placeholder="或輸入新分類" style="flex:1;margin-bottom:0;font-size:13px">
-      </div>
-      <button onclick="exdbAdd()" style="width:100%;padding:11px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:14px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;letter-spacing:.06em">加入動作庫</button>
-    </div>
-    <!-- 現有動作列表 -->
-    <div class="sec">現有動作庫</div>
-    <div id="exdb-list"></div>
   </div>
 </div>
 
