@@ -578,6 +578,12 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
       <textarea id="import-json" rows="6" placeholder="貼上 JSON 備份內容..." style="font-size:12px;font-family:'DM Mono',monospace"></textarea>
       <button style="width:100%;margin-top:8px;padding:12px;border-radius:4px;background:var(--green);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="importBackup()">匯入還原</button>
     </div>
+    <!-- 動作庫管理 -->
+    <div class="card">
+      <div class="sec">動作庫管理</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">新增自訂動作、管理分類、刪除不需要的動作。</div>
+      <button style="width:100%;padding:12px;border-radius:4px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--border2);font-size:15px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="openExDBManager()">管理動作庫</button>
+    </div>
     <!-- 備份預覽 -->
     <div id="backup-preview-wrap" style="display:none">
       <div class="sec-lbl" style="margin-top:4px">備份內容預覽</div>
@@ -2995,7 +3001,7 @@ function openReplaceModal(ei, mode){
   const ex=curNB?.exercises?.[ei];
   const curEl=document.getElementById('modal-replace-cur');
   if(curEl) curEl.textContent=`目前：${ex?.name||''}`;
-  // 填分類下拉
+  // 填分類下拉（篩選用）
   const catSel=document.getElementById('modal-replace-cat');
   if(catSel){
     catSel.innerHTML='<option value="">全部分類</option>';
@@ -3004,6 +3010,21 @@ function openReplaceModal(ei, mode){
       o.value=cat;o.textContent=cat;catSel.appendChild(o);
     });
     catSel.value='';
+  }
+  // 填自訂動作分類下拉
+  const customCatSel=document.getElementById('modal-replace-custom-cat');
+  if(customCatSel){
+    customCatSel.innerHTML='';
+    Object.keys(EX).forEach(cat=>{
+      const o=document.createElement('option');
+      o.value=cat;o.textContent='分類：'+cat;customCatSel.appendChild(o);
+    });
+    // 確保「自訂」存在
+    if(!Array.from(customCatSel.options).find(o=>o.value==='自訂')){
+      const o=document.createElement('option');o.value='自訂';o.textContent='分類：自訂';
+      customCatSel.appendChild(o);
+    }
+    customCatSel.value='自訂';
   }
   document.getElementById('modal-replace-search').value='';
   document.getElementById('modal-replace-custom').value='';
@@ -3014,15 +3035,22 @@ function openReplaceModal(ei, mode){
 // ══════════════════════════════════════════
 // ── 動作庫管理 ──
 // ══════════════════════════════════════════
+let _exdbFromScreen='s-backup';
 function openExDBManager(){
-  document.getElementById('modal-replace').style.display='none';
+  // 記住來源（排除 s-exdb 本身）
+  const active=document.querySelector('.screen.active');
+  const fromId=active?.id||'s-backup';
+  if(fromId!=='s-exdb') _exdbFromScreen=fromId;
+  // 關閉替換 modal（若從那裡進來）
+  const rm=document.getElementById('modal-replace');
+  if(rm) rm.style.display='none';
   renderExDBList();
   fillExDBCatSel();
   show('s-exdb');
 }
 
 function closeExDBManager(){
-  show(curNB?'s-nb':'s-home');
+  show(_exdbFromScreen||'s-backup');
 }
 
 function fillExDBCatSel(){
@@ -3148,7 +3176,10 @@ function doReplace(newName){
 function doReplaceCustom(){
   const name=(document.getElementById('modal-replace-custom')?.value||'').trim();
   if(!name) return;
-  saveCustomToEX(name,'自訂');
+  const newCat=(document.getElementById('modal-replace-custom-newcat')?.value||'').trim();
+  const selCat=document.getElementById('modal-replace-custom-cat')?.value||'自訂';
+  const cat=newCat||selCat;
+  saveCustomToEX(name,cat);
   doReplace(name);
 }
 
@@ -3738,13 +3769,18 @@ document.getElementById('nb-list').addEventListener('click',function(e){
     </div>
     <div id="modal-replace-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;margin-bottom:10px"></div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:6px">或輸入自訂動作名稱直接替換：</div>
-    <div style="display:flex;gap:6px;margin-bottom:12px">
+    <div style="display:flex;gap:6px;margin-bottom:6px">
       <input class="modal-inp" id="modal-replace-custom" placeholder="自訂動作名稱" style="margin-bottom:0;flex:1">
-      <button onclick="doReplaceCustom()" style="flex-shrink:0;padding:11px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:13px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">替換</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <select id="modal-replace-custom-cat" style="flex:1;margin-bottom:0;font-size:12px;padding:8px 10px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:2px">
+        <option value="自訂">分類：自訂</option>
+      </select>
+      <input type="text" id="modal-replace-custom-newcat" placeholder="或輸入新分類" style="flex:1;margin-bottom:0;font-size:12px">
+      <button onclick="doReplaceCustom()" style="flex-shrink:0;padding:9px 12px;border-radius:2px;background:var(--acc);color:#FAF9F7;border:none;font-size:13px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">替換</button>
     </div>
     <div class="modal-row">
       <button class="m-cancel" onclick="document.getElementById('modal-replace').style.display='none'">取消</button>
-      <button class="m-ok" style="background:var(--green)" onclick="openExDBManager()">管理動作庫</button>
     </div>
   </div>
 </div>
