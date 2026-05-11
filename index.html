@@ -369,6 +369,19 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
   <div class="hist-body" id="hist-body"></div>
 </div>
 
+<!-- MODAL 改名 -->
+<div class="modal-bg" id="modal-rename" style="display:none">
+  <div class="modal">
+    <div class="modal-title">修改客戶名稱</div>
+    <div class="modal-lbl" id="modal-rename-old"></div>
+    <input class="modal-inp" id="modal-rename-input" placeholder="輸入新名稱">
+    <div class="modal-row">
+      <button class="m-cancel" onclick="document.getElementById('modal-rename').style.display='none'">取消</button>
+      <button class="m-ok" onclick="doRenameStudent()">確認改名</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL 新增客戶 -->
 <div class="modal-bg" id="modal-new-client" style="display:none">
   <div class="modal">
@@ -1025,18 +1038,19 @@ function renderHome(){
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.9rem 1rem;margin-bottom:10px';
     card.innerHTML=`
-      <!-- 學員名稱列，點名字進詳情 -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer" onclick="openStudent('${student.replace(/'/g,"\\'")}')">
-        <div>
+      <!-- 學員名稱列 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="flex:1;cursor:pointer" onclick="openStudent('${student.replace(/'/g,"\\'")}')">
           <div style="font-size:16px;font-weight:600;color:var(--text)">${student}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
             ${assessments.length?`<span style="font-size:11px;color:var(--amber)">${assessments.length} 評估</span>`:''}
-            ${dietEntries.length?`<span style="font-size:11px;color:var(--green)">🥗 ${dietEntries.length} 飲食</span>`:''}
-            <span style="font-size:11px;color:var(--acc-light)">💪 ${doneCount} 堂</span>
+            ${dietEntries.length?`<span style="font-size:11px;color:var(--green)">${dietEntries.length} 飲食</span>`:''}
+            <span style="font-size:11px;color:var(--acc-light)">${doneCount} 堂</span>
             ${lastDate?`<span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${lastDate}</span>`:''}
           </div>
         </div>
-        <div style="font-size:20px;color:var(--text3)">›</div>
+        <span data-rename="${student.replace(/"/g,'&quot;')}" style="font-size:11px;color:var(--text3);cursor:pointer;padding:4px 8px;border:1px solid var(--border2);border-radius:2px;font-family:'Noto Sans TC',sans-serif;flex-shrink:0;margin-left:8px">改名</span>
+        <div style="font-size:20px;color:var(--text3);cursor:pointer;padding-left:6px" onclick="openStudent('${student.replace(/'/g,"\\'")}')">›</div>
       </div>
       <!-- 快速新增按鈕 + 刪除 -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 36px;gap:7px">
@@ -1049,8 +1063,34 @@ function renderHome(){
   });
 }
 
+// ── 客戶改名 ──
+let _renameOld='';
+function openRenameStudent(student){
+  _renameOld=student;
+  const oldEl=document.getElementById('modal-rename-old');
+  if(oldEl) oldEl.textContent='目前名稱：'+student;
+  const inp=document.getElementById('modal-rename-input');
+  if(inp){inp.value=student;inp.select();}
+  document.getElementById('modal-rename').style.display='flex';
+  setTimeout(()=>inp?.focus(),100);
+}
+
+function doRenameStudent(){
+  const newName=(document.getElementById('modal-rename-input')?.value||'').trim();
+  if(!newName){alert('請輸入新名稱');return;}
+  if(newName===_renameOld){document.getElementById('modal-rename').style.display='none';return;}
+  if(clientList.includes(newName)){alert('此名稱已存在');return;}
+  // 更新所有資料
+  notebooks.forEach(nb=>{if((nb.student||'').trim()===_renameOld) nb.student=newName;});
+  if(dietData[_renameOld]){dietData[newName]=dietData[_renameOld];delete dietData[_renameOld];}
+  clientList=clientList.map(s=>s===_renameOld?newName:s);
+  if(curStudentName===_renameOld) curStudentName=newName;
+  persist();saveDietData();saveClientList();
+  document.getElementById('modal-rename').style.display='none';
+  renderHome();
+}
+
 function openNewClientModal(){
-  document.getElementById('modal-new-client').style.display='flex';
   document.getElementById('modal-client-name').value='';
   setTimeout(()=>document.getElementById('modal-client-name').focus(),100);
 }
@@ -3786,6 +3826,10 @@ document.getElementById('home-date').textContent=new Date().toLocaleDateString('
 
 // Event delegation for student card buttons
 document.getElementById('nb-list').addEventListener('click',function(e){
+  // 改名按鈕
+  const renameBtn=e.target.closest('[data-rename]');
+  if(renameBtn){e.stopPropagation();openRenameStudent(renameBtn.dataset.rename);return;}
+  // 快速動作按鈕
   const btn=e.target.closest('[data-action]');
   if(!btn)return;
   e.stopPropagation();
