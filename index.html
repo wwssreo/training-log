@@ -1350,6 +1350,22 @@ function importBackup(){
       data.clientList.forEach(s=>{if(s&&!clientList.includes(s)) clientList.push(s);});
       saveClientList();
     }
+    // 匯入自訂動作庫
+    if(Array.isArray(data.customExercises)){
+      const savedCustom=JSON.parse(localStorage.getItem('_custom_ex')||'[]');
+      const savedNames=new Set(savedCustom.map(e=>typeof e==='string'?e:e.name));
+      data.customExercises.forEach(item=>{
+        const name=item.name||item;
+        const cat=item.cat||'自訂';
+        if(!savedNames.has(name)){
+          savedCustom.push({name,cat});
+          savedNames.add(name);
+        }
+        if(!EX[cat]) EX[cat]=[];
+        if(!EX[cat].includes(name)) EX[cat].push(name);
+      });
+      localStorage.setItem('_custom_ex',JSON.stringify(savedCustom));
+    }
     persist();renderHome();
     document.getElementById('import-json').value='';
     alert(`✅ 匯入成功！新增 ${added} 筆資料。`);
