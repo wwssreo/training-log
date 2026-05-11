@@ -2204,8 +2204,8 @@ function buildAssessReport(a, student, date){
   if(a.kneeAlign) staticParts.push(`膝蓋：${a.kneeAlign}`);
   if(a.foot) staticParts.push(`足弓：${a.foot}`);
   if(staticParts.length) r+=`＿靜態評估\n${staticParts.map(p=>'  '+p).join('\n')}\n`;
-  if(a.upperNote) r+=`  頭頸/上半身備註：${a.upperNote}\n`;
-  if(a.lowerNote) r+=`  骨盆/下肢備註：${a.lowerNote}\n`;
+  if(a.upperNote) r+=`  備註：${a.upperNote}\n`;
+  if(a.lowerNote) r+=`  備註：${a.lowerNote}\n`;
   r+='\n';
   const romParts=[];
   if(a.overhead) romParts.push(`過頭舉：${a.overhead}`);
@@ -2222,8 +2222,8 @@ function buildAssessReport(a, student, date){
   if(a.hipIr||a.hipEr) romParts.push(`髖內旋：${a.hipIr||'—'}　髖外旋：${a.hipEr||'—'}`);
   if(romParts.length) r+=`＿關節活動度\n${romParts.map(p=>'  '+p).join('\n')}\n`;
   if(a.upperRomNote) r+=`  備註：${a.upperRomNote}\n`;
-  if(a.hipFlexNote) r+=`  髖屈伸備註：${a.hipFlexNote}\n`;
-  if(a.hipRotNote) r+=`  髖旋轉備註：${a.hipRotNote}\n`;
+  if(a.hipFlexNote) r+=`  備註：${a.hipFlexNote}\n`;
+  if(a.hipRotNote) r+=`  備註：${a.hipRotNote}\n`;
   r+='\n';
   const dynParts=[];
   if(a.sqDepth) dynParts.push(`深蹲：${a.sqDepth}${a.sqKnee?' / 膝'+a.sqKnee:''}`);
@@ -2234,8 +2234,8 @@ function buildAssessReport(a, student, date){
   if(a.hPull) dynParts.push(`水平拉：${a.hPull}`);
   if(a.vPull) dynParts.push(`垂直拉：${a.vPull}`);
   if(dynParts.length) r+=`＿動態評估\n${dynParts.map(p=>'  '+p).join('\n')}\n`;
-  if(a.lowerDynNote) r+=`  下肢動作備註：${a.lowerDynNote}\n`;
-  if(a.pushPullNote) r+=`  推拉模式備註：${a.pushPullNote}\n`;
+  if(a.lowerDynNote) r+=`  備註：${a.lowerDynNote}\n`;
+  if(a.pushPullNote) r+=`  備註：${a.pushPullNote}\n`;
   r+='\n';
   if(a.sessionStars) r+=`今日狀態：${'★'.repeat(a.sessionStars)}${'☆'.repeat(5-a.sessionStars)}（${SLAB[a.sessionStars]||''}）\n`;
   if(a.exercises) r+=`\n＿第一堂訓練\n${a.exercises.split('\n').map(l=>'  '+l).join('\n')}\n\n`;
