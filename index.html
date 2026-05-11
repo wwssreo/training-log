@@ -1352,6 +1352,8 @@ function togS(el,groupId){
 }
 // ── 切換 chip（多選） ──
 function togM(el){el.classList.toggle('sel');}
+// ── 切換 achip 多選（用 on 類別）──
+function togAM(el){el.classList.toggle('on');}
 // ── 切換 achip（單選，用 on 類別） ──
 function togA(el){
   const parent=el.closest('.achips');
@@ -2201,10 +2203,16 @@ function buildAssessReport(a, student, date){
   if(a.pelvis) staticParts.push(`骨盆：${a.pelvis}`);
   if(a.kneeAlign) staticParts.push(`膝蓋：${a.kneeAlign}`);
   if(a.foot) staticParts.push(`足弓：${a.foot}`);
-  if(staticParts.length) r+=`＿靜態評估\n${staticParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(staticParts.length) r+=`＿靜態評估\n${staticParts.map(p=>'  '+p).join('\n')}\n`;
+  if(a.upperNote) r+=`  頭頸/上半身備註：${a.upperNote}\n`;
+  if(a.lowerNote) r+=`  骨盆/下肢備註：${a.lowerNote}\n`;
+  r+='\n';
   const romParts=[];
   if(a.overhead) romParts.push(`過頭舉：${a.overhead}`);
-  if(a.shoulderRot) romParts.push(`肩旋轉：${a.shoulderRot}`);
+  if(a.shoulderRot&&(Array.isArray(a.shoulderRot)?a.shoulderRot.length:a.shoulderRot)){
+    const val=Array.isArray(a.shoulderRot)?a.shoulderRot.join('＋'):a.shoulderRot;
+    romParts.push(`肩旋轉：${val}`);
+  }
   if(a.thoracicRot) romParts.push(`胸椎旋轉：${a.thoracicRot}`);
   if(a.thoracicExt) romParts.push(`胸椎伸直：${a.thoracicExt}`);
   if(a.thoracicFlex) romParts.push(`胸椎彎曲：${a.thoracicFlex}`);
@@ -2212,7 +2220,11 @@ function buildAssessReport(a, student, date){
   if(a.lumbarFlex) romParts.push(`腰椎彎曲：${a.lumbarFlex}`);
   if(a.hipFlex||a.hipExt) romParts.push(`髖屈曲：${a.hipFlex||'—'}　髖伸直：${a.hipExt||'—'}`);
   if(a.hipIr||a.hipEr) romParts.push(`髖內旋：${a.hipIr||'—'}　髖外旋：${a.hipEr||'—'}`);
-  if(romParts.length) r+=`＿關節活動度\n${romParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(romParts.length) r+=`＿關節活動度\n${romParts.map(p=>'  '+p).join('\n')}\n`;
+  if(a.upperRomNote) r+=`  備註：${a.upperRomNote}\n`;
+  if(a.hipFlexNote) r+=`  髖屈伸備註：${a.hipFlexNote}\n`;
+  if(a.hipRotNote) r+=`  髖旋轉備註：${a.hipRotNote}\n`;
+  r+='\n';
   const dynParts=[];
   if(a.sqDepth) dynParts.push(`深蹲：${a.sqDepth}${a.sqKnee?' / 膝'+a.sqKnee:''}`);
   if(a.hipDom) dynParts.push(`髖主導：${a.hipDom}`);
@@ -2221,7 +2233,10 @@ function buildAssessReport(a, student, date){
   if(a.vPush) dynParts.push(`垂直推：${a.vPush}`);
   if(a.hPull) dynParts.push(`水平拉：${a.hPull}`);
   if(a.vPull) dynParts.push(`垂直拉：${a.vPull}`);
-  if(dynParts.length) r+=`＿動態評估\n${dynParts.map(p=>'  '+p).join('\n')}\n\n`;
+  if(dynParts.length) r+=`＿動態評估\n${dynParts.map(p=>'  '+p).join('\n')}\n`;
+  if(a.lowerDynNote) r+=`  下肢動作備註：${a.lowerDynNote}\n`;
+  if(a.pushPullNote) r+=`  推拉模式備註：${a.pushPullNote}\n`;
+  r+='\n';
   if(a.sessionStars) r+=`今日狀態：${'★'.repeat(a.sessionStars)}${'☆'.repeat(5-a.sessionStars)}（${SLAB[a.sessionStars]||''}）\n`;
   if(a.exercises) r+=`\n＿第一堂訓練\n${a.exercises.split('\n').map(l=>'  '+l).join('\n')}\n\n`;
   if(a.obs) r+=`＿教練觀察\n${a.obs}\n\n`;
@@ -3459,9 +3474,9 @@ const ASSESS_PAGES=[
           ${[['ok','正常'],['wn','受限'],['bd','明顯受限'],['wn','左右不對稱']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.overhead===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
         </div>
       </div>
-      <div class="ai"><div class="lbl">肩內/外旋</div>
+      <div class="ai"><div class="lbl">肩內/外旋 <span class="opt">可複選</span></div>
         <div class="achips" id="as-shoulder-rot">
-          ${[['ok','正常'],['wn','內旋受限'],['wn','外旋受限']].map(([c,v])=>`<div class="chip ${c}${window._assessData?.shoulderRot===v?' on':''}" onclick="togA(this)">${v}</div>`).join('')}
+          ${[['ok','正常'],['wn','內旋受限'],['wn','外旋受限']].map(([c,v])=>`<div class="chip ${c}${(window._assessData?.shoulderRot||[]).includes(v)?' on':''}" onclick="togAM(this)">${v}</div>`).join('')}
         </div>
       </div>
       <div class="ai"><div class="lbl">胸椎旋轉</div>
@@ -3518,7 +3533,7 @@ const ASSESS_PAGES=[
     </div>`,
     collect:()=>({
       overhead:document.querySelector('#as-overhead .chip.on')?.textContent.trim(),
-      shoulderRot:document.querySelector('#as-shoulder-rot .chip.on')?.textContent.trim(),
+      shoulderRot:[...document.querySelectorAll('#as-shoulder-rot .chip.on')].map(e=>e.textContent.trim()),
       thoracicRot:document.querySelector('#as-thoracic-rot .chip.on')?.textContent.trim(),
       thoracicExt:document.querySelector('#as-thoracic-ext .chip.on')?.textContent.trim(),
       thoracicFlex:document.querySelector('#as-thoracic-flex .chip.on')?.textContent.trim(),
