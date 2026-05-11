@@ -369,6 +369,22 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
   <div class="hist-body" id="hist-body"></div>
 </div>
 
+<!-- MODAL 移動動作分類 -->
+<div class="modal-bg" id="modal-move-ex" style="display:none">
+  <div class="modal">
+    <div class="modal-title">移動到其他分類</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;font-family:'Noto Sans TC',sans-serif" id="modal-move-ex-name"></div>
+    <div class="modal-lbl">選擇目標分類</div>
+    <select class="modal-inp" id="modal-move-ex-cat" style="margin-bottom:8px"></select>
+    <div class="modal-lbl" style="margin-top:4px">或輸入新分類名稱</div>
+    <input class="modal-inp" id="modal-move-ex-newcat" placeholder="輸入新分類名稱">
+    <div class="modal-row">
+      <button class="m-cancel" onclick="document.getElementById('modal-move-ex').style.display='none'">取消</button>
+      <button class="m-ok" onclick="doMoveEx()">確認移動</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL 改名 -->
 <div class="modal-bg" id="modal-rename" style="display:none">
   <div class="modal">
@@ -3117,7 +3133,52 @@ function openReplaceModal(ei, mode){
 }
 
 // ══════════════════════════════════════════
-// ── 動作庫管理 ──
+// ── 動作庫移動分類 ──
+let _moveExName='', _moveExFromCat='';
+function openMoveExModal(name, fromCat){
+  _moveExName=name; _moveExFromCat=fromCat;
+  const nameEl=document.getElementById('modal-move-ex-name');
+  if(nameEl) nameEl.textContent='動作：'+name.split('（')[0];
+  const sel=document.getElementById('modal-move-ex-cat');
+  if(sel){
+    sel.innerHTML='';
+    Object.keys(EX).filter(c=>c!==fromCat).forEach(cat=>{
+      const o=document.createElement('option');
+      o.value=cat; o.textContent=cat; sel.appendChild(o);
+    });
+  }
+  const newCatInp=document.getElementById('modal-move-ex-newcat');
+  if(newCatInp) newCatInp.value='';
+  document.getElementById('modal-move-ex').style.display='flex';
+}
+
+function doMoveEx(){
+  const newCat=(document.getElementById('modal-move-ex-newcat')?.value||'').trim();
+  const selCat=document.getElementById('modal-move-ex-cat')?.value||'';
+  const toCat=newCat||selCat;
+  if(!toCat){alert('請選擇或輸入分類');return;}
+  if(toCat===_moveExFromCat){document.getElementById('modal-move-ex').style.display='none';return;}
+  // 從原分類移除
+  if(EX[_moveExFromCat]){
+    EX[_moveExFromCat]=EX[_moveExFromCat].filter(n=>n!==_moveExName);
+  }
+  // 加到新分類
+  if(!EX[toCat]) EX[toCat]=[];
+  if(!EX[toCat].includes(_moveExName)) EX[toCat].push(_moveExName);
+  // 同步更新 localStorage 自訂動作的分類
+  try{
+    let saved=JSON.parse(localStorage.getItem('_custom_ex')||'[]');
+    const idx=saved.findIndex(e=>(typeof e==='string'?e:e.name)===_moveExName);
+    if(idx>=0) saved[idx]={name:_moveExName,cat:toCat};
+    else saved.push({name:_moveExName,cat:toCat});
+    localStorage.setItem('_custom_ex',JSON.stringify(saved));
+  }catch(e){}
+  document.getElementById('modal-move-ex').style.display='none';
+  renderExDBList();
+  fillExDBCatSel();
+}
+
+// ── 動作庫移動分類 ──
 // ══════════════════════════════════════════
 // ── 設定頁分頁切換 ──
 function switchSettingTab(tab){
@@ -3164,22 +3225,29 @@ function renderExDBList(){
     if(!arr.length) return;
     hasAny=true;
     const catWrap=document.createElement('div');
-    catWrap.style.marginBottom='12px';
+    catWrap.style.marginBottom='14px';
     const catLabel=document.createElement('div');
     catLabel.style.cssText='font-size:10px;font-family:DM Mono,monospace;color:var(--acc-light);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding:3px 8px;background:var(--acc-bg);border-radius:2px;display:inline-block';
     catLabel.textContent=cat;
     catWrap.appendChild(catLabel);
     arr.forEach(name=>{
       const row=document.createElement('div');
-      row.style.cssText='display:flex;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:4px';
+      row.style.cssText='display:flex;align-items:center;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;margin-bottom:4px;gap:6px';
       const nameEl=document.createElement('span');
       nameEl.style.cssText='flex:1;font-size:13px;color:var(--text)';
       nameEl.textContent=name;
+      // 移動按鈕
+      const moveBtn=document.createElement('span');
+      moveBtn.style.cssText='font-size:11px;color:var(--acc-light);cursor:pointer;padding:4px 8px;border:1px solid var(--border2);border-radius:2px;font-family:Noto Sans TC,sans-serif;white-space:nowrap;flex-shrink:0';
+      moveBtn.textContent='移動';
+      moveBtn.addEventListener('click',()=>openMoveExModal(name,cat));
+      // 刪除按鈕
       const delBtn=document.createElement('span');
-      delBtn.style.cssText='font-size:12px;color:var(--red);cursor:pointer;padding:4px 8px;border:1px solid var(--red-b);border-radius:2px;font-family:Noto Sans TC,sans-serif';
+      delBtn.style.cssText='font-size:11px;color:var(--red);cursor:pointer;padding:4px 8px;border:1px solid var(--red-b);border-radius:2px;font-family:Noto Sans TC,sans-serif;flex-shrink:0';
       delBtn.textContent='刪除';
       delBtn.addEventListener('click',()=>exdbDelete(name,cat));
       row.appendChild(nameEl);
+      row.appendChild(moveBtn);
       row.appendChild(delBtn);
       catWrap.appendChild(row);
     });
