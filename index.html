@@ -2212,16 +2212,23 @@ function detectProgress(validSets, prevSets, lifetimeBest, exShortName){
     }
   });
 
-  // 條件2：同次數，今次重量 > 歷史最高重量（對應 badge 的「新紀錄」邏輯）
+  // 條件2：同次數，今次重量 > 歷史最高重量（含全新次數的PR）
   const newPRs=[];
+  const newReps=[];
   curRepsToKg.forEach((kg,reps)=>{
     const histKg=lifetimeBest.get(reps)||0;
     if(kg>histKg&&histKg>0){
       newPRs.push(`${reps}下 ${histKg}→${kg}kg`);
+    } else if(histKg===0&&lifetimeBest.size>0){
+      // 全新次數紀錄（該次數從未做過）
+      newReps.push(`${reps}下 ${kg}kg`);
     }
   });
   if(newPRs.length){
     results.push(`★ ${exShortName} 新紀錄：${newPRs.join(' / ')}`);
+  }
+  if(newReps.length){
+    results.push(`★ ${exShortName} 首次紀錄：${newReps.join(' / ')}`);
   }
 
   return results;
@@ -2732,11 +2739,12 @@ function openSessionDetail(nbId){
 function previewSessionReport(nbId){
   const nb=notebooks.find(n=>n.id===nbId);if(!nb)return;
   const student=nb.student||'學員';
-  // 組裝報告文字（複用 renderReport 邏輯）
-  let r=`訓練報告｜${student}｜${nb.date||''}\n`;
-  if(nb.name) r+=`${nb.name}\n`;
+  const div='─────────────────────';
+  let r=`${div}\n`;
+  r+=`訓練報告｜${student}｜${nb.date||''}\n`;
   if(nb.type) r+=`分類：${nb.type}\n`;
-  r+='\n';
+  r+=`${div}\n\n`;
+  // 狀態
   if(nb.stars) r+=`今日狀態：${'★'.repeat(nb.stars)}${'☆'.repeat(5-nb.stars)}（${SLAB[nb.stars]||''}）\n`;
   const lifeParts=[];
   if(nb.sleep) lifeParts.push('睡眠 '+nb.sleep);
@@ -2744,7 +2752,8 @@ function previewSessionReport(nbId){
   if(nb.body) lifeParts.push('身體 '+nb.body);
   if(lifeParts.length) r+=`生活狀況：${lifeParts.join(' ｜ ')}\n`;
   if(nb.condition) r+=`備註：${nb.condition}\n`;
-  r+='\n';
+  if(nb.stars||lifeParts.length||nb.condition) r+='\n';
+  // 訓練內容
   let exLines='';let prLines='';
   const curTs=nb.completedAt||nb.id||Date.now();
   (nb.exercises||[]).forEach(ex=>{
@@ -2760,14 +2769,15 @@ function previewSessionReport(nbId){
       return parts.join('').trim();
     }).join(' / ');
     const exDisplay=ex.name.includes('（')?ex.name.split('（')[0]+'（'+ex.name.split('（')[1]:ex.name;
-    exLines+=`\n・${exDisplay}  ${setDesc}\n`;
+    exLines+=`・${exDisplay}  ${setDesc}\n`;
     if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;
+    exLines+='\n';
     const prevSets2=getLastSessionSets(student,ex.name,curTs,nb.id);
     const lifetimeBest2=getLifetimeBestByReps(student,ex.name,nb.id);
     const progressItems=detectProgress(validSets,prevSets2,lifetimeBest2,ex.name.split('（')[0]);
     progressItems.forEach(p=>prLines+=`  ${p}\n`);
   });
-  if(exLines) r+=`＿訓練內容\n${exLines}\n`;
+  if(exLines) r+=`＿訓練內容\n\n${exLines}`;
   if(prLines) r+=`＿今日進步\n${prLines}\n`;
   if(nb.intensity||nb.prog) r+=`強度：${nb.intensity||'—'}　表現：${nb.prog||'—'}\n\n`;
   if(nb.good) r+=`＿表現亮點\n${nb.good}\n\n`;
