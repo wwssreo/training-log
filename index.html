@@ -2185,9 +2185,9 @@ function detectProgress(validSets, prevSets, lifetimeBest, exShortName){
   const results=[];
   if(!validSets||!validSets.length) return results;
 
-  // 建立本次 kg→maxReps、reps→maxKg 的 Map
-  const curKgToReps=new Map(); // 同重量下最高次數
-  const curRepsToKg=new Map(); // 同次數下最高重量
+  // 建立本次 kg→maxReps、reps→maxKg
+  const curKgToReps=new Map();
+  const curRepsToKg=new Map();
   validSets.forEach(s=>{
     const r=parseInt(s.reps)||0;
     const kg=parseFloat(s.weight)||0;
@@ -2196,10 +2196,9 @@ function detectProgress(validSets, prevSets, lifetimeBest, exShortName){
     if(!curRepsToKg.has(r)||kg>curRepsToKg.get(r)) curRepsToKg.set(r,kg);
   });
 
-  // 歷史最高：reps→maxKg（已有），另外建立 kg→maxReps
+  // 歷史最高（倒置）：kg→maxReps
   const histKgToReps=new Map();
   if(lifetimeBest.size){
-    // lifetimeBest 是 reps→kg，倒過來建 kg→reps
     lifetimeBest.forEach((kg,r)=>{
       if(!histKgToReps.has(kg)||r>histKgToReps.get(kg)) histKgToReps.set(kg,r);
     });
@@ -2213,15 +2212,18 @@ function detectProgress(validSets, prevSets, lifetimeBest, exShortName){
     }
   });
 
-  // 條件2：同次數，今次重量 > 歷史最高重量
+  // 條件2：同次數，今次重量 > 歷史最高重量（對應 badge 的「新紀錄」邏輯）
+  const newPRs=[];
   curRepsToKg.forEach((kg,reps)=>{
     const histKg=lifetimeBest.get(reps)||0;
     if(kg>histKg&&histKg>0){
-      results.push(`▲ ${exShortName}：${reps}下 重量進步（${histKg}→${kg}kg）`);
+      newPRs.push(`${reps}下 ${histKg}→${kg}kg`);
     }
   });
+  if(newPRs.length){
+    results.push(`★ ${exShortName} 新紀錄：${newPRs.join(' / ')}`);
+  }
 
-  // 若全部都是首次（歷史無紀錄），不算進步，不輸出
   return results;
 }
 
