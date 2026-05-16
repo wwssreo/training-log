@@ -122,6 +122,14 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
 .wmode-btn.on{background:var(--acc-bg);border-color:var(--acc-light);color:var(--acc);font-weight:500}
 .set-inp-bw{background:var(--amber-bg)!important;border-color:var(--amber-b)!important;color:var(--amber)!important;font-weight:500!important}
 .set-inp-sec{background:var(--purple-bg,#EAE6F2)!important;border-color:var(--purple-b,#9888BB)!important;color:var(--purple)!important;font-weight:500!important}
+/* Google Drive 備份樣式 */
+.gdrive-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px;border-radius:4px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:opacity .15s}
+.gdrive-btn:active{opacity:.8}
+.gdrive-status{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:3px;font-size:12px;line-height:1.5}
+.gdrive-status.ok{background:var(--green-bg,#E8EFE9);border:1px solid var(--green-b,#9DBFA8);color:var(--green)}
+.gdrive-status.err{background:var(--red-bg,#F2E8E6);border:1px solid #C4998F;color:var(--red)}
+.gdrive-status.info{background:var(--bg3);border:1px solid var(--border2);color:var(--text3)}
+.gdrive-log{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;padding:6px 0;line-height:1.7;border-top:1px solid var(--border);margin-top:8px}
 .set-label{text-align:center}
 .set-row{display:grid;grid-template-columns:24px 1fr 1fr 1fr 28px;gap:5px;margin-bottom:5px;align-items:center}
 .set-num{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center}
@@ -158,6 +166,9 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
 .hidden{display:none!important}
 .modal-bg{position:fixed;inset:0;background:rgba(42,33,24,.38);z-index:100;display:flex;align-items:center;justify-content:center;padding:0 1.5rem}
 </style>
+  <!-- Google Identity Services + Drive API -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 
 </head>
@@ -609,22 +620,145 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
 
   <!-- ── Tab：備份還原 ── -->
   <div id="stc-backup" style="padding:0 1.2rem 5rem;margin-top:.8rem">
-    <div class="card">
-      <div class="sec">匯出完整備份</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">包含所有學員的評估紀錄、飲食數據、訓練歷史及各動作最高強度，可用於還原資料。</div>
-      <button style="width:100%;padding:12px;border-radius:4px;background:var(--purple);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:8px" onclick="exportBackup()">匯出備份 JSON</button>
-      <button style="width:100%;padding:12px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="exportReadableReport()">匯出可讀報告</button>
+
+    <!-- 刪除 App 還原說明 -->
+    <div class="card" style="border-left:3px solid var(--green);background:var(--green-bg,#E8EFE9)">
+      <div style="font-size:11px;color:var(--green);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">📱 刪除 App 後如何還原？</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.9">
+        <b>有 Google Drive 備份（推薦）：</b><br>
+        重新用瀏覽器開啟網址 → 加入主畫面 → 備份頁 → 連結同一個 Google 帳號 → 點「從 Drive 還原」<br><br>
+        <b>有下載的 .json 備份檔：</b><br>
+        重新開啟 App → 備份頁 → 點「選擇備份檔案還原」<br><br>
+        <b>只有複製的 JSON 文字：</b><br>
+        重新開啟 App → 備份頁 → 貼上 JSON → 點「從文字還原」
+      </div>
+      <div style="margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.6);border-radius:3px;font-size:11px;color:var(--text3);line-height:1.7">
+        ⚠️ 沒有任何備份就無法還原。強烈建議開啟 Google Drive 自動備份，或定期下載 .json 備份檔。
+      </div>
     </div>
+
+    <!-- Google Drive 雲端備份 -->
     <div class="card">
-      <div class="sec">匯入備份</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">貼上之前匯出的 JSON 備份內容，點擊匯入即可還原所有資料。</div>
-      <textarea id="import-json" rows="6" placeholder="貼上 JSON 備份內容..." style="font-size:12px;font-family:'DM Mono',monospace"></textarea>
-      <button style="width:100%;margin-top:8px;padding:12px;border-radius:4px;background:var(--green);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="importBackup()">匯入還原</button>
+      <div class="sec">☁️ Google Drive 雲端備份</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.8">
+        連結你的 Google 帳號，完成課程時自動備份到雲端硬碟。
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.7;padding:8px 10px;background:var(--green-bg,#E8EFE9);border-radius:3px;border-left:3px solid var(--green)">
+        ✓ 換手機、重裝 App、更新版本後，用同一個 Google 帳號一鍵還原<br>
+        ✓ 備份存在你自己的 Drive，只有你能存取<br>
+        ✓ 自動備份開啟後，完全不需要手動操作
+      </div>
+
+      <!-- 連線狀態 -->
+      <div id="gdrive-status-box" class="gdrive-status info" style="margin-bottom:12px">
+        <span id="gdrive-status-icon">○</span>
+        <span id="gdrive-status-text">尚未連結 Google Drive</span>
+      </div>
+
+      <!-- 未連線：顯示連結按鈕 -->
+      <div id="gdrive-unconnected">
+        <button class="gdrive-btn" style="background:#4285F4;color:#fff;margin-bottom:8px" onclick="gdriveSignIn()">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-21.5 0-1.4-.1-2.7-.5-4.5z"/></svg>
+          連結 Google Drive
+        </button>
+        <div style="font-size:11px;color:var(--text3);line-height:1.7;text-align:center">
+          只會存取你自己的 Drive 中由 CT 建立的檔案<br>不會讀取其他任何資料
+        </div>
+      </div>
+
+      <!-- 已連線：顯示操作按鈕 -->
+      <div id="gdrive-connected" style="display:none">
+        <div id="gdrive-last-backup-time" style="display:none;font-size:11px;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:8px;padding:4px 0"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button class="gdrive-btn" style="background:var(--green);color:#fff;flex:1" onclick="gdriveSaveBackup()">
+            ↑ 立即備份
+          </button>
+          <button class="gdrive-btn" style="background:var(--acc);color:#fff;flex:1" onclick="gdriveLoadBackup()">
+            ↓ 從 Drive 還原
+          </button>
+        </div>
+        <button class="gdrive-btn" style="background:var(--bg3);color:var(--text3);font-size:12px;padding:9px;border:1px solid var(--border2)" onclick="gdriveSignOut()">
+          中斷連結
+        </button>
+        <div id="gdrive-log" class="gdrive-log" style="display:none"></div>
+      </div>
     </div>
+
+    <!-- 自動備份設定（已連線時顯示） -->
+    <div class="card" id="gdrive-auto-card" style="display:none">
+      <div class="sec">自動備份設定</div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 0">
+        <input type="checkbox" id="gdrive-auto-toggle" onchange="gdriveToggleAuto(this.checked)"
+          style="width:18px;height:18px;accent-color:var(--green);cursor:pointer">
+        <span style="font-size:13px;color:var(--text2)">完成課程後自動備份</span>
+      </label>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.7">
+        開啟後每次點「完成課程」會靜默上傳備份，不打擾操作流程。
+      </div>
+    </div>
+
+    <!-- 手動備份 -->
+    <div class="card">
+      <div class="sec">手動備份</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:4px;line-height:1.8">
+        備份檔案可以下載到手機、傳到 email、存到 iCloud / Google 相簿，
+        或複製文字貼到備忘錄。<strong style="color:var(--acc)">與 App 版本無關</strong>，
+        無論怎麼更新或重裝 App，只要有備份檔就能完整還原。
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.7;padding:8px 10px;background:var(--bg3);border-radius:3px;border-left:3px solid var(--acc)">
+        💡 刪除 App 後重新安裝、換新手機、換瀏覽器，資料不會自動保留。<br>
+        請定期下載備份檔，存到不同地方保險。
+      </div>
+
+      <!-- 下載 JSON 檔案（推薦） -->
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.08em">推薦 · 下載備份檔案</div>
+      <button style="width:100%;padding:12px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="exportBackupDownload()">
+        ↓ 下載備份 .json 檔
+      </button>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+        下載後可傳到 email 自存、存到 iCloud Drive / Google Drive，或直接留在手機下載資料夾。
+      </div>
+
+      <!-- 複製文字（備用） -->
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.08em">備用 · 複製 JSON 文字</div>
+      <button style="width:100%;padding:11px;border-radius:4px;background:var(--purple);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:6px" onclick="exportBackup()">複製備份 JSON 文字</button>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+        複製後貼到 iPhone 備忘錄、LINE 記事本，或 Google Keep 儲存。
+      </div>
+
+      <!-- 可讀報告 -->
+      <button style="width:100%;padding:11px;border-radius:4px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);font-size:13px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="exportReadableReport()">複製可讀報告（文字版）</button>
+    </div>
+
+    <!-- 還原 -->
+    <div class="card">
+      <div class="sec">還原資料</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.7">
+        選擇備份檔案，或把備份 JSON 文字貼入下方。
+      </div>
+
+      <!-- 選擇檔案（推薦） -->
+      <label style="display:block;width:100%;box-sizing:border-box;padding:12px;border-radius:4px;background:var(--green);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;text-align:center;margin-bottom:6px">
+        ↑ 選擇備份檔案還原
+        <input type="file" accept=".json,application/json" onchange="importBackupFile(this)" style="display:none">
+      </label>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+        選擇之前下載的 .json 備份檔，自動讀取並合併資料。
+      </div>
+
+      <!-- 貼上文字（備用） -->
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.08em">備用 · 貼上 JSON 文字</div>
+      <textarea id="import-json" rows="4" placeholder="貼上備份 JSON 文字..." style="font-size:12px;font-family:'DM Mono',monospace"></textarea>
+      <button style="width:100%;margin-top:8px;padding:11px;border-radius:4px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);font-size:13px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif" onclick="importBackup()">從文字還原</button>
+    </div>
+
     <div id="backup-preview-wrap" style="display:none">
       <div class="sec-lbl" style="margin-top:4px">備份內容預覽</div>
-      <div class="pbox" id="backup-preview" style="white-space:pre-wrap;font-size:11px;font-family:'DM Mono',monospace;max-height:320px;overflow-y:auto;line-height:1.8"></div>
-      <button class="cbtn" onclick="copyBackup()" style="margin-top:8px">複製備份內容</button>
+      <div class="pbox" id="backup-preview" style="white-space:pre-wrap;font-size:11px;font-family:'DM Mono',monospace;max-height:240px;overflow-y:auto;line-height:1.8"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="cbtn" onclick="copyBackup()" style="flex:1">複製文字</button>
+        <button class="cbtn" onclick="downloadBackupFromPreview()" style="flex:1;background:var(--acc-bg);border-color:var(--acc);color:var(--acc)">下載檔案</button>
+      </div>
     </div>
   </div>
 
@@ -748,6 +882,20 @@ let notebooks=[], curNB=null, stars=0, selMuscle='';
 
 // ── STORAGE ──
 // 全域複製函式，相容 iOS Safari 和各種瀏覽器
+function downloadFile(filename, text){
+  // 建立 Blob 並觸發下載
+  const blob = new Blob([text], {type: 'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  // iOS Safari 需要加入 DOM 才能觸發
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+}
+
 function copyText(text, msg){
   msg = msg || '✅ 已複製！';
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -1272,20 +1420,349 @@ function loadClientList(){try{clientList=JSON.parse(localStorage.getItem('tlog_c
 function saveClientList(){try{localStorage.setItem('tlog_clients',JSON.stringify(clientList))}catch(e){}}
 
 // ══════════════════════════════════════════
-// ── 備份 / 匯入邏輯 ──
-// ══════════════════════════════════════════
 
-function openBackupScreen(){
-  show('s-backup');
-  document.getElementById('backup-preview-wrap').style.display='none';
+// ══════════════════════════════════════════════════════
+// ── Google Drive 雲端備份模組 ──
+// 使用 Google Identity Services + Drive REST API
+// 每位使用者連結自己的 Google 帳號，資料存在自己的 Drive
+// ══════════════════════════════════════════════════════
+
+// ── Google OAuth Client ID ──
+// 在 Google Cloud Console 建立後填入這裡，所有使用者共用同一個 Client ID
+// 使用者授權的是「自己的 Google 帳號」，資料存在各自的 Drive，互不影響
+// 填入後重新部署，使用者刪 App 重裝也不需要重新設定
+const GDRIVE_CLIENT_ID = '331051728788-pmq6iqspo0afcqu7p2blcss0ugou572m.apps.googleusercontent.com'; // ← 填入你的 Client ID
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const GDRIVE_FILENAME = 'ct-coach-backup.json';
+// drive.appdata：App 專屬隱藏資料夾，使用者的 Drive 主頁看不到，不會被誤刪
+
+let _gdriveToken = null;       // 目前的 access token
+let _gdriveFileId = null;      // 已知的備份檔案 ID（避免每次都搜尋）
+let _gdriveAutoBackup = false; // 是否自動備份
+
+// ── 初始化：從 localStorage 讀取設定 ──
+function gdriveInit(){
+  _gdriveAutoBackup = localStorage.getItem('_gdrive_auto') === '1';
+  const savedToken = localStorage.getItem('_gdrive_token');
+  const savedExp   = parseInt(localStorage.getItem('_gdrive_token_exp') || '0');
+  _gdriveFileId    = localStorage.getItem('_gdrive_file_id') || null;
+
+  // App 刪除重裝後 localStorage 清空，token 自然也不見
+  // 使用者只需重新點「連結 Google Drive」即可，Client ID 已寫在程式裡
+  if(savedToken && Date.now() < savedExp - 30000){
+    _gdriveToken = savedToken;
+    gdriveUpdateUI(true);
+  } else {
+    _gdriveToken = null;
+    localStorage.removeItem('_gdrive_token');
+    localStorage.removeItem('_gdrive_token_exp');
+    gdriveUpdateUI(false);
+  }
+  const chk = document.getElementById('gdrive-auto-toggle');
+  if(chk) chk.checked = _gdriveAutoBackup;
+  
+  // Client ID 未設定時顯示提示
+  if(!GDRIVE_CLIENT_ID || GDRIVE_CLIENT_ID.includes('你的-client-id')){
+    const sb = document.getElementById('gdrive-status-box');
+    const st = document.getElementById('gdrive-status-text');
+    if(sb){ sb.className='gdrive-status err'; }
+    if(st){ st.textContent='Google Drive 尚未啟用（需由教練設定）'; }
+  }
 }
 
-function exportBackup(){
+// ── UI 更新 ──
+function gdriveUpdateUI(connected){
+  const un = document.getElementById('gdrive-unconnected');
+  const co = document.getElementById('gdrive-connected');
+  const ac = document.getElementById('gdrive-auto-card');
+  const sb = document.getElementById('gdrive-status-box');
+  const si = document.getElementById('gdrive-status-icon');
+  const st = document.getElementById('gdrive-status-text');
+  if(!un) return;
+
+  if(connected){
+    un.style.display = 'none';
+    co.style.display = 'block';
+    ac.style.display = 'block';
+    sb.className = 'gdrive-status ok';
+    si.textContent = '●';
+    const email = localStorage.getItem('_gdrive_email') || 'Google 帳號';
+    st.textContent = `已連結：${email}`;
+    const chk = document.getElementById('gdrive-auto-toggle');
+    if(chk) chk.checked = _gdriveAutoBackup;
+    gdriveUpdateLastBackupTime();
+  } else {
+    un.style.display = 'block';
+    co.style.display = 'none';
+    ac.style.display = 'none';
+    sb.className = 'gdrive-status info';
+    si.textContent = '○';
+    st.textContent = '尚未連結 Google Drive';
+  }
+}
+
+function gdriveLog(msg, type='info'){
+  const log = document.getElementById('gdrive-log');
+  if(!log) return;
+  log.style.display = 'block';
+  const time = new Date().toLocaleTimeString('zh-TW');
+  log.textContent = `[${time}] ${msg}`;
+  const sb = document.getElementById('gdrive-status-box');
+  const st = document.getElementById('gdrive-status-text');
+  if(type === 'ok'){
+    sb.className = 'gdrive-status ok';
+    st.textContent = msg;
+  } else if(type === 'err'){
+    sb.className = 'gdrive-status err';
+    st.textContent = msg;
+  }
+}
+
+function gdriveUpdateLastBackupTime(){
+  const lastISO = localStorage.getItem('_gdrive_last_backup');
+  const el = document.getElementById('gdrive-last-backup-time');
+  if(!el) return;
+  if(lastISO){
+    const d = new Date(lastISO);
+    const str = d.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'}) + ' ' +
+                d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    el.textContent = `最後備份：${str}`;
+    el.style.display = 'block';
+  } else {
+    el.textContent = '尚未備份過';
+    el.style.display = 'block';
+  }
+}
+
+// ── 確認 Client ID 已設定 ──
+function gdriveCheckClientId(){
+  if(!GDRIVE_CLIENT_ID || GDRIVE_CLIENT_ID.includes('你的-client-id')){
+    alert('Google Drive 尚未設定。\n請聯絡你的教練完成設定。');
+    return null;
+  }
+  return GDRIVE_CLIENT_ID;
+}
+
+// ── 登入授權 ──
+function gdriveSignIn(){
+  const clientId = gdriveCheckClientId();
+  if(!clientId) return;
+
+  if(typeof google === 'undefined'){
+    alert('Google 服務載入中，請稍後再試。\n如果持續發生，請確認網路連線。');
+    return;
+  }
+
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: GDRIVE_SCOPE,
+    callback: (resp) => {
+      if(resp.error){
+        gdriveLog('授權失敗：' + resp.error, 'err');
+        return;
+      }
+      _gdriveToken = resp.access_token;
+      const expMs = Date.now() + (resp.expires_in || 3600) * 1000;
+      localStorage.setItem('_gdrive_token', _gdriveToken);
+      localStorage.setItem('_gdrive_token_exp', String(expMs));
+
+      // 取得使用者 email
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + _gdriveToken }
+      }).then(r=>r.json()).then(info=>{
+        const email = info.email || 'Google 帳號';
+        localStorage.setItem('_gdrive_email', email);
+        gdriveUpdateUI(true);
+        gdriveLog('✓ 已連結 ' + email, 'ok');
+      }).catch(()=>{
+        gdriveUpdateUI(true);
+        gdriveLog('✓ Google Drive 已連結', 'ok');
+      });
+    }
+  });
+  client.requestAccessToken();
+}
+
+// ── 登出 ──
+function gdriveSignOut(){
+  if(!confirm('確定要中斷 Google Drive 連結嗎？\n本機資料不會受影響。')) return;
+  _gdriveToken = null;
+  _gdriveFileId = null;
+  ['_gdrive_token','_gdrive_token_exp','_gdrive_email','_gdrive_file_id'].forEach(k=>localStorage.removeItem(k));
+  gdriveUpdateUI(false);
+}
+
+// ── Token 有效性確認（過期就重新授權）──
+async function gdriveEnsureToken(){
+  const exp = parseInt(localStorage.getItem('_gdrive_token_exp') || '0');
+  if(_gdriveToken && Date.now() < exp - 60000) return true; // 還有 1 分鐘以上
+  // Token 過期，觸發靜默刷新
+  return new Promise((resolve) => {
+    const clientId = GDRIVE_CLIENT_ID;
+    if(!clientId || clientId.includes('你的-client-id') || typeof google === 'undefined'){ resolve(false); return; }
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: GDRIVE_SCOPE,
+      prompt: '',  // 靜默刷新，不彈出授權視窗
+      callback: (resp) => {
+        if(resp.error){ resolve(false); return; }
+        _gdriveToken = resp.access_token;
+        const expMs = Date.now() + (resp.expires_in || 3600) * 1000;
+        localStorage.setItem('_gdrive_token', _gdriveToken);
+        localStorage.setItem('_gdrive_token_exp', String(expMs));
+        resolve(true);
+      }
+    });
+    client.requestAccessToken();
+  });
+}
+
+// ── 尋找備份檔案 ID ──
+async function gdriveFindFile(){
+  if(_gdriveFileId) return _gdriveFileId; // 有快取就直接用
+  const resp = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${GDRIVE_FILENAME}'&fields=files(id,name,modifiedTime)`,
+    { headers: { Authorization: 'Bearer ' + _gdriveToken } }
+  );
+  const data = await resp.json();
+  if(data.files && data.files.length > 0){
+    _gdriveFileId = data.files[0].id;
+    localStorage.setItem('_gdrive_file_id', _gdriveFileId);
+  }
+  return _gdriveFileId;
+}
+
+// ── 上傳備份到 Drive ──
+async function gdriveSaveBackup(silent = false){
+  if(!_gdriveToken){
+    if(!silent) alert('請先連結 Google Drive');
+    return false;
+  }
+  const ok = await gdriveEnsureToken();
+  if(!ok){ if(!silent) gdriveLog('授權已過期，請重新連結', 'err'); return false; }
+
+  if(!silent) gdriveLog('正在備份...');
+
+  // 產生備份 JSON（重用現有邏輯）
+  const json = buildBackupJson();
+
+  try {
+    const fileId = await gdriveFindFile();
+    let url, method;
+
+    if(fileId){
+      // 更新現有檔案
+      url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+      method = 'PATCH';
+    } else {
+      // 建立新檔案
+      url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+      method = 'POST';
+    }
+
+    const metadata = { name: GDRIVE_FILENAME, ...(fileId ? {} : { parents: ['appDataFolder'] }) };
+    const boundary = 'ct_backup_boundary_' + Date.now();
+    const body = [
+      `--${boundary}\r\nContent-Type: application/json\r\n\r\n`,
+      JSON.stringify(metadata),
+      `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n`,
+      json,
+      `\r\n--${boundary}--`
+    ].join('');
+
+    const resp = await fetch(url, {
+      method,
+      headers: {
+        Authorization: 'Bearer ' + _gdriveToken,
+        'Content-Type': `multipart/related; boundary=${boundary}`
+      },
+      body
+    });
+
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const result = await resp.json();
+    _gdriveFileId = result.id;
+    localStorage.setItem('_gdrive_file_id', result.id);
+
+    const now = new Date();
+    const time = now.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+    const dateStr = now.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+    // 記錄最後備份時間
+    localStorage.setItem('_gdrive_last_backup', now.toISOString());
+    if(!silent){
+      gdriveLog(`✓ 備份成功 ${dateStr} ${time}`, 'ok');
+      // 更新狀態列顯示最後備份時間
+      gdriveUpdateLastBackupTime();
+    } else {
+      const log = document.getElementById('gdrive-log');
+      if(log){ log.style.display='block'; log.textContent=`[${dateStr} ${time}] ✓ 自動備份完成`; }
+      gdriveUpdateLastBackupTime();
+    }
+    return true;
+  } catch(e){
+    if(!silent) gdriveLog('備份失敗：' + e.message, 'err');
+    return false;
+  }
+}
+
+// ── 從 Drive 下載還原 ──
+async function gdriveLoadBackup(){
+  if(!_gdriveToken){ alert('請先連結 Google Drive'); return; }
+  const ok = await gdriveEnsureToken();
+  if(!ok){ gdriveLog('授權已過期，請重新連結', 'err'); return; }
+
+  gdriveLog('正在從 Drive 讀取備份...');
+  const fileId = await gdriveFindFile();
+  if(!fileId){
+    gdriveLog('Drive 上找不到備份檔案，請先上傳一次備份', 'err');
+    return;
+  }
+
+  try {
+    const resp = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: 'Bearer ' + _gdriveToken } }
+    );
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.text();
+
+    // 詢問確認
+    const data = JSON.parse(json);
+    const expDate = data.exportDate ? new Date(data.exportDate).toLocaleString('zh-TW') : '未知';
+    const nbCount = (data.notebooks || []).length;
+    const clientCount = (data.clientList || []).length;
+
+    if(!confirm(
+      `找到 Drive 備份：\n` +
+      `備份時間：${expDate}\n` +
+      `學員數：${clientCount} 人 / 課程數：${nbCount} 筆\n\n` +
+      `確定要匯入？現有資料會與備份合併。`
+    )) return;
+
+    // 重用現有匯入邏輯
+    document.getElementById('import-json').value = json;
+    importBackup();
+    gdriveLog('✓ 從 Drive 還原成功', 'ok');
+  } catch(e){
+    gdriveLog('還原失敗：' + e.message, 'err');
+  }
+}
+
+// ── 切換自動備份 ──
+function gdriveToggleAuto(enabled){
+  _gdriveAutoBackup = enabled;
+  localStorage.setItem('_gdrive_auto', enabled ? '1' : '0');
+}
+
+// ── 自動備份觸發（在 saveAndHome 完成課程時呼叫）──
+async function gdriveAutoBackupIfEnabled(){
+  if(!_gdriveAutoBackup || !_gdriveToken) return;
+  await gdriveSaveBackup(true); // silent=true
+}
+
+// ── 建立備份 JSON（從 exportBackup 邏輯抽出來方便重用）──
+function buildBackupJson(){
   const students=[...new Set(notebooks.map(n=>(n.student||'').trim()).filter(Boolean))];
-  // 收集自訂動作庫（排除內建）
-  const builtinNames=new Set();
-  const BUILTIN_EX_CATS=['胸 / 三頭','背 / 二頭','肩','腿 / 臀','核心 / 活化','伸展 / 放鬆'];
-  // 從 localStorage 讀取原始自訂清單
   let _savedCustomEx=[];
   try{_savedCustomEx=JSON.parse(localStorage.getItem('_custom_ex')||'[]');}catch(e){}
   const backup={
@@ -1309,11 +1786,64 @@ function exportBackup(){
       }
     });
   });
-  const json=JSON.stringify(backup,null,2);
-  // 手機相容：只複製，不強制下載
+  return JSON.stringify(backup,null,2);
+}
+
+// ── 備份 / 匯入邏輯 ──
+// ══════════════════════════════════════════
+
+function openBackupScreen(){
+  show('s-backup');
+  document.getElementById('backup-preview-wrap').style.display='none';
+  // 初始化 Google Drive 狀態
+  setTimeout(gdriveInit, 100);
+}
+
+function exportBackupDownload(){
+  // 下載 .json 檔案（推薦方式）
+  const json = buildBackupJson();
+  const now  = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  const filename = `CT_backup_${dateStr}.json`;
+  downloadFile(filename, json);
+  // 同時顯示預覽
+  document.getElementById('backup-preview').textContent = json;
+  document.getElementById('backup-preview-wrap').style.display = 'block';
+  // 短暫提示
+  setTimeout(()=>alert(`✅ 備份檔案下載中\n檔名：${filename}\n\n請存到 iCloud / Google Drive 或傳到 email 保存。`), 300);
+}
+
+function exportBackup(){
+  // 複製文字版（備用）
+  const json=buildBackupJson();
   document.getElementById('backup-preview').textContent=json;
   document.getElementById('backup-preview-wrap').style.display='block';
-  copyText(json,'✅ 備份已複製！\n請貼到備忘錄或雲端筆記保存。');
+  copyText(json,'✅ 備份已複製！\n請貼到備忘錄或 LINE 記事本保存。');
+}
+
+function importBackupFile(input){
+  // 從選擇的 .json 檔案還原
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const json = e.target.result;
+    document.getElementById('import-json').value = json;
+    importBackup();
+  };
+  reader.onerror = () => alert('讀取檔案失敗，請重試。');
+  reader.readAsText(file);
+  // 重置 input 以便同一個檔案可以再次選擇
+  input.value = '';
+}
+
+function downloadBackupFromPreview(){
+  // 從預覽框下載
+  const text = document.getElementById('backup-preview').textContent;
+  if(!text){ alert('沒有備份內容可下載'); return; }
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  downloadFile(`CT_backup_${dateStr}.json`, text);
 }
 
 function exportReadableReport(){
@@ -2370,6 +2900,8 @@ function saveAndHome(){
   if(!curNB.date) curNB.date=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
   if(curNB.student&&!clientList.includes(curNB.student)){clientList.push(curNB.student);saveClientList();}
   persist();
+  // 觸發 Google Drive 自動備份（若已開啟）
+  gdriveAutoBackupIfEnabled();
   const s=curNB.student;
   curNB=null;
   if(s){
