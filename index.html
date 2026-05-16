@@ -934,15 +934,21 @@ function evalDetailed(curSets, prevSets, lifetimeBest){
 
   // 新紀錄判斷：超越「相同或更少次數」的歷史最高重量才算PR
   // 例：歷史有8下32kg，今天5下32kg 不算PR（較少次數同重量不代表更強）
+  // 全域最高重量（不限次數）
+  let _evalGlBest=0;
+  lifetimeBest.forEach((hkg)=>{if(hkg>_evalGlBest) _evalGlBest=hkg;});
   const newPRReps=[];
   curMap.forEach((kg,reps)=>{
     const histBestSameReps=lifetimeBest.get(reps)||0;
     if(kg>histBestSameReps){
-      let bestKgAtFewerOrEqualReps=0;
-      lifetimeBest.forEach((hkg,hreps)=>{
-        if(hreps<=reps&&hkg>bestKgAtFewerOrEqualReps) bestKgAtFewerOrEqualReps=hkg;
-      });
-      if(kg>bestKgAtFewerOrEqualReps) newPRReps.push({reps,kg});
+      if(histBestSameReps>0){
+        let bestKgFewer=0;
+        lifetimeBest.forEach((hkg,hreps)=>{if(hreps<=reps&&hkg>bestKgFewer) bestKgFewer=hkg;});
+        if(kg>bestKgFewer) newPRReps.push({reps,kg});
+      } else {
+        // 全新次數：超越歷史所有最高重量才算PR
+        if(kg>_evalGlBest) newPRReps.push({reps,kg});
+      }
     }
   });
 
@@ -1584,8 +1590,12 @@ function renderPlanLog(){
         <span style="color:var(--text3);margin-left:6px">此客戶首次訓練，備課時填寫預計目標</span>
       </div>`;
     } else if(lifetimeBest.size){
-      // 顯示同次數歷史最高重量
-      const parts=[...lifetimeBest.entries()].sort((a,b)=>a[0]-b[0]).map(([r,kg])=>`${r}下→${kg}kg`).join(' / ');
+      // 只顯示最高重量那一筆（同重量取最多次數）
+      let bestKg=0, bestRepsAtBest=0;
+      lifetimeBest.forEach((kg,r)=>{
+        if(kg>bestKg||(kg===bestKg&&r>bestRepsAtBest)){bestKg=kg;bestRepsAtBest=r;}
+      });
+      const parts=`${bestRepsAtBest}下→${bestKg}kg`;
       let prevHtml='';
       if(prevSets&&prevSets.length){
         const validPrev=prevSets.filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
@@ -1603,21 +1613,27 @@ function renderPlanLog(){
       </div>`;
     }
 
-    // planRows — 使用 set-row 格式
+    // planRows — 使用 set-row 格式，支援 weightMode
     const planRows=ex.planRows&&ex.planRows.length?ex.planRows:[{sets:'',reps:'',kg:''}];
+    const pWMode=ex.weightMode||'kg';
+    const pRepsLabel=pWMode==='sec'?'秒數':'次數';
+    const pWLabel=pWMode==='bw'?'體重(BW)':pWMode==='sec'?'秒數':'重量(kg)';
     let setRowsHtml=`<div class="set-labels">
       <div class="set-label">#</div>
       <div class="set-label">組數</div>
-      <div class="set-label">次數</div>
-      <div class="set-label">重量(kg)</div>
+      <div class="set-label">${pRepsLabel}</div>
+      <div class="set-label">${pWLabel}</div>
       <div class="set-label"></div>
     </div>`;
     planRows.forEach((pr,pi)=>{
+      const pWVal=pWMode==='bw'?(pr.kg||'BW'):pr.kg||'';
       setRowsHtml+=`<div class="set-row">
         <div class="set-num">${pi+1}</div>
         <input class="set-inp" type="text" inputmode="decimal" placeholder="組" value="${pr.sets||''}" oninput="updatePlanRow(${ei},${pi},'sets',this.value)">
-        <input class="set-inp" type="text" inputmode="decimal" placeholder="次" value="${pr.reps||''}" oninput="updatePlanRow(${ei},${pi},'reps',this.value)">
-        <input class="set-inp" type="text" inputmode="decimal" placeholder="kg" value="${pr.kg||''}" oninput="updatePlanRow(${ei},${pi},'kg',this.value)">
+        <input class="set-inp" type="text" inputmode="decimal" placeholder="${pWMode==='sec'?'秒':'次'}" value="${pr.reps||''}" oninput="updatePlanRow(${ei},${pi},'reps',this.value)">
+        ${pWMode==='bw'
+          ?`<div class="set-inp set-inp-bw" style="display:flex;align-items:center;justify-content:center;font-size:12px;border:1px solid var(--amber-b);border-radius:2px;padding:7px 2px;background:var(--amber-bg);color:var(--amber);font-weight:500">BW</div>`
+          :`<input class="set-inp${pWMode==='sec'?' set-inp-sec':''}" type="text" inputmode="decimal" placeholder="${pWMode==='sec'?'秒':'kg'}" value="${pWVal}" oninput="updatePlanRow(${ei},${pi},'kg',this.value)">`}
         <div class="set-del" onclick="delPlanRow(${ei},${pi})">✕</div>
       </div>`;
     });
@@ -1718,9 +1734,10 @@ function renderClassLog(){
         histHtml=`<div class="wlog-hist"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">上次紀錄</div>${rows}</div>`;
       }
     } else if(lifetimeBest.size){
-      // 有歷史但不是上一次同類課：顯示歷史最高
-      const parts=[...lifetimeBest.entries()].sort((a,b)=>a[0]-b[0]).map(([r,kg])=>`${r}下→${kg}kg`).join(' / ');
-      histHtml=`<div class="wlog-hist">歷史最高：<strong style="color:var(--purple)">${parts}</strong></div>`;
+      // 有歷史但不是上一次同類課：只顯示最高重量那筆
+      let _bestKg=0,_bestR=0;
+      lifetimeBest.forEach((kg,r)=>{if(kg>_bestKg||(kg===_bestKg&&r>_bestR)){_bestKg=kg;_bestR=r;}});
+      histHtml=`<div class="wlog-hist">歷史最高：<strong style="color:var(--purple)">${_bestR}下→${_bestKg}kg</strong></div>`;
     }
 
     // ── 進步徽章：PR判斷 + 訓練量比較（持平/進步/退步）──
@@ -1734,14 +1751,21 @@ function renderClassLog(){
     if(curValidSets.length&&lifetimeBest.size){
       const curMap=buildRepsMaxMap(curValidSets);
       const newPRReps=[];
+      // 歷史全域最高重量（不限次數），用於全新次數的PR門檻
+      let _glBest=0;
+      lifetimeBest.forEach((hkg)=>{if(hkg>_glBest) _glBest=hkg;});
       curMap.forEach((kg,reps)=>{
         const histBestSameReps=lifetimeBest.get(reps)||0;
         if(kg>histBestSameReps){
-          let bestKgAtFewerOrEqualReps=0;
-          lifetimeBest.forEach((hkg,hreps)=>{
-            if(hreps<=reps&&hkg>bestKgAtFewerOrEqualReps) bestKgAtFewerOrEqualReps=hkg;
-          });
-          if(kg>bestKgAtFewerOrEqualReps) newPRReps.push({reps,kg});
+          if(histBestSameReps>0){
+            // 有同次數歷史：確認超越「更少次數」最高重量（防止5下32kg vs 8下32kg誤判）
+            let bestKgFewer=0;
+            lifetimeBest.forEach((hkg,hreps)=>{if(hreps<=reps&&hkg>bestKgFewer) bestKgFewer=hkg;});
+            if(kg>bestKgFewer) newPRReps.push({reps,kg});
+          } else {
+            // 全新次數：重量必須超越歷史所有次數的最高重量才算PR
+            if(kg>_glBest) newPRReps.push({reps,kg});
+          }
         }
       });
       if(newPRReps.length){
@@ -1863,23 +1887,42 @@ function updateSet(ei,si,field,val){
       if(nearby) hint=`${nearby[0]}下歷史最高${nearby[1]}kg（參考）`;
     }
   } else if(field==='weight'&&curKg>0){
-    // 填重量→建議該重量歷史最高次數
-    let bestReps=0,bestKgDiff=Infinity;
-    lifetimeBest.forEach((kg,r)=>{
-      if(kg===curKg&&r>bestReps){bestReps=r;}
-      const diff=Math.abs(kg-curKg);
-      if(diff<bestKgDiff){bestKgDiff=diff;}
-    });
-    // 找完全一樣重量的最高次數
-    lifetimeBest.forEach((kg,r)=>{if(Math.abs(kg-curKg)<0.1&&r>bestReps) bestReps=r;});
-    if(bestReps) hint=`${curKg}kg歷史最高：${bestReps}下`;
-    else{
-      const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[1]-curKg)-Math.abs(b[1]-curKg))[0];
-      if(nearby) hint=`近似重量 ${nearby[1]}kg→${nearby[0]}下（參考）`;
+    // 填重量→判斷是否突破歷史
+    // 計算「所有歷史中的最高重量」（不限次數）
+    let globalBestKg=0;
+    lifetimeBest.forEach((hkg)=>{if(hkg>globalBestKg) globalBestKg=hkg;});
+    // 計算「相同或更少次數」的歷史最高重量（真正的PR標準）
+    let bestKgAtFewerOrEqual=0;
+    if(curReps>0){
+      lifetimeBest.forEach((hkg,hreps)=>{
+        if(hreps<=curReps&&hkg>bestKgAtFewerOrEqual) bestKgAtFewerOrEqual=hkg;
+      });
+    }
+    if(curReps>0&&curKg>bestKgAtFewerOrEqual&&bestKgAtFewerOrEqual>0){
+      // 明確超越同次數（或更少次數）的歷史最高重量
+      hint=`⚡ 新紀錄！${curReps}下歷史最高 ${bestKgAtFewerOrEqual}kg → 今日 ${curKg}kg`;
+    } else if(curReps>0&&bestKgAtFewerOrEqual===0&&curKg>globalBestKg&&globalBestKg>0){
+      // 全新次數，且重量超越歷史任何次數的最高重量 → 真突破
+      hint=`⚡ 突破歷史最高重量！${curReps}下 ${curKg}kg（歷史最高 ${globalBestKg}kg）`;
+    } else {
+      // 未達突破：顯示同次數歷史或近似參考
+      const histBestSameReps=curReps>0?(lifetimeBest.get(curReps)||0):0;
+      if(histBestSameReps>0) hint=`${curReps}下歷史最高：${histBestSameReps}kg`;
+      else if(globalBestKg>0&&curReps>0) hint=`歷史最高重量：${globalBestKg}kg（不同次數）`;
+      else{
+        let bestReps=0;
+        lifetimeBest.forEach((kg,r)=>{if(Math.abs(kg-curKg)<0.1&&r>bestReps) bestReps=r;});
+        if(bestReps) hint=`${curKg}kg歷史最高：${bestReps}下`;
+        else{
+          const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[1]-curKg)-Math.abs(b[1]-curKg))[0];
+          if(nearby) hint=`近似重量 ${nearby[1]}kg→${nearby[0]}下（參考）`;
+        }
+      }
     }
   }
   hintEl.textContent=hint;
   hintEl.style.display=hint?'block':'none';
+  hintEl.style.color=hint&&hint.startsWith('⚡')?'var(--green)':'var(--green)';
 }
 
 function addSet(ei){
@@ -2299,22 +2342,11 @@ function detectProgress(validSets, prevSets, lifetimeBest, exShortName){
       if(kg>bestKgAtFewerOrEqualReps){
         newPRs.push(`${reps}下 ${histKg}→${kg}kg`);
       }
-    } else if(histKg===0&&lifetimeBest.size>0){
-      // 全新次數：確認此重量超越所有歷史（更少次數）
-      let bestKgAtFewerReps=0;
-      lifetimeBest.forEach((hkg,hreps)=>{
-        if(hreps<=reps&&hkg>bestKgAtFewerReps) bestKgAtFewerReps=hkg;
-      });
-      if(kg>bestKgAtFewerReps){
-        newReps.push(`${reps}下 ${kg}kg`);
-      }
     }
+    // 「全新次數」不單獨顯示為紀錄，避免低重量新次數誤觸發
   });
   if(newPRs.length){
     results.push(`★ ${exShortName} 新紀錄：${newPRs.join(' / ')}`);
-  }
-  if(newReps.length){
-    results.push(`★ ${exShortName} 首次紀錄：${newReps.join(' / ')}`);
   }
 
   return results;
@@ -2845,12 +2877,15 @@ function previewSessionReport(nbId){
   (nb.exercises||[]).forEach(ex=>{
     const validSets=(ex.sets||[]).filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
     if(!validSets.length)return;
+    const exWModeS=ex.weightMode||'kg';
     const setLines=validSets.map(s=>{
       const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
       const parts=[];
       if(grp>0) parts.push(grp+'組');
-      if(reps>0) parts.push(reps+'下');
-      if(kg>0) parts.push('×'+kg+'kg');
+      if(exWModeS==='sec'){if(reps>0) parts.push(reps+'秒');}
+      else {if(reps>0) parts.push(reps+'下');}
+      if(kg==='BW') parts.push('×自身體重');
+      else if(kg>0) parts.push('×'+kg+'kg');
       if(s.note&&!reps&&!kg) parts.push(s.note);
       return '    '+parts.join('').trim();
     });
