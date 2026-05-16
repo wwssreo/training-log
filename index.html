@@ -117,6 +117,11 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
 .wlog-note{width:100%;font-size:12px;color:var(--text2);background:transparent;border:none;border-top:1px solid var(--border);padding-top:7px;margin-top:5px;resize:none;font-family:'Noto Sans TC',sans-serif;font-weight:300}
 .wlog-note:focus{outline:none}
 .set-labels{display:grid;grid-template-columns:24px 1fr 1fr 1fr 28px;gap:5px;margin-bottom:4px;font-size:9px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;text-align:center}
+.wmode-bar{display:flex;gap:5px;margin-bottom:7px;flex-wrap:wrap}
+.wmode-btn{padding:4px 10px;border-radius:2px;border:1px solid var(--border2);font-size:10px;color:var(--text3);cursor:pointer;background:var(--bg3);font-family:'Noto Sans TC',sans-serif;transition:all .12s;user-select:none}
+.wmode-btn.on{background:var(--acc-bg);border-color:var(--acc-light);color:var(--acc);font-weight:500}
+.set-inp-bw{background:var(--amber-bg)!important;border-color:var(--amber-b)!important;color:var(--amber)!important;font-weight:500!important}
+.set-inp-sec{background:var(--purple-bg,#EAE6F2)!important;border-color:var(--purple-b,#9888BB)!important;color:var(--purple)!important;font-weight:500!important}
 .set-label{text-align:center}
 .set-row{display:grid;grid-template-columns:24px 1fr 1fr 1fr 28px;gap:5px;margin-bottom:5px;align-items:center}
 .set-num{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center}
@@ -908,8 +913,10 @@ function calcVolume(sets){
   return sets.reduce((sum,s)=>{
     const grps=parseFloat(s.sets)||1;
     const reps=parseFloat(s.reps)||0;
-    const kg=parseFloat(s.weight)||0;
-    return sum+grps*reps*kg;
+    // BW體重模式：用 reps 做量（volume = sets × reps）
+    // 秒數模式：用 reps 做秒數（volume = sets × reps）
+    const kg=s.weight==='BW'?1:(parseFloat(s.weight)||0);
+    return sum+grps*reps*(kg||1);
   },0);
 }
 
@@ -1106,6 +1113,7 @@ function doRenameStudent(){
 }
 
 function openNewClientModal(){
+  document.getElementById('modal-new-client').style.display='flex';
   document.getElementById('modal-client-name').value='';
   setTimeout(()=>document.getElementById('modal-client-name').focus(),100);
 }
@@ -1715,18 +1723,20 @@ function renderClassLog(){
       histHtml=`<div class="wlog-hist">歷史最高：<strong style="color:var(--purple)">${parts}</strong></div>`;
     }
 
-    // ── 進步徽章（只判斷是否超越歷史最高）──
+    // ── 進步徽章：PR判斷 + 訓練量比較（持平/進步/退步）──
     let badgeHtml='';
-    const curValidSets=sets.filter(s=>parseInt(s.reps)>0&&parseFloat(s.weight)>0);
+    const curValidSets=sets.filter(s=>{
+      const r=parseInt(s.reps)||0;
+      // 支援體重/秒數模式：weight 可能是 'BW' 或純數字
+      const w=s.weight==='BW'?1:parseFloat(s.weight)||0;
+      return r>0&&(w>0||s.weight==='BW');
+    });
     if(curValidSets.length&&lifetimeBest.size){
       const curMap=buildRepsMaxMap(curValidSets);
       const newPRReps=[];
       curMap.forEach((kg,reps)=>{
-        // 同次數歷史最高
         const histBestSameReps=lifetimeBest.get(reps)||0;
         if(kg>histBestSameReps){
-          // 額外檢查：此重量須超越「相同或更少次數」的歷史最高重量
-          // 避免「5下32kg」在歷史有「8下32kg」時誤判為PR
           let bestKgAtFewerOrEqualReps=0;
           lifetimeBest.forEach((hkg,hreps)=>{
             if(hreps<=reps&&hkg>bestKgAtFewerOrEqualReps) bestKgAtFewerOrEqualReps=hkg;
@@ -1737,29 +1747,57 @@ function renderClassLog(){
       if(newPRReps.length){
         const desc=newPRReps.map(p=>`${p.reps}下 ${p.kg}kg`).join(' / ');
         badgeHtml=`<span class="pb pb-up">▲ 新紀錄 ${desc}</span>`;
+      } else {
+        // 比較訓練量（與上次課程）
+        const curVol=calcVolume(curValidSets);
+        const prevSetsForBadge=getLastSessionSets(student,ex.name,curNB.completedAt||Date.now(),curNB.id);
+        if(prevSetsForBadge&&prevSetsForBadge.length){
+          const prevVol=calcVolume(prevSetsForBadge);
+          if(prevVol>0){
+            if(curVol>prevVol*1.01) badgeHtml=`<span class="pb pb-up">▲ 進步</span>`;
+            else if(curVol<prevVol*0.99) badgeHtml=`<span class="pb pb-down">▼ 退步</span>`;
+            else badgeHtml=`<span class="pb pb-same">● 持平</span>`;
+          }
+        }
       }
     } else if(isNewExercise&&curValidSets.length){
       badgeHtml=`<span class="pb pb-new"> 首次記錄</span>`;
     }
 
-    // ── Set rows（組欄可填） ──
+    // ── Set rows（支援 kg / BW體重 / 秒數 三種模式）──
+    const wMode=ex.weightMode||'kg'; // 'kg' | 'bw' | 'sec'
+    const wLabel=wMode==='bw'?'體重(BW)':wMode==='sec'?'秒數':'重量(kg)';
+    const wPlaceholder=wMode==='bw'?'BW':wMode==='sec'?'秒':'kg';
+    const wInputMode=wMode==='sec'?'decimal':'decimal';
+    const wInpClass=wMode==='bw'?'set-inp set-inp-bw':wMode==='sec'?'set-inp set-inp-sec':'set-inp';
+
     let setRowsHtml=`<div class="set-labels">
       <div class="set-label">#</div>
       <div class="set-label">組數</div>
-      <div class="set-label">次數</div>
-      <div class="set-label">重量(kg)</div>
+      <div class="set-label">${wMode==='sec'?'秒數':'次數'}</div>
+      <div class="set-label">${wLabel}</div>
       <div class="set-label"></div>
     </div>`;
     sets.forEach((s,si)=>{
+      const wVal=wMode==='bw'?(s.weight==='BW'||!s.weight?'BW':s.weight):s.weight||'';
       setRowsHtml+=`<div class="set-row">
         <div class="set-num">${si+1}</div>
         <input class="set-inp" type="text" inputmode="decimal" placeholder="組" value="${s.sets||''}" oninput="updateSet(${ei},${si},'sets',this.value)">
-        <input class="set-inp" type="text" inputmode="decimal" placeholder="次" value="${s.reps||''}" oninput="updateSet(${ei},${si},'reps',this.value)">
-        <input class="set-inp" type="text" inputmode="decimal" placeholder="kg" value="${s.weight||''}" oninput="updateSet(${ei},${si},'weight',this.value)">
+        <input class="set-inp" type="text" inputmode="decimal" placeholder="${wMode==='sec'?'秒':'次'}" value="${s.reps||''}" oninput="updateSet(${ei},${si},'reps',this.value)">
+        ${wMode==='bw'
+          ?`<div class="${wInpClass}" style="display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:1px solid var(--amber-b);border-radius:2px;padding:7px 2px;background:var(--amber-bg);color:var(--amber);font-weight:500" onclick="updateSet(${ei},${si},'weight','BW')">BW</div>`
+          :`<input class="${wInpClass}" type="text" inputmode="decimal" placeholder="${wPlaceholder}" value="${wVal}" oninput="updateSet(${ei},${si},'weight',this.value)">`}
         <div class="set-del" onclick="delSet(${ei},${si})">✕</div>
       </div>
       <div id="set-hint-${ei}-${si}" style="display:none;font-size:10px;color:var(--green);font-family:'DM Mono',monospace;padding:2px 6px;margin-bottom:2px"></div>`;
     });
+
+    // 模式切換列
+    const modeBtns=`<div class="wmode-bar">
+      <span class="wmode-btn${wMode==='kg'?' on':''}" onclick="setWeightMode(${ei},'kg')">⚖ 重量 kg</span>
+      <span class="wmode-btn${wMode==='bw'?' on':''}" onclick="setWeightMode(${ei},'bw')">🏃 自身體重</span>
+      <span class="wmode-btn${wMode==='sec'?' on':''}" onclick="setWeightMode(${ei},'sec')">⏱ 秒數</span>
+    </div>`;
 
     const div=document.createElement('div');
     div.className='wlog';
@@ -1775,11 +1813,27 @@ function renderClassLog(){
         </div>
       </div>
       ${histHtml}
+      ${modeBtns}
       ${setRowsHtml}
       <button class="add-set" onclick="addSet(${ei})">＋ 新增一組</button>
       <textarea class="wlog-note" rows="1" placeholder="動作備註（選填）" oninput="updateSet(${ei},-1,'note',this.value)">${ex.classNote||''}</textarea>`;
     container.appendChild(div);
   });
+}
+
+function setWeightMode(ei,mode){
+  if(!curNB.exercises[ei]) return;
+  curNB.exercises[ei].weightMode=mode;
+  // BW模式：自動把空白weight填為'BW'
+  if(mode==='bw'){
+    (curNB.exercises[ei].sets||[]).forEach(s=>{if(!s.weight||s.weight==='BW') s.weight='BW';});
+  }
+  // 切換其他模式：清除BW標記
+  if(mode!=='bw'){
+    (curNB.exercises[ei].sets||[]).forEach(s=>{if(s.weight==='BW') s.weight='';});
+  }
+  persist();
+  renderClassLog();
 }
 
 function updateSet(ei,si,field,val){
@@ -1898,14 +1952,20 @@ function renderReport(){
   (nb.exercises||[]).forEach(ex=>{
     const validSets=(ex.sets||[]).filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
     if(!validSets.length)return;
+    const exWMode=ex.weightMode||'kg';
     const setDesc=validSets.map(s=>{
       const grp=parseInt(s.sets)||1;
       const reps=parseInt(s.reps)||0;
-      const kg=parseFloat(s.weight)||0;
+      const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
       const parts=[];
       if(grp>0) parts.push(grp+'組');
-      if(reps>0) parts.push(reps+'下');
-      if(kg>0) parts.push('×'+kg+'kg');
+      if(exWMode==='sec'){
+        if(reps>0) parts.push(reps+'秒');
+      } else {
+        if(reps>0) parts.push(reps+'下');
+      }
+      if(kg==='BW') parts.push('×自身體重');
+      else if(kg>0) parts.push('×'+kg+'kg');
       if(s.note&&!reps&&!kg) parts.push(s.note);
       return parts.join('').trim();
     }).join(' / ');
@@ -2786,7 +2846,7 @@ function previewSessionReport(nbId){
     const validSets=(ex.sets||[]).filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
     if(!validSets.length)return;
     const setLines=validSets.map(s=>{
-      const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
+      const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
       const parts=[];
       if(grp>0) parts.push(grp+'組');
       if(reps>0) parts.push(reps+'下');
