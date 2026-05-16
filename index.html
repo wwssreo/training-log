@@ -201,6 +201,8 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
 
     <!-- 備課 -->
     <div class="tc on" id="tc-plan">
+      <!-- 上次課程摘要（動態插入） -->
+      <div id="last-session-ref" style="display:none"></div>
       <div class="card">
         <div class="flabel">課程名稱</div>
         <input type="text" id="nb-name-inp" placeholder="例：小明 腿日 第3堂">
@@ -926,10 +928,11 @@ function calcVolume(sets){
   return sets.reduce((sum,s)=>{
     const grps=parseFloat(s.sets)||1;
     const reps=parseFloat(s.reps)||0;
-    // BW體重模式：用 reps 做量（volume = sets × reps）
-    // 秒數模式：用 reps 做秒數（volume = sets × reps）
     const kg=s.weight==='BW'?1:(parseFloat(s.weight)||0);
-    return sum+grps*reps*(kg||1);
+    // 只計算有效組（reps>0 且 weight有值）
+    if(reps<=0) return sum;
+    if(kg<=0&&s.weight!=='BW') return sum;
+    return sum+grps*reps*(kg>0?kg:1);
   },0);
 }
 
@@ -1860,6 +1863,7 @@ function renderClassLog(){
 
     const div=document.createElement('div');
     div.className='wlog';
+    div.dataset.ei=ei;
     div.innerHTML=`
       <div class="wlog-top">
         <div class="wlog-name" style="flex:1">
@@ -1884,7 +1888,7 @@ function renderClassLog(){
 function updateBadge(ei){
   const ex=curNB?.exercises?.[ei];
   if(!ex) return;
-  const badgeEl=document.querySelector(`.wlog:nth-child(${ei+1}) .wlog-badges`);
+  const badgeEl=document.querySelector(`.wlog[data-ei='${ei}'] .wlog-badges`);
   if(!badgeEl) return;
   const student=(curNB.student||'').trim();
   const sets=ex.sets&&ex.sets.length?ex.sets:[{sets:'',reps:'',weight:''}];
@@ -1977,63 +1981,49 @@ function updateSet(ei,si,field,val){
   if(!hintEl||!lifetimeBest.size) return;
   const curReps=parseInt(curNB.exercises[ei].sets[si].reps)||0;
   const curKg=parseFloat(curNB.exercises[ei].sets[si].weight)||0;
+  // ── 統一 hint：不管先填次數或重量，每次都從完整 reps+kg 判斷 ──
   let hint='';
-  if(field==='reps'&&curReps>0){
-    // 填次數→先看同次數歷史最高重量
-    const bestKg=lifetimeBest.get(curReps);
-    if(bestKg){
-      hint=`${curReps}下歷史最高：${bestKg}kg`;
-    } else {
-      // 此次數無歷史：看當前已填重量是否比同重量歷史次數更多
-      if(curKg>0){
-        // 找歷史中最接近此重量的次數
+  if(curReps>0||curKg>0){
+    let globalBestKg=0;
+    lifetimeBest.forEach((hkg)=>{if(hkg>globalBestKg) globalBestKg=hkg;});
+
+    if(curReps>0&&curKg>0){
+      // 兩個都填了：判斷突破類型（優先級：重量突破 > 次數突破 > 參考提示）
+      // A. 重量突破？
+      let bestKgFewer=0;
+      lifetimeBest.forEach((hkg,hreps)=>{if(hreps<=curReps&&hkg>bestKgFewer) bestKgFewer=hkg;});
+      const histBestSameReps=lifetimeBest.get(curReps)||0;
+      if(curKg>bestKgFewer&&bestKgFewer>0){
+        hint=`⚡ 新紀錄！${curReps}下歷史最高 ${bestKgFewer}kg → 今日 ${curKg}kg`;
+      } else if(curKg>globalBestKg&&bestKgFewer===0&&globalBestKg>0){
+        hint=`⚡ 突破歷史最高重量！${curReps}下 ${curKg}kg（歷史最高 ${globalBestKg}kg）`;
+      } else {
+        // B. 同重量次數突破？
         let histRepsAtKg=0;
         lifetimeBest.forEach((hkg,hreps)=>{if(Math.abs(hkg-curKg)<0.1&&hreps>histRepsAtKg) histRepsAtKg=hreps;});
         if(histRepsAtKg>0&&curReps>histRepsAtKg){
           hint=`⚡ 同重量次數突破！${curKg}kg 歷史最高 ${histRepsAtKg}下 → 今日 ${curReps}下`;
-        } else if(histRepsAtKg>0){
-          hint=`${curKg}kg 歷史最高：${histRepsAtKg}下`;
         } else {
-          const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[0]-curReps)-Math.abs(b[0]-curReps))[0];
-          if(nearby) hint=`${nearby[0]}下歷史最高${nearby[1]}kg（參考）`;
+          // C. 參考提示
+          if(histBestSameReps>0) hint=`${curReps}下歷史最高：${histBestSameReps}kg`;
+          else if(histRepsAtKg>0) hint=`${curKg}kg 歷史最高：${histRepsAtKg}下`;
+          else if(globalBestKg>0) hint=`歷史最高重量：${globalBestKg}kg`;
         }
-      } else {
-        const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[0]-curReps)-Math.abs(b[0]-curReps))[0];
-        if(nearby) hint=`${nearby[0]}下歷史最高${nearby[1]}kg（參考）`;
       }
-    }
-  } else if(field==='weight'&&curKg>0){
-    // 填重量→判斷是否突破歷史
-    // 計算「所有歷史中的最高重量」（不限次數）
-    let globalBestKg=0;
-    lifetimeBest.forEach((hkg)=>{if(hkg>globalBestKg) globalBestKg=hkg;});
-    // 計算「相同或更少次數」的歷史最高重量（真正的PR標準）
-    let bestKgAtFewerOrEqual=0;
-    if(curReps>0){
-      lifetimeBest.forEach((hkg,hreps)=>{
-        if(hreps<=curReps&&hkg>bestKgAtFewerOrEqual) bestKgAtFewerOrEqual=hkg;
-      });
-    }
-    if(curReps>0&&curKg>bestKgAtFewerOrEqual&&bestKgAtFewerOrEqual>0){
-      // 明確超越同次數（或更少次數）的歷史最高重量
-      hint=`⚡ 新紀錄！${curReps}下歷史最高 ${bestKgAtFewerOrEqual}kg → 今日 ${curKg}kg`;
-    } else if(curReps>0&&bestKgAtFewerOrEqual===0&&curKg>globalBestKg&&globalBestKg>0){
-      // 全新次數，且重量超越歷史任何次數的最高重量 → 真突破
-      hint=`⚡ 突破歷史最高重量！${curReps}下 ${curKg}kg（歷史最高 ${globalBestKg}kg）`;
-    } else {
-      // 未達突破：顯示同次數歷史或近似參考
-      const histBestSameReps=curReps>0?(lifetimeBest.get(curReps)||0):0;
-      if(histBestSameReps>0) hint=`${curReps}下歷史最高：${histBestSameReps}kg`;
-      else if(globalBestKg>0&&curReps>0) hint=`歷史最高重量：${globalBestKg}kg（不同次數）`;
+    } else if(curReps>0){
+      // 只填了次數
+      const bestKg=lifetimeBest.get(curReps);
+      if(bestKg) hint=`${curReps}下歷史最高：${bestKg}kg`;
       else{
-        let bestReps=0;
-        lifetimeBest.forEach((kg,r)=>{if(Math.abs(kg-curKg)<0.1&&r>bestReps) bestReps=r;});
-        if(bestReps) hint=`${curKg}kg歷史最高：${bestReps}下`;
-        else{
-          const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[1]-curKg)-Math.abs(b[1]-curKg))[0];
-          if(nearby) hint=`近似重量 ${nearby[1]}kg→${nearby[0]}下（參考）`;
-        }
+        const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[0]-curReps)-Math.abs(b[0]-curReps))[0];
+        if(nearby) hint=`${nearby[0]}下歷史最高 ${nearby[1]}kg（參考）`;
       }
+    } else if(curKg>0){
+      // 只填了重量
+      let histRepsAtKg=0;
+      lifetimeBest.forEach((hkg,hreps)=>{if(Math.abs(hkg-curKg)<0.1&&hreps>histRepsAtKg) histRepsAtKg=hreps;});
+      if(histRepsAtKg>0) hint=`${curKg}kg 歷史最高：${histRepsAtKg}下`;
+      else if(globalBestKg>0) hint=`歷史最高重量：${globalBestKg}kg`;
     }
   }
   hintEl.textContent=hint;
@@ -2228,6 +2218,7 @@ function openEditor(nb){
   renderStars();
   renderExList();
   renderPlanLog();
+  renderLastSessionRef();
   show('s-editor');
 }
 
@@ -2258,6 +2249,62 @@ function collectEditorData(){
 function onStudentChange(){
   if(curNB){curNB.student=document.getElementById('f-student').value.trim();persist();}
   renderPlanLog();
+  renderLastSessionRef();
+}
+
+// ── 備課頁：上次課程摘要卡片 ──
+function renderLastSessionRef(){
+  const el=document.getElementById('last-session-ref');
+  if(!el) return;
+  const student=(curNB?.student||document.getElementById('f-student')?.value||'').trim();
+  if(!student){el.style.display='none';return;}
+
+  // 找最近一筆已完成課程
+  const last=notebooks
+    .filter(n=>!n.isAssess&&n.done&&(n.student||'').trim()===student&&n.id!==curNB?.id)
+    .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id))[0];
+
+  if(!last){el.style.display='none';return;}
+
+  const exs=(last.exercises||[]).filter(ex=>(ex.sets||[]).some(s=>parseInt(s.reps)>0||(parseFloat(s.weight)||0)>0));
+  if(!exs.length){el.style.display='none';return;}
+
+  // 渲染摘要
+  let rows='';
+  exs.forEach(ex=>{
+    const wMode=ex.weightMode||'kg';
+    const validSets=(ex.sets||[]).filter(s=>parseInt(s.reps)||parseFloat(s.weight)||s.weight==='BW');
+    if(!validSets.length) return;
+    const setDesc=validSets.map(s=>{
+      const g=parseInt(s.sets)||1;
+      const r=parseInt(s.reps)||0;
+      const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
+      const parts=[];
+      if(g>1) parts.push(g+'組');
+      if(wMode==='sec') parts.push(r?r+'秒':'');
+      else parts.push(r?r+'下':'');
+      if(kg==='BW') parts.push('×BW');
+      else if(kg>0) parts.push('×'+kg+'kg');
+      return parts.filter(Boolean).join('');
+    }).join(' / ');
+    const shortName=ex.name.split('（')[0];
+    rows+=`<div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text2);font-weight:500;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortName}</span>
+      <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;flex-shrink:0">${setDesc}</span>
+    </div>`;
+  });
+
+  const dateStr=last.date||'';
+  const typeStr=last.type?` · ${last.type}`:'';
+  el.style.display='block';
+  el.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:10px 12px;margin-bottom:10px;box-shadow:0 1px 3px rgba(42,33,24,.06)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:9px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.12em;text-transform:uppercase">上次課程參考</span>
+      <span style="font-size:10px;color:var(--acc-light);font-family:'DM Mono',monospace">${dateStr}${typeStr}</span>
+    </div>
+    ${rows}
+    ${last.planNote?`<div style="margin-top:6px;font-size:11px;color:var(--text3);font-style:italic">備註：${last.planNote}</div>`:''}
+  </div>`;
 }
 
 function saveAndHome(){
