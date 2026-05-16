@@ -2259,38 +2259,68 @@ function renderLastSessionRef(){
   const student=(curNB?.student||document.getElementById('f-student')?.value||'').trim();
   if(!student){el.style.display='none';return;}
 
-  // 找最近一筆已完成課程
+  // 找最近一筆已完成課程（排除當前）
   const last=notebooks
     .filter(n=>!n.isAssess&&n.done&&(n.student||'').trim()===student&&n.id!==curNB?.id)
     .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id))[0];
 
   if(!last){el.style.display='none';return;}
 
-  const exs=(last.exercises||[]).filter(ex=>(ex.sets||[]).some(s=>parseInt(s.reps)>0||(parseFloat(s.weight)||0)>0));
+  // 只取有「真實上課記錄」的動作（sets 有實際 reps 且 weight 不是備課預設的 1 或空值）
+  const exs=(last.exercises||[]).filter(ex=>{
+    const realSets=(ex.sets||[]).filter(s=>{
+      const r=parseInt(s.reps)||0;
+      const kg=parseFloat(s.weight)||0;
+      // 有次數，且重量 > 1（1kg 通常是 planRows 預設值誤同步）或是 BW 模式或秒數模式
+      return r>0 && (kg>1||s.weight==='BW'||(ex.weightMode==='sec'&&r>0));
+    });
+    return realSets.length>0;
+  });
+
   if(!exs.length){el.style.display='none';return;}
 
-  // 渲染摘要
+  // 渲染：每個動作獨立一列，名稱完整顯示，下方列出各組
   let rows='';
-  exs.forEach(ex=>{
+  exs.forEach((ex,i)=>{
     const wMode=ex.weightMode||'kg';
-    const validSets=(ex.sets||[]).filter(s=>parseInt(s.reps)||parseFloat(s.weight)||s.weight==='BW');
+    const validSets=(ex.sets||[]).filter(s=>{
+      const r=parseInt(s.reps)||0;
+      const kg=parseFloat(s.weight)||0;
+      return r>0&&(kg>1||s.weight==='BW'||(wMode==='sec'&&r>0));
+    });
     if(!validSets.length) return;
-    const setDesc=validSets.map(s=>{
-      const g=parseInt(s.sets)||1;
+
+    // 合併相同重量的組（3組12下30kg → "3組 12下×30kg"）
+    const grouped=[];
+    validSets.forEach(s=>{
       const r=parseInt(s.reps)||0;
       const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
+      const grp=parseInt(s.sets)||1;
+      // 找是否已有相同 reps+kg 的紀錄
+      const exist=grouped.find(g=>g.r===r&&g.kg===kg);
+      if(exist) exist.grp+=grp;
+      else grouped.push({r,kg,grp});
+    });
+
+    const setDesc=grouped.map(g=>{
       const parts=[];
-      if(g>1) parts.push(g+'組');
-      if(wMode==='sec') parts.push(r?r+'秒':'');
-      else parts.push(r?r+'下':'');
-      if(kg==='BW') parts.push('×BW');
-      else if(kg>0) parts.push('×'+kg+'kg');
-      return parts.filter(Boolean).join('');
-    }).join(' / ');
+      if(g.grp>1) parts.push(g.grp+'組');
+      if(wMode==='sec') parts.push(g.r+'秒');
+      else parts.push(g.r+'下');
+      if(g.kg==='BW') parts.push('BW');
+      else if(g.kg>0) parts.push('×'+g.kg+'kg');
+      return parts.join(' ');
+    }).join('　');  // 用全形空格分隔各組
+
     const shortName=ex.name.split('（')[0];
-    rows+=`<div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:12px;color:var(--text2);font-weight:500;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortName}</span>
-      <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;flex-shrink:0">${setDesc}</span>
+    const fullSub=ex.name.includes('（')?ex.name.split('（')[1].replace('）',''):'';
+    const isLast=i===exs.length-1;
+    rows+=`<div style="padding:7px 0;${isLast?'':'border-bottom:1px solid var(--border);'}">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span style="font-size:12px;color:var(--text);font-weight:500">${shortName}</span>
+        ${fullSub?`<span style="font-size:10px;color:var(--text3)">${fullSub}</span>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;letter-spacing:.04em">${setDesc}</div>
     </div>`;
   });
 
@@ -2298,12 +2328,13 @@ function renderLastSessionRef(){
   const typeStr=last.type?` · ${last.type}`:'';
   el.style.display='block';
   el.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:10px 12px;margin-bottom:10px;box-shadow:0 1px 3px rgba(42,33,24,.06)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <span style="font-size:9px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.12em;text-transform:uppercase">上次課程參考</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:9px;font-family:'DM Mono',monospace;color:var(--text3);letter-spacing:.14em;text-transform:uppercase">上次課程參考</span>
       <span style="font-size:10px;color:var(--acc-light);font-family:'DM Mono',monospace">${dateStr}${typeStr}</span>
     </div>
     ${rows}
-    ${last.planNote?`<div style="margin-top:6px;font-size:11px;color:var(--text3);font-style:italic">備註：${last.planNote}</div>`:''}
+    ${last.good?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:10px;color:var(--green)">★ ${last.good}</div>`:''}
+    ${last.planNote?`<div style="margin-top:4px;font-size:10px;color:var(--text3);font-style:italic">備課：${last.planNote}</div>`:''}
   </div>`;
 }
 
