@@ -1521,8 +1521,16 @@ function renderMuscleScroller(containerId, activeKey){
     btn.onclick=()=>{
       selMuscle=m;
       document.querySelectorAll('#'+containerId+' .mbtn').forEach(b=>b.classList.toggle('on',b===btn));
-      if(containerId==='msc') renderExList();
-      else renderClassExList();
+      // 點分類時清空搜尋框，確保分類篩選生效
+      if(containerId==='msc'){
+        const s=document.getElementById('ex-search');
+        if(s) s.value='';
+        renderExList();
+      } else {
+        const s=document.getElementById('ex-search-class');
+        if(s) s.value='';
+        renderClassExList();
+      }
     };
     msc.appendChild(btn);
   });
@@ -1631,9 +1639,13 @@ function renderPlanLog(){
       if(prevSets&&prevSets.length){
         const validPrev=prevSets.filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
         if(validPrev.length){
+          const _pWMode=ex.weightMode||'kg';
           const lastDesc=validPrev.map(s=>{
-            const g=parseInt(s.sets)||1,r=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
-            return `${g}組 ${r?r+'下':'—'} ${kg?'×'+kg+'kg':''}`.trim();
+            const g=parseInt(s.sets)||1,r=parseInt(s.reps)||0;
+            const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
+            const rStr=_pWMode==='sec'?(r?r+'秒':'—'):(r?r+'下':'—');
+            const kgStr=kg==='BW'?' ×BW':(_pWMode!=='sec'&&kg>0?' ×'+kg+'kg':'');
+            return `${g}組 ${rStr}${kgStr}`.trim();
           }).join(' / ');
           prevHtml=`<div style="font-size:11px;color:var(--text2);margin-top:3px">上次：${lastDesc}</div>`;
         }
@@ -1749,17 +1761,22 @@ function renderClassLog(){
       </div>`;
     } else if(prevSets&&prevSets.length){
       // 有上次紀錄：顯示上次數據，提示今日參考
-      const validPrev=prevSets.filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
+      const _hWMode=ex.weightMode||'kg';
+      const validPrev=prevSets.filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight)||s.weight==='BW');
       if(validPrev.length){
         const rows=validPrev.map(s=>{
-          const g=parseInt(s.sets)||1,r=parseInt(s.reps)||0,kg=parseFloat(s.weight)||0;
-          // 推算建議：同次數多0.5-2.5kg 或 同重量多1-2下
-          const suggKg=kg?kg+2.5:0;
-          const suggRep=r?r+1:0;
+          const g=parseInt(s.sets)||1,r=parseInt(s.reps)||0;
+          const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
+          const rStr=_hWMode==='sec'?(r?r+'秒':'—'):(r?r+'下':'—');
+          const kgStr=kg==='BW'?'BW':(_hWMode!=='sec'&&kg>0?kg+'kg':'—');
+          // 建議值只在 kg 模式顯示
+          const suggKg=(_hWMode==='kg'&&kg>0)?kg+2.5:0;
+          const suggRep=_hWMode==='sec'?0:(r?r+1:0);
+          const suggStr=suggKg||suggRep?`→ 建議 ${suggKg?suggKg+'kg / ':''}${suggRep?suggRep+'下':''}`:'';
           return `<div class="hist-row-item">
             <span class="hr-label">${g}組</span>
-            <span class="hr-val">${r?r+'下':'—'} × ${kg?kg+'kg':'—'}</span>
-            ${kg||r?`<span style="font-size:10px;color:var(--green);margin-left:6px">→ 建議 ${suggKg?suggKg+'kg / ':''}${suggRep?suggRep+'下':''}</span>`:''}
+            <span class="hr-val">${rStr}${_hWMode!=='sec'?' × '+kgStr:''}</span>
+            ${suggStr?`<span style="font-size:10px;color:var(--green);margin-left:6px">${suggStr}</span>`:''}
           </div>`;
         }).join('');
         histHtml=`<div class="wlog-hist"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">上次紀錄</div>${rows}</div>`;
@@ -1848,6 +1865,8 @@ function renderClassLog(){
         <input class="set-inp" type="text" inputmode="decimal" placeholder="${wMode==='sec'?'秒':'次'}" value="${s.reps||''}" oninput="updateSet(${ei},${si},'reps',this.value)">
         ${wMode==='bw'
           ?`<div class="${wInpClass}" style="display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:1px solid var(--amber-b);border-radius:2px;padding:7px 2px;background:var(--amber-bg);color:var(--amber);font-weight:500" onclick="updateSet(${ei},${si},'weight','BW')">BW</div>`
+          :wMode==='sec'
+          ?`<div class="set-inp set-inp-sec" style="display:flex;align-items:center;justify-content:center;font-size:11px;border:1px solid var(--purple-b,#9888BB);border-radius:2px;padding:7px 2px;background:var(--purple-bg,#EAE6F2);color:var(--purple);font-weight:500">—</div>`
           :`<input class="${wInpClass}" type="text" inputmode="decimal" placeholder="${wPlaceholder}" value="${wVal}" oninput="updateSet(${ei},${si},'weight',this.value)">`}
         <div class="set-del" onclick="delSet(${ei},${si})">✕</div>
       </div>
@@ -1955,10 +1974,14 @@ function setWeightMode(ei,mode){
   curNB.exercises[ei].weightMode=mode;
   // BW模式：自動把空白weight填為'BW'
   if(mode==='bw'){
-    (curNB.exercises[ei].sets||[]).forEach(s=>{if(!s.weight||s.weight==='BW') s.weight='BW';});
+    (curNB.exercises[ei].sets||[]).forEach(s=>{s.weight='BW';});
   }
-  // 切換其他模式：清除BW標記
-  if(mode!=='bw'){
+  // 秒數模式：清除 weight（秒數不需要重量）
+  if(mode==='sec'){
+    (curNB.exercises[ei].sets||[]).forEach(s=>{s.weight='';});
+  }
+  // 切換回 kg：清除 BW 標記
+  if(mode==='kg'){
     (curNB.exercises[ei].sets||[]).forEach(s=>{if(s.weight==='BW') s.weight='';});
   }
   persist();
@@ -2112,11 +2135,12 @@ function renderReport(){
       if(grp>0) parts.push(grp+'組');
       if(exWMode==='sec'){
         if(reps>0) parts.push(reps+'秒');
+        // 秒數模式不顯示重量
       } else {
         if(reps>0) parts.push(reps+'下');
+        if(kg==='BW') parts.push('×自身體重');
+        else if(kg>0) parts.push('×'+kg+'kg');
       }
-      if(kg==='BW') parts.push('×自身體重');
-      else if(kg>0) parts.push('×'+kg+'kg');
       if(s.note&&!reps&&!kg) parts.push(s.note);
       return parts.join('').trim();
     }).join(' / ');
@@ -2304,13 +2328,13 @@ function renderLastSessionRef(){
 
     const setDesc=grouped.map(g=>{
       const parts=[];
-      if(g.grp>1) parts.push(g.grp+'組');
+      parts.push(g.grp+'組');  // 1組也顯示
       if(wMode==='sec') parts.push(g.r+'秒');
       else parts.push(g.r+'下');
       if(g.kg==='BW') parts.push('BW');
-      else if(g.kg>0) parts.push('×'+g.kg+'kg');
+      else if(wMode!=='sec'&&g.kg>0) parts.push('×'+g.kg+'kg');
       return parts.join(' ');
-    }).join('　');  // 用全形空格分隔各組
+    }).join('　／　');
 
     const shortName=ex.name.split('（')[0];
     const fullSub=ex.name.includes('（')?ex.name.split('（')[1].replace('）',''):'';
