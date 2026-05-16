@@ -866,6 +866,19 @@ function buildRepsMaxMap(sets){
   return map;
 }
 
+// kg→最高次數 Map（用於「同重量次數突破」判斷）
+function buildKgMaxRepsMap(sets){
+  const map = new Map();
+  sets.forEach(s=>{
+    const reps = parseInt(s.reps)||0;
+    const kg = parseFloat(s.weight)||0;
+    if(reps>0 && reps<=60 && kg>0){
+      if(!map.has(kg)||reps>map.get(kg)) map.set(kg,reps);
+    }
+  });
+  return map;
+}
+
 /**
  * 取得某學員某動作「歷史上每個次數的最高kg」
  * 跨所有已完成課程合併（excludeId: 排除當前未完成的，但包含已完成的同ID）
@@ -934,22 +947,30 @@ function evalDetailed(curSets, prevSets, lifetimeBest){
 
   // 新紀錄判斷：超越「相同或更少次數」的歷史最高重量才算PR
   // 例：歷史有8下32kg，今天5下32kg 不算PR（較少次數同重量不代表更強）
-  // 全域最高重量（不限次數）
   let _evalGlBest=0;
   lifetimeBest.forEach((hkg)=>{if(hkg>_evalGlBest) _evalGlBest=hkg;});
   const newPRReps=[];
+  // 條件A：同次數重量突破
   curMap.forEach((kg,reps)=>{
     const histBestSameReps=lifetimeBest.get(reps)||0;
     if(kg>histBestSameReps){
       if(histBestSameReps>0){
         let bestKgFewer=0;
         lifetimeBest.forEach((hkg,hreps)=>{if(hreps<=reps&&hkg>bestKgFewer) bestKgFewer=hkg;});
-        if(kg>bestKgFewer) newPRReps.push({reps,kg});
+        if(kg>bestKgFewer) newPRReps.push({reps,kg,type:'weight'});
       } else {
-        // 全新次數：超越歷史所有最高重量才算PR
-        if(kg>_evalGlBest) newPRReps.push({reps,kg});
+        if(kg>_evalGlBest) newPRReps.push({reps,kg,type:'weight'});
       }
     }
+  });
+  // 條件B：同重量次數突破
+  const curKgMap2=buildKgMaxRepsMap(curSets);
+  const histKgMap2=buildKgMaxRepsMap(
+    [...lifetimeBest.entries()].flatMap(([r,kg])=>[{reps:String(r),weight:String(kg)}])
+  );
+  curKgMap2.forEach((reps,kg)=>{
+    const histReps=histKgMap2.get(kg)||0;
+    if(reps>histReps&&histReps>0) newPRReps.push({reps,kg,type:'reps'});
   });
 
   // 單次強度 vs 上次
@@ -1006,7 +1027,7 @@ function evalProgress(curSets, prevSets){
 
 function strengthBadge(r, newPRReps){
   if(newPRReps&&newPRReps.length){
-    const desc=newPRReps.map(p=>`${p.reps}下${p.kg}kg`).join(' / ');
+    const desc=newPRReps.map(p=>p.type==='reps'?`${p.kg}kg×${p.reps}下`:`${p.reps}下${p.kg}kg`).join(' / ');
     return `<span class="pb pb-up">▲ 新紀錄 ${desc}</span>`;
   }
   if(r==='up') return `<span class="pb pb-up">▲ 強度↑</span>`;
@@ -1258,10 +1279,17 @@ function openBackupScreen(){
 
 function exportBackup(){
   const students=[...new Set(notebooks.map(n=>(n.student||'').trim()).filter(Boolean))];
+  // 收集自訂動作庫（排除內建）
+  const builtinNames=new Set();
+  const BUILTIN_EX_CATS=['胸 / 三頭','背 / 二頭','肩','腿 / 臀','核心 / 活化','伸展 / 放鬆'];
+  // 從 localStorage 讀取原始自訂清單
+  let _savedCustomEx=[];
+  try{_savedCustomEx=JSON.parse(localStorage.getItem('_custom_ex')||'[]');}catch(e){}
   const backup={
     version:'coach-tool-v1',
     exportDate:new Date().toISOString(),
     notebooks,dietData,clientList,
+    customExercises:_savedCustomEx,
     strengthSummary:{}
   };
   students.forEach(student=>{
@@ -1750,26 +1778,33 @@ function renderClassLog(){
     });
     if(curValidSets.length&&lifetimeBest.size){
       const curMap=buildRepsMaxMap(curValidSets);
+      const curKgMapR=buildKgMaxRepsMap(curValidSets);
       const newPRReps=[];
-      // 歷史全域最高重量（不限次數），用於全新次數的PR門檻
       let _glBest=0;
       lifetimeBest.forEach((hkg)=>{if(hkg>_glBest) _glBest=hkg;});
+      // 條件A：同次數，今日重量超越歷史
       curMap.forEach((kg,reps)=>{
         const histBestSameReps=lifetimeBest.get(reps)||0;
         if(kg>histBestSameReps){
           if(histBestSameReps>0){
-            // 有同次數歷史：確認超越「更少次數」最高重量（防止5下32kg vs 8下32kg誤判）
             let bestKgFewer=0;
             lifetimeBest.forEach((hkg,hreps)=>{if(hreps<=reps&&hkg>bestKgFewer) bestKgFewer=hkg;});
-            if(kg>bestKgFewer) newPRReps.push({reps,kg});
+            if(kg>bestKgFewer) newPRReps.push({reps,kg,type:'weight'});
           } else {
-            // 全新次數：重量必須超越歷史所有次數的最高重量才算PR
-            if(kg>_glBest) newPRReps.push({reps,kg});
+            if(kg>_glBest) newPRReps.push({reps,kg,type:'weight'});
           }
         }
       });
+      // 條件B：同重量，今日次數超越歷史
+      const histKgMapR=buildKgMaxRepsMap(
+        [...lifetimeBest.entries()].flatMap(([r,kg])=>[{reps:String(r),weight:String(kg)}])
+      );
+      curKgMapR.forEach((reps,kg)=>{
+        const histReps=histKgMapR.get(kg)||0;
+        if(reps>histReps&&histReps>0) newPRReps.push({reps,kg,type:'reps'});
+      });
       if(newPRReps.length){
-        const desc=newPRReps.map(p=>`${p.reps}下 ${p.kg}kg`).join(' / ');
+        const desc=newPRReps.map(p=>p.type==='reps'?`${p.kg}kg×${p.reps}下（次數突破）`:`${p.reps}下 ${p.kg}kg`).join(' / ');
         badgeHtml=`<span class="pb pb-up">▲ 新紀錄 ${desc}</span>`;
       } else {
         // 比較訓練量（與上次課程）
@@ -1845,6 +1880,72 @@ function renderClassLog(){
   });
 }
 
+// ── 即時計算並更新單個動作的 badge ──
+function updateBadge(ei){
+  const ex=curNB?.exercises?.[ei];
+  if(!ex) return;
+  const badgeEl=document.querySelector(`.wlog:nth-child(${ei+1}) .wlog-badges`);
+  if(!badgeEl) return;
+  const student=(curNB.student||'').trim();
+  const sets=ex.sets&&ex.sets.length?ex.sets:[{sets:'',reps:'',weight:''}];
+  const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
+  const isNewExercise=!hasEverDone(student,ex.name);
+
+  const curValidSets=sets.filter(s=>{
+    const r=parseInt(s.reps)||0;
+    const w=s.weight==='BW'?1:(parseFloat(s.weight)||0);
+    return r>0&&(w>0||s.weight==='BW');
+  });
+
+  let badgeHtml='';
+  if(curValidSets.length&&lifetimeBest.size){
+          const curMap=buildRepsMaxMap(curValidSets);
+      const curKgMap=buildKgMaxRepsMap(curValidSets);
+      const newPRReps=[];
+      let _glBest=0;
+      lifetimeBest.forEach((hkg)=>{if(hkg>_glBest) _glBest=hkg;});
+      // 條件A：同次數，今日重量超越歷史最高（且超越更少次數的最高重量）
+      curMap.forEach((kg,reps)=>{
+        const histBestSameReps=lifetimeBest.get(reps)||0;
+        if(kg>histBestSameReps){
+          if(histBestSameReps>0){
+            let bestKgFewer=0;
+            lifetimeBest.forEach((hkg,hreps)=>{if(hreps<=reps&&hkg>bestKgFewer) bestKgFewer=hkg;});
+            if(kg>bestKgFewer) newPRReps.push({reps,kg,type:'weight'});
+          } else {
+            if(kg>_glBest) newPRReps.push({reps,kg,type:'weight'});
+          }
+        }
+      });
+      // 條件B：同重量，今日次數超越歷史最高次數
+      const histKgMap=buildKgMaxRepsMap(
+        [...lifetimeBest.entries()].flatMap(([r,kg])=>[{reps:String(r),weight:String(kg)}])
+      );
+      curKgMap.forEach((reps,kg)=>{
+        const histReps=histKgMap.get(kg)||0;
+        if(reps>histReps&&histReps>0) newPRReps.push({reps,kg,type:'reps'});
+      });
+    if(newPRReps.length){
+      const desc=newPRReps.map(p=>p.type==='reps'?`${p.reps}下×${p.kg}kg（次數突破）`:`${p.reps}下 ${p.kg}kg`).join(' / ');
+      badgeHtml=`<span class="pb pb-up">▲ 新紀錄 ${desc}</span>`;
+    } else {
+      const curVol=calcVolume(curValidSets);
+      const prevSetsForBadge=getLastSessionSets(student,ex.name,curNB.completedAt||Date.now(),curNB.id);
+      if(prevSetsForBadge&&prevSetsForBadge.length){
+        const prevVol=calcVolume(prevSetsForBadge);
+        if(prevVol>0){
+          if(curVol>prevVol*1.01) badgeHtml=`<span class="pb pb-up">▲ 進步</span>`;
+          else if(curVol<prevVol*0.99) badgeHtml=`<span class="pb pb-down">▼ 退步</span>`;
+          else badgeHtml=`<span class="pb pb-same">● 持平</span>`;
+        }
+      }
+    }
+  } else if(isNewExercise&&curValidSets.length){
+    badgeHtml=`<span class="pb pb-new"> 首次記錄</span>`;
+  }
+  badgeEl.innerHTML=badgeHtml;
+}
+
 function setWeightMode(ei,mode){
   if(!curNB.exercises[ei]) return;
   curNB.exercises[ei].weightMode=mode;
@@ -1878,13 +1979,28 @@ function updateSet(ei,si,field,val){
   const curKg=parseFloat(curNB.exercises[ei].sets[si].weight)||0;
   let hint='';
   if(field==='reps'&&curReps>0){
-    // 填次數→建議該次數歷史最高重量
+    // 填次數→先看同次數歷史最高重量
     const bestKg=lifetimeBest.get(curReps);
-    if(bestKg) hint=`${curReps}下歷史最高：${bestKg}kg`;
-    else{
-      // 找最近次數的最高重量作參考
-      const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[0]-curReps)-Math.abs(b[0]-curReps))[0];
-      if(nearby) hint=`${nearby[0]}下歷史最高${nearby[1]}kg（參考）`;
+    if(bestKg){
+      hint=`${curReps}下歷史最高：${bestKg}kg`;
+    } else {
+      // 此次數無歷史：看當前已填重量是否比同重量歷史次數更多
+      if(curKg>0){
+        // 找歷史中最接近此重量的次數
+        let histRepsAtKg=0;
+        lifetimeBest.forEach((hkg,hreps)=>{if(Math.abs(hkg-curKg)<0.1&&hreps>histRepsAtKg) histRepsAtKg=hreps;});
+        if(histRepsAtKg>0&&curReps>histRepsAtKg){
+          hint=`⚡ 同重量次數突破！${curKg}kg 歷史最高 ${histRepsAtKg}下 → 今日 ${curReps}下`;
+        } else if(histRepsAtKg>0){
+          hint=`${curKg}kg 歷史最高：${histRepsAtKg}下`;
+        } else {
+          const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[0]-curReps)-Math.abs(b[0]-curReps))[0];
+          if(nearby) hint=`${nearby[0]}下歷史最高${nearby[1]}kg（參考）`;
+        }
+      } else {
+        const nearby=[...lifetimeBest.entries()].sort((a,b)=>Math.abs(a[0]-curReps)-Math.abs(b[0]-curReps))[0];
+        if(nearby) hint=`${nearby[0]}下歷史最高${nearby[1]}kg（參考）`;
+      }
     }
   } else if(field==='weight'&&curKg>0){
     // 填重量→判斷是否突破歷史
@@ -1923,6 +2039,8 @@ function updateSet(ei,si,field,val){
   hintEl.textContent=hint;
   hintEl.style.display=hint?'block':'none';
   hintEl.style.color=hint&&hint.startsWith('⚡')?'var(--green)':'var(--green)';
+  // ── 即時更新 badge（進步/持平/退步/新紀錄）──
+  updateBadge(ei);
 }
 
 function addSet(ei){
@@ -2327,23 +2445,27 @@ function detectProgress(validSets, prevSets, lifetimeBest, exShortName){
     }
   });
 
-  // 條件2：同次數，今次重量 > 歷史「相同或更少次數」的最高重量才算PR
-  // 排除：5下32kg 在歷史有8下32kg 時，不應視為新紀錄
+  // 條件2：同次數，今次重量 > 歷史「相同或更少次數」最高重量才算PR
+  // 全新次數：只有超越歷史所有次數的最高重量才算PR
+  let _dpGlBest=0;
+  lifetimeBest.forEach((hkg)=>{if(hkg>_dpGlBest) _dpGlBest=hkg;});
   const newPRs=[];
-  const newReps=[];
   curRepsToKg.forEach((kg,reps)=>{
     const histKg=lifetimeBest.get(reps)||0;
     if(kg>histKg&&histKg>0){
-      // 確認此重量確實超越「相同或更少次數」歷史最高
-      let bestKgAtFewerOrEqualReps=0;
+      // 有同次數歷史：確認超越「更少次數」最高重量
+      let bestKgFewer=0;
       lifetimeBest.forEach((hkg,hreps)=>{
-        if(hreps<=reps&&hkg>bestKgAtFewerOrEqualReps) bestKgAtFewerOrEqualReps=hkg;
+        if(hreps<=reps&&hkg>bestKgFewer) bestKgFewer=hkg;
       });
-      if(kg>bestKgAtFewerOrEqualReps){
+      if(kg>bestKgFewer){
         newPRs.push(`${reps}下 ${histKg}→${kg}kg`);
       }
+    } else if(histKg===0&&_dpGlBest>0&&kg>_dpGlBest){
+      // 全新次數：必須超越歷史所有最高重量
+      newPRs.push(`${reps}下 ${kg}kg（新次數PR）`);
     }
-    // 「全新次數」不單獨顯示為紀錄，避免低重量新次數誤觸發
+    // 全新次數但重量未超歷史最高：不觸發紀錄
   });
   if(newPRs.length){
     results.push(`★ ${exShortName} 新紀錄：${newPRs.join(' / ')}`);
