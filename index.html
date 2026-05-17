@@ -2662,20 +2662,25 @@ function renderReport(){
       const reps=parseInt(s.reps)||0;
       const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
       const parts=[];
-      if(grp>0) parts.push(grp+'組');
+      // 組數
+      if(grp>1) parts.push(grp+'組');
+      else parts.push('1組');
+      // 次數 / 秒數
       if(exWMode==='sec'){
-        if(reps>0) parts.push(reps+'秒');
-        // 秒數模式不顯示重量
+        parts.push(reps>0?reps+'秒':'—');
       } else {
-        if(reps>0) parts.push(reps+'下');
-        if(kg==='BW') parts.push('×自身體重');
-        else if(kg>0) parts.push('×'+kg+'kg');
+        parts.push(reps>0?reps+'下':'—');
+      }
+      // 重量（秒數模式不顯示）
+      if(exWMode!=='sec'){
+        if(kg==='BW') parts.push('× 自身體重');
+        else if(kg>0) parts.push('× '+kg+'kg');
       }
       if(s.note&&!reps&&!kg) parts.push(s.note);
-      return parts.join('').trim();
+      return parts.join(' ').trim();
     }).join(' / ');
     const exDisplay2=ex.name.includes('（')?ex.name.split('（')[0]+'（'+ex.name.split('（')[1]:ex.name;
-    exLines+=`\n・${exDisplay2}  ${setDesc}\n`;
+    exLines+=`\n・${exDisplay2}\n    ${setDesc}\n`;
     if(ex.classNote) exLines+=`  └ ${ex.classNote}\n`;    
 
     // 進步比對（同重量次數進步 / 同次數重量進步）
@@ -3635,18 +3640,22 @@ function previewSessionReport(nbId){
     if(!validSets.length)return;
     const exWModeS=ex.weightMode||'kg';
     const setLines=validSets.map(s=>{
-      const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0,kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
+      const grp=parseInt(s.sets)||1,reps=parseInt(s.reps)||0;
+      const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
       const parts=[];
-      if(grp>0) parts.push(grp+'組');
-      if(exWModeS==='sec'){if(reps>0) parts.push(reps+'秒');}
-      else {if(reps>0) parts.push(reps+'下');}
-      if(kg==='BW') parts.push('×自身體重');
-      else if(kg>0) parts.push('×'+kg+'kg');
+      parts.push(grp+'組');
+      if(exWModeS==='sec') parts.push(reps>0?reps+'秒':'—');
+      else parts.push(reps>0?reps+'下':'—');
+      if(exWModeS!=='sec'){
+        if(kg==='BW') parts.push('× 自身體重');
+        else if(kg>0) parts.push('× '+kg+'kg');
+      }
       if(s.note&&!reps&&!kg) parts.push(s.note);
-      return '    '+parts.join('').trim();
+      return parts.join(' ').trim();
     });
+    const setDesc2=setLines.join(' / ');
     const exDisplay=ex.name.includes('（')?ex.name.split('（')[0]+'（'+ex.name.split('（')[1]:ex.name;
-    exLines+=`・${exDisplay}\n${setLines.join(' /\n')}\n`;
+    exLines+=`・${exDisplay}\n    ${setDesc2}\n`;
     if(ex.classNote) exLines+=`   └ ${ex.classNote}\n`;
     exLines+='\n';
     const prevSets2=getLastSessionSets(student,ex.name,curTs,nb.id);
