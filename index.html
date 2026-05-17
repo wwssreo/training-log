@@ -1440,33 +1440,79 @@ let _gdriveToken = null;       // 目前的 access token
 let _gdriveFileId = null;      // 已知的備份檔案 ID（避免每次都搜尋）
 let _gdriveAutoBackup = false; // 是否自動備份
 
-// ── 初始化：從 localStorage 讀取設定 ──
+// ── 初始化：從 localStorage 讀取設定，並嘗試靜默恢復登入 ──
 function gdriveInit(){
   _gdriveAutoBackup = localStorage.getItem('_gdrive_auto') === '1';
-  const savedToken = localStorage.getItem('_gdrive_token');
-  const savedExp   = parseInt(localStorage.getItem('_gdrive_token_exp') || '0');
-  _gdriveFileId    = localStorage.getItem('_gdrive_file_id') || null;
+  const savedToken  = localStorage.getItem('_gdrive_token');
+  const savedExp    = parseInt(localStorage.getItem('_gdrive_token_exp') || '0');
+  _gdriveFileId     = localStorage.getItem('_gdrive_file_id') || null;
+  const everAuthed  = localStorage.getItem('_gdrive_ever_authed') === '1';
 
-  // App 刪除重裝後 localStorage 清空，token 自然也不見
-  // 使用者只需重新點「連結 Google Drive」即可，Client ID 已寫在程式裡
-  if(savedToken && Date.now() < savedExp - 30000){
-    _gdriveToken = savedToken;
-    gdriveUpdateUI(true);
-  } else {
-    _gdriveToken = null;
-    localStorage.removeItem('_gdrive_token');
-    localStorage.removeItem('_gdrive_token_exp');
-    gdriveUpdateUI(false);
-  }
   const chk = document.getElementById('gdrive-auto-toggle');
   if(chk) chk.checked = _gdriveAutoBackup;
-  
-  // Client ID 未設定時顯示提示
+
   if(!GDRIVE_CLIENT_ID || GDRIVE_CLIENT_ID.includes('你的-client-id')){
-    const sb = document.getElementById('gdrive-status-box');
-    const st = document.getElementById('gdrive-status-text');
-    if(sb){ sb.className='gdrive-status err'; }
-    if(st){ st.textContent='Google Drive 尚未啟用（需由教練設定）'; }
+    const sb=document.getElementById('gdrive-status-box');
+    const st=document.getElementById('gdrive-status-text');
+    if(sb) sb.className='gdrive-status err';
+    if(st) st.textContent='Google Drive 尚未啟用（需由教練設定）';
+    return;
+  }
+
+  if(savedToken && Date.now() < savedExp - 30000){
+    // Token 還有效，直接用
+    _gdriveToken = savedToken;
+    gdriveUpdateUI(true);
+  } else if(everAuthed){
+    // 曾經授權過但 token 過期 → 靜默背景刷新，不彈出任何視窗
+    // 先顯示「正在重新連結...」，等靜默刷新完成再更新
+    _gdriveToken = null;
+    const st=document.getElementById('gdrive-status-text');
+    const sb=document.getElementById('gdrive-status-box');
+    if(st) st.textContent='正在重新連結 Google Drive...';
+    if(sb) sb.className='gdrive-status info';
+    // 等 Google API 腳本載入完成再執行（最多等 5 秒）
+    gdriveSilentRefresh(0);
+  } else {
+    // 從未授權過，顯示未連結
+    _gdriveToken = null;
+    gdriveUpdateUI(false);
+  }
+}
+
+// ── 靜默刷新：背景重新取得 token，不彈出任何視窗 ──
+function gdriveSilentRefresh(attempt){
+  if(attempt > 10){ gdriveUpdateUI(false); return; } // 最多等 5 秒
+  if(typeof google === 'undefined' || !google.accounts){
+    // Google API 還沒載入，等 500ms 再試
+    setTimeout(()=>gdriveSilentRefresh(attempt+1), 500);
+    return;
+  }
+  try{
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: GDRIVE_CLIENT_ID,
+      scope: GDRIVE_SCOPE,
+      prompt: '',  // 空字串 = 靜默模式，不彈出視窗
+      hint: localStorage.getItem('_gdrive_email') || '',
+      callback: (resp) => {
+        if(resp.error || !resp.access_token){
+          // 靜默刷新失敗（例如使用者撤銷授權）→ 顯示未連結，讓使用者手動重新連結
+          _gdriveToken = null;
+          localStorage.removeItem('_gdrive_ever_authed');
+          gdriveUpdateUI(false);
+          return;
+        }
+        _gdriveToken = resp.access_token;
+        const expMs = Date.now() + (resp.expires_in || 3600) * 1000;
+        localStorage.setItem('_gdrive_token', _gdriveToken);
+        localStorage.setItem('_gdrive_token_exp', String(expMs));
+        localStorage.setItem('_gdrive_ever_authed', '1');
+        gdriveUpdateUI(true);
+      }
+    });
+    client.requestAccessToken();
+  } catch(e){
+    gdriveUpdateUI(false);
   }
 }
 
@@ -1565,6 +1611,7 @@ function gdriveSignIn(){
       const expMs = Date.now() + (resp.expires_in || 3600) * 1000;
       localStorage.setItem('_gdrive_token', _gdriveToken);
       localStorage.setItem('_gdrive_token_exp', String(expMs));
+      localStorage.setItem('_gdrive_ever_authed', '1');
 
       // 取得使用者 email
       fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -1588,7 +1635,7 @@ function gdriveSignOut(){
   if(!confirm('確定要中斷 Google Drive 連結嗎？\n本機資料不會受影響。')) return;
   _gdriveToken = null;
   _gdriveFileId = null;
-  ['_gdrive_token','_gdrive_token_exp','_gdrive_email','_gdrive_file_id'].forEach(k=>localStorage.removeItem(k));
+  ['_gdrive_token','_gdrive_token_exp','_gdrive_email','_gdrive_file_id','_gdrive_ever_authed'].forEach(k=>localStorage.removeItem(k));
   gdriveUpdateUI(false);
 }
 
