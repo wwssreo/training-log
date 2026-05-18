@@ -2268,12 +2268,36 @@ function renderPlanLog(){
         </div>
       </div>
       ${hintHtml}
+      <div class="wmode-bar">
+        <span class="wmode-btn${pWMode==='kg'?' on':''}" onclick="setPlanWeightMode(${ei},'kg')">⚖ 重量 kg</span>
+        <span class="wmode-btn${pWMode==='bw'?' on':''}" onclick="setPlanWeightMode(${ei},'bw')">🏃 自身體重</span>
+        <span class="wmode-btn${pWMode==='sec'?' on':''}" onclick="setPlanWeightMode(${ei},'sec')">⏱ 秒數</span>
+      </div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-family:'DM Mono',monospace">計畫組數</div>
       ${setRowsHtml}
       <button class="add-set" onclick="addPlanRow(${ei})">＋ 加一組</button>
       <textarea class="wlog-note" rows="1" placeholder="備課備註" oninput="updateExNote(${ei},this.value)">${ex.note||''}</textarea>`;
     container.appendChild(div);
   });
+}
+
+function setPlanWeightMode(ei, mode){
+  if(!curNB?.exercises?.[ei]) return;
+  curNB.exercises[ei].weightMode = mode;
+  // BW 模式：planRows 的 kg 欄位設為 'BW'
+  if(mode==='bw'){
+    (curNB.exercises[ei].planRows||[]).forEach(pr=>{ pr.kg='BW'; });
+  }
+  // 秒數模式：清除重量
+  if(mode==='sec'){
+    (curNB.exercises[ei].planRows||[]).forEach(pr=>{ pr.kg=''; });
+  }
+  // 切回 kg：清除 BW 標記
+  if(mode==='kg'){
+    (curNB.exercises[ei].planRows||[]).forEach(pr=>{ if(pr.kg==='BW') pr.kg=''; });
+  }
+  persist();
+  renderPlanLog();
 }
 
 function delPlanRow(ei,pi){
