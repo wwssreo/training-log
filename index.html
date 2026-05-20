@@ -1507,7 +1507,15 @@ function gdriveSilentRefresh(attempt){
         localStorage.setItem('_gdrive_token', _gdriveToken);
         localStorage.setItem('_gdrive_token_exp', String(expMs));
         localStorage.setItem('_gdrive_ever_authed', '1');
+        // 更新 UI（設定頁已開啟才有效果，否則靜默完成）
         gdriveUpdateUI(true);
+        // 更新 email 顯示（用快取 email，不重複呼叫 API）
+        const _cachedEmail = localStorage.getItem('_gdrive_email') || '';
+        const _st = document.getElementById('gdrive-status-text');
+        const _sb = document.getElementById('gdrive-status-box');
+        if(_st) _st.textContent = _cachedEmail ? `已連結：${_cachedEmail}` : '已連結 Google Drive';
+        if(_sb) _sb.className = 'gdrive-status ok';
+        gdriveUpdateLastBackupTime();
       }
     });
     client.requestAccessToken();
@@ -1532,8 +1540,8 @@ function gdriveUpdateUI(connected){
     ac.style.display = 'block';
     sb.className = 'gdrive-status ok';
     si.textContent = '●';
-    const email = localStorage.getItem('_gdrive_email') || 'Google 帳號';
-    st.textContent = `已連結：${email}`;
+    const email = localStorage.getItem('_gdrive_email') || '';
+    st.textContent = email ? `已連結：${email}` : '已連結 Google Drive';
     const chk = document.getElementById('gdrive-auto-toggle');
     if(chk) chk.checked = _gdriveAutoBackup;
     gdriveUpdateLastBackupTime();
@@ -4868,6 +4876,27 @@ loadClientList();
 renderHome();
 renderStars();
 document.getElementById('home-date').textContent=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+
+// ── App 開啟時靜默恢復 Google Drive 連線 ──
+// 不需要進入設定頁，背景自動執行
+(function gdriveStartup(){
+  const everAuthed = localStorage.getItem('_gdrive_ever_authed') === '1';
+  const savedToken = localStorage.getItem('_gdrive_token');
+  const savedExp   = parseInt(localStorage.getItem('_gdrive_token_exp') || '0');
+  if(!everAuthed) return; // 從未授權，不做任何事
+  if(savedToken && Date.now() < savedExp - 30000){
+    // Token 還有效，直接設定
+    _gdriveToken = savedToken;
+    _gdriveFileId = localStorage.getItem('_gdrive_file_id') || null;
+    _gdriveAutoBackup = localStorage.getItem('_gdrive_auto') === '1';
+    // 不更新 UI（設定頁還沒開）
+  } else {
+    // Token 過期，靜默在背景刷新
+    _gdriveFileId = localStorage.getItem('_gdrive_file_id') || null;
+    _gdriveAutoBackup = localStorage.getItem('_gdrive_auto') === '1';
+    gdriveSilentRefresh(0);
+  }
+})();
 
 // Event delegation for student card buttons
 document.getElementById('nb-list').addEventListener('click',function(e){
