@@ -184,12 +184,27 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
   <div class="home-body">
     <div class="h-title" style="font-family:'DM Mono',monospace;font-size:19px;letter-spacing:.14em;font-weight:500">COACH TOOL</div>
     <div class="h-sub" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text3)">Assess · Diet · Training · History</div>
+    <!-- 備份警示橫幅 -->
+    <div id="backup-alert" style="display:none;margin-bottom:10px;border-radius:4px;overflow:hidden">
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.4rem">
       <button class="new-btn" style="margin-bottom:0;background:var(--acc)" onclick="openNewClientModal()">＋ 新增客戶</button>
       <button class="new-btn" style="margin-bottom:0;background:var(--bg3);color:var(--acc);border:1px solid var(--border2);font-size:13px" onclick="openBackupScreen()">設定</button>
     </div>
-    <div class="sec-lbl">所有學員</div>
-    <div id="nb-list"></div>
+  <!-- 搜尋框 -->
+  <div style="position:relative;margin:4px 0 4px">
+    <input id="student-search" type="text" placeholder="🔍  搜尋學員姓名..."
+      style="width:100%;box-sizing:border-box;padding:10px 36px 10px 12px;
+             border:1px solid var(--border2);border-radius:4px;
+             background:var(--bg2);color:var(--text);font-size:14px;
+             font-family:'Noto Sans TC',sans-serif;outline:none;-webkit-appearance:none"
+      oninput="filterStudents(this.value)">
+    <span id="student-search-clear" onclick="clearStudentSearch()"
+      style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);
+             color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:4px">×</span>
+  </div>
+  <div class="sec-lbl" id="student-count-label" style="margin-top:6px">所有學員</div>
+  <div id="nb-list"></div>
   </div>
 </div>
 
@@ -1208,7 +1223,146 @@ document.getElementById('home-date').textContent=new Date().toLocaleDateString('
 // 記錄展開狀態
 const expandedStudents=new Set();
 
+// ── 首頁學員搜尋 ──
+let _studentSearchQuery = '';
+
+// ══════════════════════════════════════════
+// ── 備份警示系統 ──
+// ══════════════════════════════════════════
+
+const BACKUP_WARN_DAYS = 3;    // 超過幾天沒備份就警告
+const BACKUP_DANGER_DAYS = 7;  // 超過幾天沒備份就緊急警告
+
+function checkBackupAlert(){
+  const el = document.getElementById('backup-alert');
+  if(!el) return;
+
+  const lastBackupISO = localStorage.getItem('_gdrive_last_backup');
+  const everAuthed    = localStorage.getItem('_gdrive_ever_authed') === '1';
+  const lastFailFlag  = localStorage.getItem('_gdrive_last_fail');
+  const hasData       = clientList.length > 0;
+
+  if(!hasData){ el.style.display='none'; return; }
+
+  // 情況1：從未備份過（有資料但完全沒備份記錄）
+  if(!lastBackupISO && !everAuthed){
+    el.style.display = 'block';
+    el.innerHTML = makeAlert('danger',
+      '⚠️ 尚未設定雲端備份',
+      '你的資料只存在這台裝置，刪除 App 後將永久消失。',
+      '立即設定 Google Drive 備份',
+      'openBackupScreen()'
+    );
+    return;
+  }
+
+  // 情況2：上次備份失敗
+  if(lastFailFlag === '1'){
+    el.style.display = 'block';
+    el.innerHTML = makeAlert('warn',
+      '⚡ 上次備份失敗',
+      '請確認網路連線，並手動備份一次。',
+      '前往備份',
+      'openBackupScreen()'
+    );
+    return;
+  }
+
+  // 情況3：超過 N 天沒備份
+  if(lastBackupISO){
+    const daysSince = (Date.now() - new Date(lastBackupISO).getTime()) / 86400000;
+    if(daysSince >= BACKUP_DANGER_DAYS){
+      el.style.display = 'block';
+      el.innerHTML = makeAlert('danger',
+        `⚠️ 已 ${Math.floor(daysSince)} 天沒有備份`,
+        '資料可能有風險，請立即備份。',
+        '立即備份',
+        'quickBackupFromHome()'
+      );
+      return;
+    }
+    if(daysSince >= BACKUP_WARN_DAYS){
+      el.style.display = 'block';
+      el.innerHTML = makeAlert('warn',
+        `💾 ${Math.floor(daysSince)} 天沒有備份`,
+        '建議定期備份，避免資料遺失。',
+        '立即備份',
+        'quickBackupFromHome()'
+      );
+      return;
+    }
+  }
+
+  // 一切正常，不顯示
+  el.style.display = 'none';
+}
+
+function makeAlert(type, title, desc, btnText, btnAction){
+  const colors = {
+    danger: { bg:'var(--red-bg,#F8EFED)', border:'#C4998F', title:'var(--red)', btn:'#8B3A2E', btnText:'#fff' },
+    warn:   { bg:'var(--amber-bg,#FDF6E7)', border:'var(--amber-bd,#C4A055)', title:'var(--amber)', btn:'var(--amber)', btnText:'#fff' },
+  };
+  const c = colors[type] || colors.warn;
+  return `<div style="background:${c.bg};border:1px solid ${c.border};border-radius:4px;padding:10px 12px">
+    <div style="font-size:13px;font-weight:600;color:${c.title};font-family:'Noto Sans TC',sans-serif;margin-bottom:3px">${title}</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:8px">${desc}</div>
+    <button onclick="${btnAction}" style="padding:7px 14px;border-radius:3px;background:${c.btn};color:${c.btnText};border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif">${btnText}</button>
+    <span onclick="this.parentElement.parentElement.style.display='none'" style="float:right;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:4px">×</span>
+  </div>`;
+}
+
+async function quickBackupFromHome(){
+  // 從首頁直接觸發備份，不用進設定頁
+  if(!_gdriveToken){
+    // token 沒準備好，等一下
+    let waited = 0;
+    while(!_gdriveToken && waited < 6000){
+      await new Promise(r=>setTimeout(r,400));
+      waited += 400;
+    }
+  }
+  if(!_gdriveToken){
+    alert('無法連接 Google Drive\n請進入「設定」重新連結後再備份。');
+    return;
+  }
+  const ok = await gdriveSaveBackup(false);
+  if(ok){
+    localStorage.removeItem('_gdrive_last_fail');
+    checkBackupAlert(); // 更新橫幅
+  }
+}
+
+function filterStudents(q){
+  _studentSearchQuery = q.trim();
+  const clearBtn = document.getElementById('student-search-clear');
+  if(clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+  const label = document.getElementById('student-count-label');
+  renderHome();
+  checkBackupAlert();
+  // 搜尋後更新 label
+  if(label){
+    if(_studentSearchQuery){
+      const count = document.querySelectorAll('#nb-list .nb-card').length;
+      label.textContent = `搜尋結果（${count} 人）`;
+    } else {
+      label.textContent = '所有學員';
+    }
+  }
+}
+
+function clearStudentSearch(){
+  _studentSearchQuery = '';
+  const inp = document.getElementById('student-search');
+  if(inp) inp.value = '';
+  const clearBtn = document.getElementById('student-search-clear');
+  if(clearBtn) clearBtn.style.display = 'none';
+  const label = document.getElementById('student-count-label');
+  if(label) label.textContent = '所有學員';
+  renderHome();
+}
+
 function renderHome(){
+  checkBackupAlert();
   const list=document.getElementById('nb-list');
   if(!notebooks.length&&!Object.keys(dietData).length&&!clientList.length){
     list.innerHTML='<div class="empty">還沒有任何客戶<br>點上方「新增客戶」開始</div>';return;
@@ -1227,7 +1381,19 @@ function renderHome(){
     return bLast-aLast;
   });
 
-  students.forEach(student=>{
+  // 搜尋過濾
+  const filteredStudents = _studentSearchQuery
+    ? students.filter(s=>s.toLowerCase().includes(_studentSearchQuery.toLowerCase()))
+    : students;
+
+  if(filteredStudents.length===0 && _studentSearchQuery){
+    const empty=document.createElement('div');
+    empty.style.cssText='text-align:center;padding:32px 0;color:var(--text3);font-size:13px;font-family:"Noto Sans TC",sans-serif';
+    empty.textContent=`找不到「${_studentSearchQuery}」`;
+    list.appendChild(empty);
+  }
+
+  filteredStudents.forEach(student=>{
     const nbs=notebooks.filter(n=>(n.student||'').trim()===student);
     const sessions=nbs.filter(n=>!n.isAssess);
     const assessments=nbs.filter(n=>n.isAssess);
@@ -1236,6 +1402,7 @@ function renderHome(){
     const doneCount=sessions.filter(n=>n.done).length;
 
     const card=document.createElement('div');
+    card.className='nb-card';
     card.style.cssText='background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.9rem 1rem;margin-bottom:10px';
     card.innerHTML=`
       <!-- 學員名稱列 -->
@@ -1734,7 +1901,10 @@ async function gdriveSaveBackup(silent = false){
       body
     });
 
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    if(!resp.ok){
+      localStorage.setItem('_gdrive_last_fail','1');
+      throw new Error('HTTP ' + resp.status);
+    }
     const result = await resp.json();
     _gdriveFileId = result.id;
     localStorage.setItem('_gdrive_file_id', result.id);
@@ -1744,6 +1914,8 @@ async function gdriveSaveBackup(silent = false){
     const dateStr = now.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
     // 記錄最後備份時間
     localStorage.setItem('_gdrive_last_backup', now.toISOString());
+    localStorage.removeItem('_gdrive_last_fail'); // 清除失敗標記
+    checkBackupAlert(); // 立即更新首頁橫幅
     if(!silent){
       gdriveLog(`✓ 備份成功 ${dateStr} ${time}`, 'ok');
       // 更新狀態列顯示最後備份時間
@@ -1811,8 +1983,26 @@ function gdriveToggleAuto(enabled){
 
 // ── 自動備份觸發（在 saveAndHome 完成課程時呼叫）──
 async function gdriveAutoBackupIfEnabled(){
-  if(!_gdriveAutoBackup || !_gdriveToken) return;
-  await gdriveSaveBackup(true); // silent=true
+  if(!_gdriveAutoBackup) return;
+  // 如果 token 還沒準備好，但曾經授權過 → 等 token 刷新完再備份
+  if(!_gdriveToken){
+    const everAuthed = localStorage.getItem('_gdrive_ever_authed') === '1';
+    if(!everAuthed) return;
+    // 等待最多 8 秒讓靜默刷新完成
+    let waited = 0;
+    while(!_gdriveToken && waited < 8000){
+      await new Promise(r=>setTimeout(r,400));
+      waited += 400;
+    }
+    if(!_gdriveToken){
+      // 等不到 token → 標記失敗，讓首頁顯示警示
+      localStorage.setItem('_gdrive_last_fail','1');
+      checkBackupAlert();
+      return;
+    }
+  }
+  const backupOk = await gdriveSaveBackup(true);
+  if(!backupOk) localStorage.setItem('_gdrive_last_fail','1');
 }
 
 // ── 建立備份 JSON（從 exportBackup 邏輯抽出來方便重用）──
