@@ -433,6 +433,27 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
   </div>
 </div>
 
+<!-- MODAL 設定堂數 -->
+<div class="modal-bg" id="modal-pkg" style="display:none">
+  <div class="modal">
+    <div class="modal-title">設定購買堂數</div>
+    <div class="modal-lbl" id="modal-pkg-student"></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px" id="modal-pkg-used"></div>
+    <input class="modal-inp" id="modal-pkg-input" type="text" inputmode="numeric" placeholder="累積購買總堂數">
+    <div style="display:flex;gap:6px;margin:4px 0 10px">
+      <button onclick="pkgQuickAdd(8)" style="flex:1;padding:8px 0;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">＋8</button>
+      <button onclick="pkgQuickAdd(10)" style="flex:1;padding:8px 0;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">＋10</button>
+      <button onclick="pkgQuickAdd(12)" style="flex:1;padding:8px 0;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">＋12</button>
+      <button onclick="pkgQuickAdd(24)" style="flex:1;padding:8px 0;border-radius:2px;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">＋24</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.7;margin-bottom:10px">此為「累積」總堂數：學員續約時直接按 ＋ 加上新方案堂數即可，剩餘堂數 ＝ 總堂數 − 已完成課程數。</div>
+    <div class="modal-row">
+      <button class="m-cancel" onclick="document.getElementById('modal-pkg').style.display='none'">取消</button>
+      <button class="m-ok" onclick="savePkg()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL 新增客戶 -->
 <div class="modal-bg" id="modal-new-client" style="display:none">
   <div class="modal">
@@ -961,7 +982,8 @@ function load(){
   notebooks.forEach(nb=>{
     (nb.exercises||[]).forEach(ex=>{
       // 清除異常 sets（次數>60 是備課預計值誤存）
-      if(ex.sets){
+      // 注意：秒數模式的 reps 欄位存的是秒數（90秒棒式很正常），不可套用此清理
+      if(ex.sets&&ex.weightMode!=='sec'){
         const cleaned=ex.sets.filter(s=>{const r=parseInt(s.reps)||0;return r===0||r<=60;});
         if(cleaned.length!==ex.sets.length){ex.sets=cleaned;migrated=true;}
         if(!ex.sets.length)ex.sets=[{sets:'',reps:'',weight:''}];
@@ -978,6 +1000,10 @@ function load(){
   persist();
 }
 function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(notebooks));}catch(e){alert('儲存失敗，瀏覽器空間可能不足');}}
+// ── 節流版儲存：連續輸入時延遲寫入，減少每個按鍵都完整序列化的成本 ──
+let _persistTimer=null;
+function persistSoon(){clearTimeout(_persistTimer);_persistTimer=setTimeout(()=>{_persistTimer=null;persist();},400);}
+function flushPersist(){if(_persistTimer){clearTimeout(_persistTimer);_persistTimer=null;}persist();}
 
 // ══════════════════════════════════════════
 // ── 歷史強度核心邏輯（完全重寫）──
@@ -1383,6 +1409,31 @@ function renderHome(){
     return bLast-aLast;
   });
 
+  // ── 待完成課程（備課中）：一鍵直接進入編輯 ──
+  if(!_studentSearchQuery){
+    const pending=notebooks.filter(n=>!n.isAssess&&!n.done).sort((a,b)=>(b.id||0)-(a.id||0));
+    if(pending.length){
+      const sec=document.createElement('div');
+      let pHtml=`<div class="sec-lbl">備課中 / 未完成課程</div>`;
+      pending.forEach(nb=>{
+        const st=(nb.student||'').trim();
+        pHtml+=`<div onclick="editSession(${nb.id})" style="background:var(--amber-bg);border:1px solid var(--amber-b);border-left:3px solid var(--amber);border-radius:3px;padding:.65rem .9rem;margin-bottom:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <span style="font-size:14px;font-weight:500;color:var(--text)">${st||'（未填學員）'}</span>
+            <span style="font-size:12px;color:var(--text2);margin-left:8px">${nb.name||nb.date||''}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:10px;color:var(--amber);font-family:'DM Mono',monospace">${nb.date||''}</span>
+            <span style="color:var(--text3)">›</span>
+          </div>
+        </div>`;
+      });
+      pHtml+=`<div style="height:10px"></div>`;
+      sec.innerHTML=pHtml;
+      list.appendChild(sec);
+    }
+  }
+
   // 搜尋過濾
   const filteredStudents = _studentSearchQuery
     ? students.filter(s=>s.toLowerCase().includes(_studentSearchQuery.toLowerCase()))
@@ -1400,8 +1451,12 @@ function renderHome(){
     const sessions=nbs.filter(n=>!n.isAssess);
     const assessments=nbs.filter(n=>n.isAssess);
     const dietEntries=(dietData[student]?.macros||[]);
-    const lastDate=sessions.sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id))[0]?.date||'';
+    const sortedSessions=sessions.sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id));
+    const lastDate=sortedSessions[0]?.date||'';
     const doneCount=sessions.filter(n=>n.done).length;
+    // 下次預約：取最近一堂「已完成」課填寫的下次預約（避免顯示過期資訊）
+    const _lastDone=sortedSessions.find(n=>n.done);
+    const nextBook=(_lastDone?.nextbook||'').trim();
 
     const card=document.createElement('div');
     card.className='nb-card';
@@ -1415,7 +1470,9 @@ function renderHome(){
             ${assessments.length?`<span style="font-size:11px;color:var(--amber)">${assessments.length} 評估</span>`:''}
             ${dietEntries.length?`<span style="font-size:11px;color:var(--green)">${dietEntries.length} 飲食</span>`:''}
             <span style="font-size:11px;color:var(--acc-light)">${doneCount} 堂</span>
+            ${pkgBadgeHtml(student)}
             ${lastDate?`<span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${lastDate}</span>`:''}
+            ${nextBook?`<span style="font-size:11px;color:var(--purple)">下次：${nextBook}</span>`:''}
           </div>
         </div>
         <span data-rename="${student.replace(/"/g,'&quot;')}" style="font-size:11px;color:var(--text3);cursor:pointer;padding:4px 8px;border:1px solid var(--border2);border-radius:2px;font-family:'Noto Sans TC',sans-serif;flex-shrink:0;margin-left:8px">改名</span>
@@ -1452,6 +1509,7 @@ function doRenameStudent(){
   // 更新所有資料
   notebooks.forEach(nb=>{if((nb.student||'').trim()===_renameOld) nb.student=newName;});
   if(dietData[_renameOld]){dietData[newName]=dietData[_renameOld];delete dietData[_renameOld];}
+  if(pkgData[_renameOld]!==undefined){pkgData[newName]=pkgData[_renameOld];delete pkgData[_renameOld];savePkgData();}
   clientList=clientList.map(s=>s===_renameOld?newName:s);
   if(curStudentName===_renameOld) curStudentName=newName;
   persist();saveDietData();saveClientList();
@@ -1482,9 +1540,41 @@ function deleteStudent(student){
   confirmDel(`確定刪除「${student}」？\n包含所有評估、飲食、課程記錄，無法復原。`,()=>{
     notebooks=notebooks.filter(n=>(n.student||'').trim()!==student);
     delete dietData[student];
+    delete pkgData[student];
     clientList=clientList.filter(s=>s!==student);
-    persist();saveDietData();saveClientList();renderHome();
+    persist();saveDietData();saveClientList();savePkgData();renderHome();
   });
+}
+
+// ── 堂數方案設定 ──
+function openPkgModal(){
+  const m=document.getElementById('modal-pkg');
+  if(!m) return;
+  document.getElementById('modal-pkg-student').textContent=curStudentName;
+  const used=getDoneCount(curStudentName);
+  document.getElementById('modal-pkg-used').textContent='此學員已完成 '+used+' 堂課程';
+  document.getElementById('modal-pkg-input').value=pkgData[curStudentName]||'';
+  m.style.display='flex';
+  setTimeout(()=>document.getElementById('modal-pkg-input')?.focus(),100);
+}
+function pkgQuickAdd(n){
+  const inp=document.getElementById('modal-pkg-input');
+  if(!inp) return;
+  inp.value=(parseInt(inp.value)||0)+n;
+}
+function savePkg(){
+  const val=parseInt(document.getElementById('modal-pkg-input')?.value)||0;
+  if(val<0){alert('堂數不可為負數');return;}
+  if(val===0) delete pkgData[curStudentName];
+  else pkgData[curStudentName]=val;
+  savePkgData();
+  document.getElementById('modal-pkg').style.display='none';
+  renderStudentSessions();
+  const sub=document.getElementById('student-sub');
+  if(sub){
+    const p=getPkgRemaining(curStudentName);
+    sub.textContent=getDoneCount(curStudentName)+' 堂課程'+(p?('　·　剩餘 '+p.remain+' 堂'):'');
+  }
 }
 
 function quickAssess(student){
@@ -1587,6 +1677,27 @@ function saveDietData(){try{localStorage.setItem('tlog_diet',JSON.stringify(diet
 let clientList=[];
 function loadClientList(){try{clientList=JSON.parse(localStorage.getItem('tlog_clients')||'[]')}catch(e){clientList=[];}}
 function saveClientList(){try{localStorage.setItem('tlog_clients',JSON.stringify(clientList))}catch(e){}}
+
+// 堂數方案（累積購買總堂數，續約時往上加）
+let pkgData={};
+function loadPkgData(){try{pkgData=JSON.parse(localStorage.getItem('tlog_pkg')||'{}')}catch(e){pkgData={};}}
+function savePkgData(){try{localStorage.setItem('tlog_pkg',JSON.stringify(pkgData))}catch(e){}}
+function getDoneCount(student){
+  return notebooks.filter(n=>!n.isAssess&&n.done&&(n.student||'').trim()===student).length;
+}
+function getPkgRemaining(student){
+  const total=parseInt(pkgData[student])||0;
+  if(!total) return null; // 未設定堂數 → 不顯示
+  return {total, used:getDoneCount(student), remain:total-getDoneCount(student)};
+}
+// 首頁卡片用的餘堂徽章
+function pkgBadgeHtml(student){
+  const p=getPkgRemaining(student);
+  if(!p) return '';
+  if(p.remain<=0) return `<span style="font-size:11px;color:var(--red);font-weight:500">⚠ 堂數已用完</span>`;
+  if(p.remain<=2) return `<span style="font-size:11px;color:var(--red);font-weight:500">⚠ 餘 ${p.remain} 堂</span>`;
+  return `<span style="font-size:11px;color:var(--green)">餘 ${p.remain} 堂</span>`;
+}
 
 // ══════════════════════════════════════════
 
@@ -2015,7 +2126,7 @@ function buildBackupJson(){
   const backup={
     version:'coach-tool-v1',
     exportDate:new Date().toISOString(),
-    notebooks,dietData,clientList,
+    notebooks,dietData,clientList,pkgData,
     customExercises:_savedCustomEx,
     strengthSummary:{}
   };
@@ -2186,6 +2297,14 @@ function importBackup(){
     if(Array.isArray(data.clientList)){
       data.clientList.forEach(s=>{if(s&&!clientList.includes(s)) clientList.push(s);});
       saveClientList();
+    }
+    // 合併堂數方案（取較大值，避免舊備份蓋掉最新續約）
+    if(data.pkgData&&typeof data.pkgData==='object'){
+      Object.keys(data.pkgData).forEach(s=>{
+        const v=parseInt(data.pkgData[s])||0;
+        if(v>0) pkgData[s]=Math.max(parseInt(pkgData[s])||0,v);
+      });
+      savePkgData();
     }
     // 匯入自訂動作庫
     if(Array.isArray(data.customExercises)){
@@ -2517,19 +2636,20 @@ function updatePlanRow(ei,pi,field,val){
   if(!curNB.exercises[ei].planRows) curNB.exercises[ei].planRows=[{sets:'',reps:'',kg:''}];
   if(!curNB.exercises[ei].planRows[pi]) curNB.exercises[ei].planRows[pi]={sets:'',reps:'',kg:''};
   curNB.exercises[ei].planRows[pi][field]=val;
-  persist();
+  persistSoon();
 }
 
 function addPlanRow(ei){
   if(!curNB?.exercises?.[ei]) return;
   if(!curNB.exercises[ei].planRows) curNB.exercises[ei].planRows=[{sets:'',reps:'',kg:''}];
-  curNB.exercises[ei].planRows.push({sets:'',reps:'',kg:''});
+  const _prev=curNB.exercises[ei].planRows[curNB.exercises[ei].planRows.length-1]||{};
+  curNB.exercises[ei].planRows.push({sets:_prev.sets||'',reps:_prev.reps||'',kg:_prev.kg||''});
   persist();renderPlanLog();
 }
 
 function updateExNote(ei,val){
   if(!curNB?.exercises?.[ei]) return;
-  curNB.exercises[ei].note=val;persist();
+  curNB.exercises[ei].note=val;persistSoon();
 }
 
 // ══════════════════════════════════════════
@@ -2833,11 +2953,11 @@ function setWeightMode(ei,mode){
 
 function updateSet(ei,si,field,val){
   if(!curNB?.exercises?.[ei]) return;
-  if(si===-1){curNB.exercises[ei].classNote=val;persist();return;}
+  if(si===-1){curNB.exercises[ei].classNote=val;persistSoon();return;}
   if(!curNB.exercises[ei].sets) curNB.exercises[ei].sets=[{sets:'',reps:'',weight:''}];
   if(!curNB.exercises[ei].sets[si]) curNB.exercises[ei].sets[si]={sets:'',reps:'',weight:''};
   curNB.exercises[ei].sets[si][field]=val;
-  persist();
+  persistSoon();
   // ── 修正4：即時建議 ──
   const student=(curNB.student||'').trim();
   const ex=curNB.exercises[ei];
@@ -2902,7 +3022,9 @@ function updateSet(ei,si,field,val){
 function addSet(ei){
   if(!curNB?.exercises?.[ei]) return;
   if(!curNB.exercises[ei].sets) curNB.exercises[ei].sets=[];
-  curNB.exercises[ei].sets.push({sets:'',reps:'',weight:''});
+  // 新增組直接複製上一組數值（同重量多組是常態，改一個數字比重打三個快）
+  const _prev=curNB.exercises[ei].sets[curNB.exercises[ei].sets.length-1]||{};
+  curNB.exercises[ei].sets.push({sets:_prev.sets||'',reps:_prev.reps||'',weight:_prev.weight||''});
   persist();renderClassLog();
 }
 
@@ -3118,6 +3240,29 @@ function collectEditorData(){
   persist();
 }
 
+// ── 自動儲存：編輯器內任何輸入或點擊後自動收集存檔 ──
+// 避免上課途中切換 App / 瀏覽器重整時，評分、chips、文字欄位遺失
+let _autoSaveTimer=null;
+function scheduleAutoSave(){
+  if(!curNB) return;
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(()=>{_autoSaveTimer=null;if(curNB) collectEditorData();},800);
+}
+(function(){
+  const ed=document.getElementById('s-editor');
+  if(!ed) return;
+  ed.addEventListener('input',scheduleAutoSave);
+  ed.addEventListener('click',scheduleAutoSave);
+})();
+// 切到背景 / 關閉頁面時：立即把編輯中資料與待寫入內容全部存檔
+function flushAutoSave(){
+  clearTimeout(_autoSaveTimer);_autoSaveTimer=null;
+  if(curNB) collectEditorData();
+  flushPersist();
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden) flushAutoSave();});
+window.addEventListener('pagehide',flushAutoSave);
+
 function onStudentChange(){
   if(curNB){curNB.student=document.getElementById('f-student').value.trim();persist();}
   renderPlanLog();
@@ -3207,7 +3352,50 @@ function renderLastSessionRef(){
     ${rows}
     ${last.good?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:10px;color:var(--green)">★ ${last.good}</div>`:''}
     ${last.planNote?`<div style="margin-top:4px;font-size:10px;color:var(--text3);font-style:italic">備課：${last.planNote}</div>`:''}
+    <button onclick="importLastPlan()" style="width:100%;margin-top:8px;padding:9px;border-radius:2px;background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-light);font-size:12px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif;letter-spacing:.06em">⤵ 帶入此課表（動作＋上次實際重量）</button>
   </div>`;
+}
+
+// ── 一鍵帶入上次課表：動作、上次實際組數（當作今天的計畫起點）、備課備註 ──
+function importLastPlan(){
+  if(!curNB) return;
+  const student=(curNB.student||document.getElementById('f-student')?.value||'').trim();
+  if(!student){alert('請先填寫學員姓名');return;}
+  const last=notebooks
+    .filter(n=>!n.isAssess&&n.done&&(n.student||'').trim()===student&&n.id!==curNB.id)
+    .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id))[0];
+  if(!last||!(last.exercises||[]).length){alert('找不到上次課表');return;}
+  if((curNB.exercises||[]).length){
+    if(!confirm('目前已加入 '+curNB.exercises.length+' 個動作，帶入會覆蓋現有清單，確定？')) return;
+  }
+  curNB.exercises=(last.exercises||[]).map(ex=>{
+    const wMode=ex.weightMode||'kg';
+    // 優先用上次「實際完成」的組數當今天的計畫；沒有實際紀錄才退回上次的計畫
+    const validSets=(ex.sets||[]).filter(s=>{
+      const r=parseInt(s.reps)||0;
+      const kg=parseFloat(s.weight)||0;
+      return r>0&&(kg>1||s.weight==='BW'||(wMode==='sec'&&r>0));
+    });
+    let planRows;
+    if(validSets.length){
+      planRows=validSets.map(s=>({sets:s.sets||'',reps:s.reps||'',kg:s.weight||''}));
+    } else if((ex.planRows||[]).some(pr=>pr.sets||pr.reps||pr.kg)){
+      planRows=ex.planRows.map(pr=>({sets:pr.sets||'',reps:pr.reps||'',kg:pr.kg||''}));
+    } else {
+      planRows=[{sets:'',reps:'',kg:''}];
+    }
+    return {name:ex.name, weightMode:wMode, note:ex.note||'', planRows, sets:[{sets:'',reps:'',weight:''}]};
+  });
+  // 訓練類型一併帶入
+  if(last.type&&!curNB.type){
+    curNB.type=last.type;
+    document.querySelectorAll('#g-type .chip').forEach(c=>{
+      c.classList.toggle('sel',(last.type||'').includes(c.textContent.trim()));
+    });
+  }
+  persist();
+  renderPlanLog();
+  renderExList();
 }
 
 function saveAndHome(){
@@ -3226,7 +3414,8 @@ function saveAndHome(){
     curStudentName=s;
     document.getElementById('student-title').textContent=s;
     const sessions=notebooks.filter(n=>!n.isAssess&&(n.student||'').trim()===s);
-    document.getElementById('student-sub').textContent=sessions.filter(n=>n.done).length+' 堂課程';
+    const _p2=getPkgRemaining(s);
+    document.getElementById('student-sub').textContent=sessions.filter(n=>n.done).length+' 堂課程'+(_p2?('　·　剩餘 '+_p2.remain+' 堂'):'');
     switchStudentTab('sessions');
     show('s-student');
   } else {
@@ -3290,7 +3479,8 @@ function openStudent(student){
   curStudentName=student;
   document.getElementById('student-title').textContent=student;
   const sessions=notebooks.filter(n=>!n.isAssess&&(n.student||'').trim()===student);
-  document.getElementById('student-sub').textContent=sessions.filter(n=>n.done).length+' 堂課程';
+  const _p=getPkgRemaining(student);
+  document.getElementById('student-sub').textContent=sessions.filter(n=>n.done).length+' 堂課程'+(_p?('　·　剩餘 '+_p.remain+' 堂'):'');
   switchStudentTab('assess');
   show('s-student');
 }
@@ -3850,7 +4040,22 @@ function renderStudentSessions(){
   const sessions=notebooks.filter(n=>!n.isAssess&&(n.student||'').trim()===curStudentName)
     .sort((a,b)=>(b.completedAt||b.id)-(a.completedAt||a.id));
   const sn=curStudentName.replace(/'/g,"\\'");
-  let html=`<div style="margin-bottom:8px"><button onclick="quickSession('${sn}')" style="width:100%;padding:10px;border-radius:4px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">新增課程</button></div>`;
+  // ── 堂數方案列 ──
+  const _pkg=getPkgRemaining(curStudentName);
+  let pkgHtml='';
+  if(_pkg){
+    const warn=_pkg.remain<=2;
+    pkgHtml=`<div style="display:flex;align-items:center;justify-content:space-between;background:${warn?'var(--red-bg)':'var(--bg2)'};border:1px solid ${warn?'var(--red-b)':'var(--border)'};border-radius:4px;padding:9px 12px;margin-bottom:8px">
+      <div style="font-size:12px;color:var(--text2)">已購 <strong style="color:var(--text)">${_pkg.total}</strong> 堂 · 已上 <strong style="color:var(--text)">${_pkg.used}</strong> 堂 · 剩餘 <strong style="color:${warn?'var(--red)':'var(--green)'};font-size:14px">${_pkg.remain}</strong> 堂${warn?'　<span style="color:var(--red);font-size:11px">該提醒續約了</span>':''}</div>
+      <span onclick="openPkgModal()" style="font-size:11px;color:var(--acc-light);cursor:pointer;padding:4px 10px;border:1px solid var(--border2);border-radius:2px;background:var(--bg3);flex-shrink:0">設定</span>
+    </div>`;
+  } else {
+    pkgHtml=`<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px dashed var(--border2);border-radius:4px;padding:9px 12px;margin-bottom:8px">
+      <div style="font-size:12px;color:var(--text3)">尚未設定購買堂數（設定後可追蹤剩餘堂數、提醒續約）</div>
+      <span onclick="openPkgModal()" style="font-size:11px;color:var(--acc-light);cursor:pointer;padding:4px 10px;border:1px solid var(--border2);border-radius:2px;background:var(--bg3);flex-shrink:0">設定</span>
+    </div>`;
+  }
+  let html=pkgHtml+`<div style="margin-bottom:8px"><button onclick="quickSession('${sn}')" style="width:100%;padding:10px;border-radius:4px;background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--acc);cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:13px">新增課程</button></div>`;
   if(!sessions.length){html+='<div style="text-align:center;padding:2rem;color:var(--text3);font-size:13px">尚無課程記錄</div>';el.innerHTML=html;return;}
   sessions.forEach(nb=>{
     const exNames=(nb.exercises||[]).map(e=>e.name.split('（')[0]).join('、');
@@ -5107,6 +5312,7 @@ function saveAssessEdit(){saveAssess();}
 load();
 loadDietData();
 loadClientList();
+loadPkgData();
 renderHome();
 renderStars();
 document.getElementById('home-date').textContent=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
