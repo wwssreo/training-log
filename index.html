@@ -282,6 +282,8 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
 
     <!-- 上課 -->
     <div class="tc" id="tc-class">
+      <!-- 備課提醒（動態插入） -->
+      <div id="class-plan-reminder" style="display:none"></div>
       <div class="card">
         <div class="flabel">今日狀態</div>
         <div class="star-row" id="star-row"></div>
@@ -2270,12 +2272,16 @@ function switchTab(name){
           if(!hasRealSets){
             ex.sets=ex.planRows.map(pr=>({sets:pr.sets||'',reps:pr.reps||'',weight:pr.kg||''}));
           }
-          // 備課備註同步到上課（若上課備註為空）
-          if(!ex.classNote&&ex.note) ex.classNote=ex.note;
         }
       });
       persist();
     }
+    // 即時同步整體備課備註（未按儲存前也能顯示最新內容）
+    if(curNB){
+      const _pn=document.getElementById('plan-note');
+      if(_pn) curNB.planNote=_pn.value;
+    }
+    renderClassPlanReminder();
     renderClassLog();
   }
   if(name==='report') renderReport();
@@ -2527,6 +2533,22 @@ function updateExNote(ei,val){
 }
 
 // ══════════════════════════════════════════
+// ── 上課頁：備課提醒（顯示備課紀錄，提醒教練注意事項）──
+// ══════════════════════════════════════════
+function escPlanTxt(t){return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function renderClassPlanReminder(){
+  const box=document.getElementById('class-plan-reminder');
+  if(!box)return;
+  const note=(curNB?.planNote||'').trim();
+  if(!note){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='block';
+  box.innerHTML=`<div class="card" style="background:var(--amber-bg);border:1px solid var(--amber-b)">
+    <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--amber);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">備課提醒</div>
+    <div style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap">${escPlanTxt(note)}</div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
 // ── 上課頁：實際訓練記錄 ──
 // ══════════════════════════════════════════
 function renderClassLog(){
@@ -2585,6 +2607,27 @@ function renderClassLog(){
       let _bestKg=0,_bestR=0;
       lifetimeBest.forEach((kg,r)=>{if(kg>_bestKg||(kg===_bestKg&&r>_bestR)){_bestKg=kg;_bestR=r;}});
       histHtml=`<div class="wlog-hist">歷史最高：<strong style="color:var(--purple)">${_bestR}下→${_bestKg}kg</strong></div>`;
+    }
+
+    // ── 備課提醒（計畫組數 + 備課備註，唯讀顯示）──
+    let planHtml='';
+    const _plMode=ex.weightMode||'kg';
+    const planParts=(ex.planRows||[]).filter(pr=>parseInt(pr.sets)||parseInt(pr.reps)||parseFloat(pr.kg)||pr.kg==='BW').map(pr=>{
+      const g=parseInt(pr.sets)||0,r=parseInt(pr.reps)||0;
+      const kg=pr.kg==='BW'?'BW':(parseFloat(pr.kg)||0);
+      const seg=[];
+      if(g)seg.push(g+'組');
+      if(r)seg.push(_plMode==='sec'?r+'秒':r+'下');
+      if(kg==='BW')seg.push('BW');else if(_plMode!=='sec'&&kg>0)seg.push(kg+'kg');
+      return seg.join('×');
+    }).filter(Boolean);
+    const prepNoteTxt=(ex.note||'').trim();
+    if(planParts.length||prepNoteTxt){
+      planHtml=`<div class="wlog-hist" style="border-color:var(--amber-b);background:var(--amber-bg)">
+        <span style="color:var(--amber);font-weight:500;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.1em">備課</span>
+        ${planParts.length?`<span style="color:var(--text2);margin-left:6px">計畫：${planParts.join(' / ')}</span>`:''}
+        ${prepNoteTxt?`<div style="color:var(--amber);font-weight:500;margin-top:2px;white-space:pre-wrap">${escPlanTxt(prepNoteTxt)}</div>`:''}
+      </div>`;
     }
 
     // ── 進步徽章：PR判斷 + 訓練量比較（持平/進步/退步）──
@@ -2693,6 +2736,7 @@ function renderClassLog(){
           <span class="wlog-del" onclick="removeExFromClass(${ei})">✕</span>
         </div>
       </div>
+      ${planHtml}
       ${histHtml}
       ${modeBtns}
       ${setRowsHtml}
