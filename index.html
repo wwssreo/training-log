@@ -159,6 +159,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
 .set-label{text-align:center}
 .set-row{display:grid;grid-template-columns:24px 1fr 1fr 1fr 28px;gap:5px;margin-bottom:5px;align-items:center}
 .set-num{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center}
+.exp-opt{display:block;width:100%;text-align:left;padding:13px 14px;margin-bottom:8px;border:1px solid var(--border2);border-radius:3px;background:var(--bg3);cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.exp-opt b{display:block;font-size:15px;color:var(--text);font-weight:500;margin-bottom:3px}
+.exp-opt span{display:block;font-size:12px;color:var(--text3)}
+.exp-opt:active{background:var(--bg4)}
 .cbtn{width:100%;margin-top:10px;padding:13px;border-radius:3px;background:var(--acc);color:#FAF9F7;border:none;font-size:15px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif;letter-spacing:.06em}
 .cbtn:active{opacity:.85}
 .hint{font-size:11px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.6}
@@ -536,7 +540,7 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
       <div class="ed-title" id="student-title">學員</div>
       <div class="ed-sub" id="student-sub"></div>
     </div>
-    <button class="save-btn" style="background:var(--purple);color:#fff;padding:8px 12px;font-size:13px" onclick="exportStudent()">匯出</button>
+    <button class="save-btn" style="background:var(--purple);color:#fff;padding:8px 12px;font-size:13px" onclick="openExportMenu()">匯出</button>
   </div>
   <div style="padding:0 1.2rem 5rem;margin-top:.6rem">
     <div class="tabs" id="student-tabs">
@@ -4298,6 +4302,61 @@ function updateDietPlan(ts){
   saveDietData();alert('✅ 已更新');
   editingDietTs=null;
   backToStudent();switchStudentTab('diet');
+}
+
+// ── 匯出選單：完整資料 / 只列學會的動作 ──
+function openExportMenu(){
+  let m=document.getElementById('modal-export');
+  if(!m){
+    m=document.createElement('div');
+    m.id='modal-export';m.className='modal-bg';
+    m.innerHTML=`<div class="modal" style="max-width:400px">
+      <div class="modal-title">匯出 <span id="export-who" style="font-weight:400;color:var(--text3);font-size:13px"></span></div>
+      <button class="exp-opt" onclick="closeExportMenu();exportLearnedExercises()">
+        <b>學會的動作</b><span>只列動作名稱（中文＋英文），不含重量</span>
+      </button>
+      <button class="exp-opt" onclick="closeExportMenu();exportStudent()">
+        <b>完整資料</b><span>評估、飲食紀錄、各動作最高重量</span>
+      </button>
+      <div class="modal-row"><button class="m-cancel" onclick="closeExportMenu()">取消</button></div>
+    </div>`;
+    m.addEventListener('click',e=>{if(e.target===m) closeExportMenu();});
+    document.body.appendChild(m);
+  }
+  document.getElementById('export-who').textContent=curStudentName||'';
+  m.style.display='flex';
+}
+function closeExportMenu(){const m=document.getElementById('modal-export');if(m)m.style.display='none';}
+
+// 「English（中文）」→ 中文名稱、英文名稱
+function splitExName(name){
+  const i=name.indexOf('（');
+  if(i<0) return {zh:'',en:name.trim()};
+  return {zh:name.slice(i+1).replace(/）\s*$/,'').trim(),en:name.slice(0,i).trim()};
+}
+function exportLearnedExercises(){
+  const student=curStudentName;
+  const learned=learnedMap(student);
+  if(!learned.size){alert(student+' 還沒有完成過的課程動作');return;}
+  // 依動作庫分類排列，動作庫裡沒有的放「其他」
+  const groups=new Map();
+  Object.keys(EX).forEach(cat=>groups.set(cat,[]));
+  const placed=new Set();
+  Object.entries(EX).forEach(([cat,arr])=>arr.forEach(n=>{
+    if(learned.has(n)&&!placed.has(n)){groups.get(cat).push(n);placed.add(n);}
+  }));
+  const other=[...learned.keys()].filter(n=>!placed.has(n));
+  if(other.length) groups.set('其他',other);
+  let text=`[ 學會的動作 ] ${student}\n共 ${learned.size} 個動作\n${'═'.repeat(18)}\n`;
+  groups.forEach((arr,cat)=>{
+    if(!arr.length) return;
+    text+=`\n＿${cat}（${arr.length}）\n`;
+    arr.forEach(n=>{
+      const {zh,en}=splitExName(n);
+      text+=zh?`・${zh}　${en}\n`:`・${en}\n`;
+    });
+  });
+  showReport('學會的動作', student+' · 共 '+learned.size+' 個', text.trim(), 'sessions');
 }
 
 function exportStudent(){
