@@ -420,8 +420,11 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
     <div class="tc" id="tc-report">
       <div style="margin:0 0 .6rem;font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase">預覽報告</div>
       <div class="pbox" id="preview" style="white-space:pre-wrap;line-height:1.8"></div>
-      <button class="cbtn" id="copybtn" onclick="doCopy()">複製 Line 訊息</button>
-      <p class="hint">複製後直接貼到 Line 傳給學員</p>
+      <div style="display:flex;gap:8px">
+        <button class="cbtn" onclick="openCardPreview('report')" style="flex:1;background:var(--green)">產出圖片</button>
+        <button class="cbtn" id="copybtn" onclick="doCopy()" style="flex:1">複製文字</button>
+      </div>
+      <p class="hint">圖片適合傳給學員看；文字可以貼到 LINE 或備忘錄</p>
       <div style="height:2rem"></div>
     </div>
   </div>
@@ -4304,6 +4307,344 @@ function updateDietPlan(ts){
   backToStudent();switchStudentTab('diet');
 }
 
+
+// ══════════════════════════════════════════
+// ── 圖片卡片（學會的動作 / 課程報告）──
+// 用 canvas 畫成 1080 寬的圖片，可直接分享到 LINE 或存到相簿
+// ══════════════════════════════════════════
+const CARD = {
+  W:1080, PAD:72,
+  bg:'#F2EEE7', paper:'#FBF9F5', ink:'#1E1810', ink2:'#5A4E3C', ink3:'#9A8870',
+  line:'#DDD5C8', acc:'#5C4A30', accBg:'#EAE4D8',
+  green:'#4D7A5A', greenBg:'#E3ECE5', amber:'#8B6914', amberBg:'#F2EAD6', red:'#8B3A2E', redBg:'#F2E5E2',
+  sans:"'Noto Sans TC','PingFang TC','Noto Sans CJK TC','Noto Sans CJK HK','Heiti TC',sans-serif",
+  serif:"'Noto Serif TC','Songti TC','Noto Serif CJK TC',serif",
+  mono:"'DM Mono','SF Mono',Menlo,monospace"
+};
+function cardFont(px, weight, fam){ return `${weight||400} ${px}px ${fam||CARD.sans}`; }
+// 依寬度斷行（中文逐字、英文以單字為單位）
+function cardWrap(ctx, text, maxW){
+  const out=[];
+  String(text||'').split('\n').forEach(para=>{
+    if(!para){ out.push(''); return; }
+    const tokens=para.match(/[A-Za-z0-9.,'’%°×\-\/+:()]+\s*|\s+|./gu)||[];
+    let line='';
+    tokens.forEach(t=>{
+      const test=line+t;
+      if(ctx.measureText(test).width>maxW && line){ out.push(line.trimEnd()); line=t.trimStart(); }
+      else line=test;
+    });
+    if(line) out.push(line.trimEnd());
+  });
+  return out;
+}
+// 兩段式繪製：先量高度，再畫
+function cardRender(drawFn){
+  const m=document.createElement('canvas').getContext('2d');
+  const h=Math.ceil(drawFn(m,false));
+  const c=document.createElement('canvas');
+  c.width=CARD.W; c.height=h;
+  const ctx=c.getContext('2d');
+  drawFn(ctx,true);
+  return c;
+}
+function cardRoundRect(ctx,x,y,w,h,r,fill,stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
+}
+function cardText(ctx, draw, txt, x, y, font, color, align){
+  ctx.font=font;
+  if(draw){ ctx.fillStyle=color; ctx.textAlign=align||'left'; ctx.textBaseline='top'; ctx.fillText(txt,x,y); }
+  return ctx.measureText(txt).width;
+}
+function cardLines(ctx, draw, txt, x, y, maxW, px, weight, color, lh, fam){
+  ctx.font=cardFont(px,weight,fam);
+  const lines=cardWrap(ctx,txt,maxW);
+  lines.forEach((ln,i)=>{ if(draw){ ctx.fillStyle=color; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText(ln,x,y+i*px*lh); } });
+  return lines.length*px*lh;
+}
+function cardToday(){
+  const d=new Date();
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+function cardHeader(ctx, draw, kicker, title, sub){
+  const P=CARD.PAD; let y=P;
+  if(draw){ ctx.fillStyle=CARD.bg; ctx.fillRect(0,0,CARD.W,ctx.canvas.height); }
+  cardText(ctx,draw,kicker,P,y,cardFont(22,500,CARD.mono),CARD.acc); y+=46;
+  y+=cardLines(ctx,draw,title,P,y,CARD.W-P*2,64,600,CARD.ink,1.25,CARD.serif)+6;
+  if(sub){ y+=cardLines(ctx,draw,sub,P,y,CARD.W-P*2,26,400,CARD.ink3,1.5); }
+  y+=28;
+  if(draw){ ctx.fillStyle=CARD.ink; ctx.fillRect(P,y,CARD.W-P*2,3); }
+  return y+3;
+}
+function cardFooter(ctx, draw, y){
+  const P=CARD.PAD; y+=36;
+  if(draw){ ctx.fillStyle=CARD.line; ctx.fillRect(P,y,CARD.W-P*2,2); }
+  y+=24;
+  cardText(ctx,draw,'COACH · TOOL',P,y,cardFont(20,500,CARD.mono),CARD.ink3);
+  cardText(ctx,draw,cardToday(),CARD.W-P,y,cardFont(20,400,CARD.mono),CARD.ink3,'right');
+  return y+20+P;
+}
+
+// ── 學會的動作 ──
+function learnedGroups(learned){
+  const groups=new Map(); const placed=new Set();
+  Object.entries(EX).forEach(([cat,arr])=>arr.forEach(n=>{
+    if(learned.has(n)&&!placed.has(n)){ if(!groups.has(cat)) groups.set(cat,[]); groups.get(cat).push(n); placed.add(n); }
+  }));
+  const other=[...learned.keys()].filter(n=>!placed.has(n));
+  if(other.length) groups.set('其他',other);
+  return groups;
+}
+function drawLearnedCard(student){
+  const learned=learnedMap(student);
+  const groups=learnedGroups(learned);
+  return cardRender((ctx,draw)=>{
+    const P=CARD.PAD, W=CARD.W, colGap=36, colW=(W-P*2-colGap)/2;
+    let y=cardHeader(ctx,draw,'MY EXERCISE LIBRARY',`${student} 學會的動作`,`已經學會 ${learned.size} 個動作，持續累積中`);
+    groups.forEach((arr,cat)=>{
+      y+=46;
+      // 分類標題
+      ctx.font=cardFont(28,500);
+      const tw=ctx.measureText(cat).width;
+      if(draw){ cardRoundRect(ctx,P,y,tw+36,48,24,CARD.acc); }
+      cardText(ctx,draw,cat,P+18,y+9,cardFont(28,500),'#FAF6EE');
+      cardText(ctx,draw,`${arr.length} 個`,P+tw+52,y+12,cardFont(24,400,CARD.mono),CARD.ink3);
+      y+=70;
+      // 兩欄動作
+      for(let i=0;i<arr.length;i+=2){
+        let rowH=0;
+        [arr[i],arr[i+1]].forEach((n,ci)=>{
+          if(!n) return;
+          const {zh,en}=splitExName(n);
+          const x=P+ci*(colW+colGap);
+          let h=0;
+          if(draw){ ctx.fillStyle=CARD.green; ctx.fillRect(x,y+8,6,28); }
+          h+=cardLines(ctx,draw,zh||en,x+22,y,colW-22,32,500,CARD.ink,1.35);
+          if(zh) h+=cardLines(ctx,draw,en,x+22,y+h+2,colW-22,22,400,CARD.ink3,1.4)+2;
+          rowH=Math.max(rowH,h);
+        });
+        y+=rowH+26;
+      }
+    });
+    return cardFooter(ctx,draw,y);
+  });
+}
+
+// ── 課程報告 ──
+function reportData(){
+  const nb=curNB||{};
+  const g=id=>document.getElementById(id)?.value;
+  const student=nb.student||g('f-student')||'學員';
+  const d={
+    student, date:nb.date||'', name:nb.name||g('nb-name-inp')||'',
+    type:getMultiChip('g-type')||nb.type||'',
+    sleep:getChip('ac-sleep')||nb.sleep||'', food:getChip('ac-food')||nb.food||'', body:getChip('ac-body')||nb.body||'',
+    condition:g('f-condition')||nb.condition||'',
+    intensity:getChip('ac-int')||nb.intensity||'', prog:getChip('ac-prog')||nb.prog||'',
+    good:g('f-good')||nb.good||'', improve:g('f-improve')||nb.improve||'', obs:g('f-obs')||nb.obs||'',
+    next:g('f-next')||nb.next||'', diet:g('f-diet')||nb.diet||'', msg:g('f-msg')||nb.msg||'',
+    freq:getMultiChip('g-freq')||nb.freq||'', nextbook:g('f-nextbook')||nb.nextbook||'',
+    stars:stars||nb.stars||0, exercises:[], prs:[]
+  };
+  const curTs=nb.completedAt||nb.id||Date.now();
+  (nb.exercises||[]).forEach(ex=>{
+    const valid=(ex.sets||[]).filter(s=>parseInt(s.sets)||parseInt(s.reps)||parseFloat(s.weight));
+    if(!valid.length) return;
+    const mode=ex.weightMode||'kg';
+    const sets=valid.map(s=>{
+      const grp=parseInt(s.sets)||1, r=parseInt(s.reps)||0;
+      const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
+      const seg=[grp+'組', mode==='sec'?(r?r+'秒':'—'):(r?r+'下':'—')];
+      if(mode!=='sec'){ if(kg==='BW') seg.push('自身體重'); else if(kg>0) seg.push(kg+'kg'); }
+      return seg.join(' × ');
+    });
+    const {zh,en}=splitExName(ex.name);
+    const prevSets=getLastSessionSets(student,ex.name,curTs,nb.id);
+    const best=getLifetimeBestByReps(student,ex.name,nb.id);
+    const prs=detectProgress(valid,prevSets,best,zh||en).map(t=>t.replace(/^▲\s*/,'').replace(/^★\s*/,''));
+    d.prs.push(...prs);
+    d.exercises.push({zh,en,sets,note:ex.classNote||'',pr:prs.length>0});
+  });
+  return d;
+}
+function statusTone(v){
+  if(!v) return null;
+  if(/好|充足|良好|正常/.test(v)) return [CARD.green,CARD.greenBg];
+  if(/普通|略|輕微|疲/.test(v)) return [CARD.amber,CARD.amberBg];
+  return [CARD.red,CARD.redBg];
+}
+function drawReportCard(){
+  const d=reportData();
+  return cardRender((ctx,draw)=>{
+    const P=CARD.PAD, W=CARD.W, IW=W-P*2;
+    const sub=[d.date, d.name&&d.name!==d.date?d.name:'', d.type].filter(Boolean).join('　·　');
+    let y=cardHeader(ctx,draw,'TRAINING REPORT',`${d.student} 的訓練報告`,sub);
+
+    // 今日狀態
+    if(d.stars||d.sleep||d.food||d.body){
+      y+=36;
+      if(d.stars){
+        cardText(ctx,draw,'★'.repeat(d.stars)+'☆'.repeat(5-d.stars),P,y,cardFont(34,400),CARD.amber);
+        cardText(ctx,draw,SLAB[d.stars]||'',P+200,y+6,cardFont(26,400),CARD.ink2);
+        y+=56;
+      }
+      let x=P;
+      [['睡眠',d.sleep],['飲食',d.food],['身體',d.body]].forEach(([k,v])=>{
+        if(!v) return;
+        const [fg,bg]=statusTone(v);
+        const label=`${k}｜${v}`;
+        ctx.font=cardFont(24,400);
+        const w=ctx.measureText(label).width+32;
+        if(x+w>W-P){ x=P; y+=56; }
+        if(draw) cardRoundRect(ctx,x,y,w,44,22,bg);
+        cardText(ctx,draw,label,x+16,y+9,cardFont(24,400),fg);
+        x+=w+12;
+      });
+      if(d.sleep||d.food||d.body) y+=44;
+      if(d.condition){ y+=16; y+=cardLines(ctx,draw,d.condition,P,y,IW,24,400,CARD.ink3,1.6); }
+    }
+
+    // 今日進步（放最前面，最有成就感）
+    if(d.prs.length){
+      y+=40;
+      const inner=[]; ctx.font=cardFont(28,500);
+      let h=34+36;
+      d.prs.forEach(t=>{ const ls=cardWrap(ctx,t,IW-90); inner.push(ls); h+=ls.length*28*1.45+14; });
+      h+=20;
+      if(draw) cardRoundRect(ctx,P,y,IW,h,16,CARD.greenBg);
+      cardText(ctx,draw,'今日進步',P+32,y+30,cardFont(24,500,CARD.mono),CARD.green);
+      cardText(ctx,draw,`${d.prs.length} 項新紀錄`,W-P-32,y+30,cardFont(22,400),CARD.green,'right');
+      let yy=y+30+36+14;
+      inner.forEach(ls=>{
+        cardText(ctx,draw,'▲',P+32,yy+2,cardFont(24,500),CARD.green);
+        ls.forEach((ln,i)=>cardText(ctx,draw,ln,P+68,yy+i*28*1.45,cardFont(28,500),CARD.ink));
+        yy+=ls.length*28*1.45+14;
+      });
+      y+=h;
+    }
+
+    // 訓練內容
+    if(d.exercises.length){
+      y+=48;
+      cardText(ctx,draw,'訓練內容',P,y,cardFont(24,500,CARD.mono),CARD.acc);
+      cardText(ctx,draw,`${d.exercises.length} 個動作`,W-P,y,cardFont(22,400),CARD.ink3,'right');
+      y+=44;
+      d.exercises.forEach((ex,i)=>{
+        const top=y;
+        const numW=56, rightW=300, nameW=IW-numW-rightW-20;
+        // 編號
+        if(draw){ cardRoundRect(ctx,P,y+2,40,40,20,ex.pr?CARD.green:CARD.accBg); }
+        cardText(ctx,draw,String(i+1),P+20,y+8,cardFont(22,500,CARD.mono),ex.pr?'#fff':CARD.acc,'center');
+        let lh=cardLines(ctx,draw,ex.zh||ex.en,P+numW,y,nameW,30,500,CARD.ink,1.35);
+        if(ex.zh) lh+=cardLines(ctx,draw,ex.en,P+numW,y+lh+2,nameW,21,400,CARD.ink3,1.4)+2;
+        // 組數重量（右側）
+        let rh=0;
+        ex.sets.forEach(st=>{ cardText(ctx,draw,st,W-P,y+rh+2,cardFont(27,400),CARD.ink2,'right'); rh+=38; });
+        y+=Math.max(lh,rh);
+        if(ex.note){ y+=8; y+=cardLines(ctx,draw,'└ '+ex.note,P+numW,y,IW-numW,22,400,CARD.ink3,1.5); }
+        y+=22;
+        if(draw && i<d.exercises.length-1){ ctx.fillStyle=CARD.line; ctx.fillRect(P+numW,y,IW-numW,1.5); }
+        y+=22;
+      });
+      if(d.intensity||d.prog){
+        const t=[d.intensity?'整體強度：'+d.intensity:'', d.prog?'運動表現：'+d.prog:''].filter(Boolean).join('　　');
+        y+=cardLines(ctx,draw,t,P+56,y,IW-56,24,400,CARD.ink2,1.5);
+      }
+    }
+
+    // 教練回饋
+    const blocks=[['表現亮點',d.good],['需要加強',d.improve],['教練觀察',d.obs],['下一堂方向',d.next],['飲食 / 恢復',d.diet]].filter(b=>b[1]);
+    if(blocks.length){
+      y+=48;
+      cardText(ctx,draw,'教練回饋',P,y,cardFont(24,500,CARD.mono),CARD.acc); y+=46;
+      blocks.forEach(([k,v])=>{
+        if(draw){ ctx.fillStyle=CARD.acc; ctx.fillRect(P,y+6,4,26); }
+        cardText(ctx,draw,k,P+20,y,cardFont(26,500),CARD.ink);
+        y+=42;
+        y+=cardLines(ctx,draw,v,P+20,y,IW-20,27,400,CARD.ink2,1.6)+26;
+      });
+    }
+
+    // 給學員的話
+    if(d.msg){
+      y+=24;
+      ctx.font=cardFont(30,400,CARD.serif);
+      const ls=cardWrap(ctx,d.msg,IW-80);
+      const h=36+34+ls.length*30*1.65+36;
+      if(draw) cardRoundRect(ctx,P,y,IW,h,16,CARD.paper,CARD.line);
+      cardText(ctx,draw,`給 ${d.student} 的話`,P+40,y+36,cardFont(22,500,CARD.mono),CARD.acc);
+      ls.forEach((ln,i)=>cardText(ctx,draw,ln,P+40,y+36+44+i*30*1.65,cardFont(30,400,CARD.serif),CARD.ink));
+      y+=h;
+    }
+
+    // 下次
+    if(d.freq||d.nextbook){
+      y+=40;
+      let x=P;
+      [['建議頻率',d.freq],['下次預約',d.nextbook]].forEach(([k,v])=>{
+        if(!v) return;
+        const w=(IW-20)/2;
+        if(draw) cardRoundRect(ctx,x,y,w,104,12,CARD.accBg);
+        cardText(ctx,draw,k,x+28,y+20,cardFont(20,500,CARD.mono),CARD.ink3);
+        ctx.font=cardFont(28,500);
+        const ln=cardWrap(ctx,v,w-56)[0]||'';
+        cardText(ctx,draw,ln,x+28,y+52,cardFont(28,500),CARD.ink);
+        x+=w+20;
+      });
+      y+=104;
+    }
+    return cardFooter(ctx,draw,y);
+  });
+}
+
+// ── 預覽與分享 ──
+let _cardFile=null;
+async function openCardPreview(kind){
+  try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
+  let canvas, name, title;
+  if(kind==='learned'){
+    const st=curStudentName;
+    if(!learnedMap(st).size){ alert(st+' 還沒有完成過的課程動作'); return; }
+    canvas=drawLearnedCard(st); name=`${st}_學會的動作.png`; title=`${st} 學會的動作`;
+  } else {
+    canvas=drawReportCard(); const d=curNB||{};
+    name=`${(d.student||'學員')}_訓練報告_${(d.date||'').replace(/\//g,'')}.png`; title='訓練報告圖片';
+  }
+  const url=canvas.toDataURL('image/png');
+  _cardFile=null;
+  canvas.toBlob(b=>{ if(b) _cardFile=new File([b],name,{type:'image/png'}); },'image/png');
+  let m=document.getElementById('modal-card');
+  if(!m){
+    m=document.createElement('div'); m.id='modal-card'; m.className='modal-bg';
+    m.style.cssText='align-items:stretch;padding:0;z-index:150';
+    m.innerHTML=`<div style="display:flex;flex-direction:column;width:100%;max-width:520px;margin:0 auto;background:var(--bg);height:100%">
+      <div class="ed-hdr" style="position:static"><div class="back" onclick="closeCardPreview()">←</div><div class="ed-title-wrap"><div class="ed-title" id="card-title"></div><div class="ed-sub">分享到 LINE 或存到相簿</div></div></div>
+      <div style="flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch"><img id="card-img" style="width:100%;display:block;border-radius:4px;box-shadow:var(--shadow-md)" alt=""></div>
+      <div style="padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--bg)">
+        <button class="cbtn" style="margin-top:0" onclick="shareCard()">分享圖片</button>
+        <p class="hint" id="card-hint">也可以長按上面的圖片，選「加入照片」</p>
+      </div></div>`;
+    document.body.appendChild(m);
+  }
+  document.getElementById('card-title').textContent=title;
+  const img=document.getElementById('card-img'); img.src=url; img.dataset.name=name;
+  m.style.display='flex';
+}
+function closeCardPreview(){ const m=document.getElementById('modal-card'); if(m) m.style.display='none'; }
+function shareCard(){
+  const img=document.getElementById('card-img');
+  if(_cardFile && navigator.canShare && navigator.canShare({files:[_cardFile]})){
+    navigator.share({files:[_cardFile]}).catch(()=>{});
+    return;
+  }
+  // 不支援分享（例如電腦）：直接下載
+  const a=document.createElement('a'); a.href=img.src; a.download=img.dataset.name||'card.png';
+  document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),500);
+}
+
 // ── 匯出選單：完整資料 / 只列學會的動作 ──
 function openExportMenu(){
   let m=document.getElementById('modal-export');
@@ -4312,8 +4653,11 @@ function openExportMenu(){
     m.id='modal-export';m.className='modal-bg';
     m.innerHTML=`<div class="modal" style="max-width:400px">
       <div class="modal-title">匯出 <span id="export-who" style="font-weight:400;color:var(--text3);font-size:13px"></span></div>
+      <button class="exp-opt" onclick="closeExportMenu();openCardPreview('learned')">
+        <b>學會的動作・圖片</b><span>產出一張圖，可直接傳 LINE 或存到相簿</span>
+      </button>
       <button class="exp-opt" onclick="closeExportMenu();exportLearnedExercises()">
-        <b>學會的動作</b><span>只列動作名稱（中文＋英文），不含重量</span>
+        <b>學會的動作・文字</b><span>只列動作名稱（中文＋英文），不含重量</span>
       </button>
       <button class="exp-opt" onclick="closeExportMenu();exportStudent()">
         <b>完整資料</b><span>評估、飲食紀錄、各動作最高重量</span>
