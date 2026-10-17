@@ -912,7 +912,10 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
   <div style="padding:0 1.2rem 5rem;margin-top:.6rem">
     <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">預覽報告</div>
     <div class="pbox" id="diet-export-preview" style="white-space:pre-wrap;font-size:13px;line-height:1.8"></div>
-    <button onclick="copyDietExport()" style="width:100%;margin-top:12px;padding:14px;border-radius:4px;background:var(--acc);color:#fff;border:none;font-size:16px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif">複製 Line 訊息</button>
+    <div style="display:flex;gap:8px">
+      <button class="cbtn" id="report-img-btn" onclick="openCardPreview('report',_reportNbId)" style="flex:1;background:var(--green);display:none">產出圖片</button>
+      <button class="cbtn" onclick="copyDietExport()" style="flex:1">複製 Line 訊息</button>
+    </div>
     <p style="text-align:center;font-size:12px;color:var(--text3);margin-top:8px">複製後直接貼到 Line 傳給客戶</p>
   </div>
 </div>
@@ -4434,9 +4437,13 @@ function drawLearnedCard(student){
 }
 
 // ── 課程報告 ──
-function reportData(){
-  const nb=curNB||{};
-  const g=id=>document.getElementById(id)?.value;
+function reportData(nbArg){
+  const nb=nbArg||curNB||{};
+  const fromEditor=!nbArg;
+  const g=id=>fromEditor?document.getElementById(id)?.value:'';
+  const getChip=id=>fromEditor?window.getChip(id):'';
+  const getMultiChip=id=>fromEditor?window.getMultiChip(id):'';
+  const starsVal=fromEditor?stars:0;
   const student=nb.student||g('f-student')||'學員';
   const d={
     student, date:nb.date||'', name:nb.name||g('nb-name-inp')||'',
@@ -4447,7 +4454,7 @@ function reportData(){
     good:g('f-good')||nb.good||'', improve:g('f-improve')||nb.improve||'', obs:g('f-obs')||nb.obs||'',
     next:g('f-next')||nb.next||'', diet:g('f-diet')||nb.diet||'', msg:g('f-msg')||nb.msg||'',
     freq:getMultiChip('g-freq')||nb.freq||'', nextbook:g('f-nextbook')||nb.nextbook||'',
-    stars:stars||nb.stars||0, exercises:[], prs:[]
+    stars:starsVal||nb.stars||0, exercises:[], prs:[]
   };
   const curTs=nb.completedAt||nb.id||Date.now();
   (nb.exercises||[]).forEach(ex=>{
@@ -4476,8 +4483,8 @@ function statusTone(v){
   if(/普通|略|輕微|疲/.test(v)) return [CARD.amber,CARD.amberBg];
   return [CARD.red,CARD.redBg];
 }
-function drawReportCard(){
-  const d=reportData();
+function drawReportCard(nbArg){
+  const d=reportData(nbArg);
   return cardRender((ctx,draw)=>{
     const P=CARD.PAD, W=CARD.W, IW=W-P*2;
     const sub=[d.date, d.name&&d.name!==d.date?d.name:'', d.type].filter(Boolean).join('　·　');
@@ -4619,7 +4626,7 @@ function drawReportCard(){
 
 // ── 預覽與分享 ──
 let _cardFile=null;
-async function openCardPreview(kind){
+async function openCardPreview(kind, nbId){
   try{ if(document.fonts&&document.fonts.ready) await document.fonts.ready; }catch(e){}
   let canvas, name, title;
   if(kind==='learned'){
@@ -4627,7 +4634,8 @@ async function openCardPreview(kind){
     if(!learnedMap(st).size){ alert(st+' 還沒有完成過的課程動作'); return; }
     canvas=drawLearnedCard(st); name=`${st}_學會的動作.png`; title=`${st} 學會的動作`;
   } else {
-    canvas=drawReportCard(); const d=curNB||{};
+    const nbArg=nbId?notebooks.find(n=>n.id===nbId):null;
+    canvas=drawReportCard(nbArg||undefined); const d=nbArg||curNB||{};
     name=`${(d.student||'學員')}_訓練報告_${(d.date||'').replace(/\//g,'')}.png`; title='訓練報告圖片';
   }
   const url=canvas.toDataURL('image/png');
@@ -4932,7 +4940,7 @@ function previewSessionReport(nbId){
   if(nb.msg) r+=`給 ${student} 的話\n${nb.msg}\n\n`;
   if(nb.freq) r+=`＿建議頻率：${nb.freq}\n`;
   if(nb.nextbook) r+=`下次預約：${nb.nextbook}\n`;
-  showReport('課程報告', student+' · 課程報告 '+nb.date, r.trim(), 'sessions');
+  showReport('課程報告', student+' · 課程報告 '+nb.date, r.trim(), 'sessions', nb.id);
 }
 
 function backToStudent(){
@@ -5510,8 +5518,12 @@ function confirmDel(msg, onOk){
   wrap.querySelector('#_cd_ok').onclick=()=>{document.body.removeChild(wrap);onOk();};
 }
 
-function showReport(title, subtitle, text, backTab){
+let _reportNbId=null;
+function showReport(title, subtitle, text, backTab, nbId){
   _reportBackTab=backTab||'diet';
+  _reportNbId=nbId||null;
+  const ib=document.getElementById('report-img-btn');
+  if(ib) ib.style.display=nbId?'block':'none';
   const titleEl=document.getElementById('diet-export-title');
   const subEl=document.getElementById('diet-export-sub');
   const previewEl=document.getElementById('diet-export-preview');
