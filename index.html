@@ -97,18 +97,17 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
 .ex-item.added{color:var(--acc-light);background:var(--acc-bg)}
 .ex-ico{font-size:16px;color:var(--text3);flex-shrink:0;margin-left:8px}
 .ex-item.added .ex-ico{color:var(--green)}
-/* 學員學過的動作：反黑 */
-.ex-item.learned{background:var(--text);color:#F5F1EA;border-bottom-color:#3A3024}
-.ex-item.learned:active{background:#3A3024}
-.ex-item.learned .ex-ico{color:#C9BFAE}
-.ex-item.learned.added{background:#2E2619;color:#F5F1EA;box-shadow:inset 3px 0 0 var(--green-b)}
-.ex-item.learned.added .ex-ico{color:var(--green-b)}
-.ex-tag{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.04em;padding:1px 6px;border-radius:2px;margin-left:8px;white-space:nowrap;border:1px solid rgba(245,241,234,.35);color:#E6DDCC}
+/* 學員學過的動作：綠色標示（與「已完成」同色系）*/
+.ex-item.learned{background:var(--green-bg);color:var(--text);box-shadow:inset 3px 0 0 var(--green);border-bottom-color:#D5E2D8}
+.ex-item.learned:active{background:#DCE8DF}
+.ex-item.learned .ex-ico{color:var(--green)}
+.ex-item.learned.added{background:#DCE8DF}
+.ex-tag{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.02em;padding:2px 7px;border-radius:10px;margin-left:8px;white-space:nowrap;background:var(--green);color:#fff;font-weight:500}
 .ex-name{display:flex;align-items:center;min-width:0;flex:1}
 .learned-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font-size:11px;color:var(--text3)}
-.learned-key{display:inline-block;width:10px;height:10px;background:var(--text);border-radius:1px;vertical-align:-1px;margin-right:5px}
+.learned-key{display:inline-block;width:10px;height:10px;background:var(--green-bg);box-shadow:inset 3px 0 0 var(--green);border:1px solid var(--green-b);border-radius:1px;vertical-align:-1px;margin-right:5px}
 .learned-tgl{padding:4px 10px;border:1px solid var(--border2);border-radius:2px;background:var(--bg3);color:var(--text2);cursor:pointer;font-size:11px;white-space:nowrap;font-family:'Noto Sans TC',sans-serif}
-.learned-tgl.on{background:var(--text);color:#F5F1EA;border-color:var(--text)}
+.learned-tgl.on{background:var(--green);color:#fff;border-color:var(--green)}
 /* 動作上下移動 */
 .mv-btns{display:flex;border:1px solid var(--border2);border-radius:2px;overflow:hidden;background:var(--bg3)}
 .mv-btn{width:28px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text2);cursor:pointer;user-select:none;-webkit-user-select:none}
@@ -160,6 +159,9 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
 .set-label{text-align:center}
 .set-row{display:grid;grid-template-columns:24px 1fr 1fr 1fr 28px;gap:5px;margin-bottom:5px;align-items:center}
 .set-num{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center}
+.cbtn{width:100%;margin-top:10px;padding:13px;border-radius:3px;background:var(--acc);color:#FAF9F7;border:none;font-size:15px;font-weight:500;cursor:pointer;font-family:'Noto Sans TC',sans-serif;letter-spacing:.06em}
+.cbtn:active{opacity:.85}
+.hint{font-size:11px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.6}
 .set-inp{background:var(--bg);border:1px solid var(--border);border-radius:2px;font-size:15px;font-weight:300;color:var(--text);text-align:center;padding:7px 2px}
 .set-inp:focus{border-color:var(--acc);outline:none}
 .set-del{font-size:13px;color:var(--text3);cursor:pointer;text-align:center;padding:4px;user-select:none}.set-del:active{color:var(--red)}
@@ -2701,9 +2703,9 @@ function exNameHtml(ex){
 function renderLearnedBar(barId, learned, student){
   const bar=document.getElementById(barId);
   if(!bar) return;
-  if(!student){bar.innerHTML='<span>填入學員姓名後，學過的動作會反黑標示</span>';return;}
+  if(!student){bar.innerHTML='<span>填入學員姓名後，學過的動作會用綠色標示</span>';return;}
   if(!learned.size){bar.innerHTML=`<span>${escPlanTxt(student)} 還沒有完成過的課程動作</span>`;return;}
-  bar.innerHTML=`<span><span class="learned-key"></span>反黑＝${escPlanTxt(student)} 學過（${learned.size} 個）</span>
+  bar.innerHTML=`<span><span class="learned-key"></span>綠色＝${escPlanTxt(student)} 學過（${learned.size} 個）</span>
     <span class="learned-tgl${_learnedOnly?' on':''}" onclick="toggleLearnedOnly()">${_learnedOnly?'✓ 只看學過':'只看學過'}</span>`;
 }
 function toggleLearnedOnly(){
@@ -2723,6 +2725,8 @@ function pickerExercises(search, learned){
 }
 function fillPickerList(list, exercises, learned, onPick){
   const added=(curNB?.exercises||[]).map(e=>e.name);
+  const keepTop=list.dataset.sig===exercises.join('|')?list.scrollTop:0;
+  list.dataset.sig=exercises.join('|');
   list.innerHTML='';
   if(!exercises.length){list.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text3)">無符合結果</div>';return;}
   exercises.forEach(ex=>{
@@ -2730,10 +2734,22 @@ function fillPickerList(list, exercises, learned, onPick){
     const isAdded=added.includes(ex);
     const cnt=learned.get(ex)||0;
     div.className='ex-item'+(isAdded?' added':'')+(cnt?' learned':'');
-    div.innerHTML=`<span class="ex-name"><span>${exNameHtml(ex)}</span>${cnt?`<span class="ex-tag">學過 ${cnt} 次</span>`:''}</span><span class="ex-ico">${isAdded?'✓':'＋'}</span>`;
+    div.innerHTML=`<span class="ex-name"><span>${exNameHtml(ex)}</span>${cnt?`<span class="ex-tag">學過 ${cnt}</span>`:''}</span><span class="ex-ico">${isAdded?'✓':'＋'}</span>`;
     div.onclick=()=>onPick(ex);
     list.appendChild(div);
   });
+  list.scrollTop=keepTop;
+}
+let _toastTimer=null;
+function ctToast(msg){
+  let t=document.getElementById('ct-toast');
+  if(!t){
+    t=document.createElement('div');t.id='ct-toast';
+    t.style.cssText='position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--acc);color:#FAF9F7;padding:9px 16px;border-radius:20px;font-size:13px;z-index:999;box-shadow:var(--shadow-md);transition:opacity .2s;pointer-events:none;max-width:86vw;text-align:center;font-family:Noto Sans TC,sans-serif';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>{t.style.opacity='0';},1600);
 }
 
 function renderExList(){
@@ -2778,6 +2794,7 @@ function toggleExercise(name){
   } else {
     if(!curNB.exercises) curNB.exercises=[];
     curNB.exercises.push({name,planRows:[{reps:'',kg:''}],sets:[{sets:'',reps:'',weight:''}],note:''});
+    ctToast('已加入第 '+curNB.exercises.length+' 個：'+name.split('（')[0]);
   }
   persist();
   renderExList();
@@ -5031,7 +5048,7 @@ function renderReplaceList(){
     const row=document.createElement('div');
     const cnt=_rl.get(name)||0;
     row.className='ex-item'+(cnt?' learned':'');
-    row.innerHTML=`<span class="ex-name"><span>${exNameHtml(name)}</span>${cnt?`<span class="ex-tag">學過 ${cnt} 次</span>`:''}</span>`;
+    row.innerHTML=`<span class="ex-name"><span>${exNameHtml(name)}</span>${cnt?`<span class="ex-tag">學過 ${cnt}</span>`:''}</span>`;
     row.addEventListener('click',()=>doReplace(name));
     list.appendChild(row);
   });
