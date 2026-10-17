@@ -4459,7 +4459,7 @@ function reportData(){
       const kg=s.weight==='BW'?'BW':(parseFloat(s.weight)||0);
       const seg=[grp+'組', mode==='sec'?(r?r+'秒':'—'):(r?r+'下':'—')];
       if(mode!=='sec'){ if(kg==='BW') seg.push('自身體重'); else if(kg>0) seg.push(kg+'kg'); }
-      return seg.join(' × ');
+      return seg;
     });
     const {zh,en}=splitExName(ex.name);
     const prevSets=getLastSessionSets(student,ex.name,curTs,nb.id);
@@ -4527,6 +4527,23 @@ function drawReportCard(){
     }
 
     // 訓練內容
+    // 組數 / 次數 / 重量 三欄對齊：先量每一欄全報告最寬的字
+    const SETF=cardFont(27,400), SEP=' × ';
+    ctx.font=SETF;
+    const colMax=[0,0,0];
+    d.exercises.forEach(ex=>ex.sets.forEach(seg=>seg.forEach((t,i)=>{colMax[i]=Math.max(colMax[i],ctx.measureText(t).width);})));
+    const sepW=ctx.measureText(SEP).width;
+    const nCols=colMax[2]>0?3:2;
+    const setsW=colMax.slice(0,nCols).reduce((a,b)=>a+b,0)+sepW*(nCols-1);
+    function drawSetRow(seg,yy){
+      let x=W-P-setsW;
+      for(let i=0;i<nCols;i++){
+        const t=seg[i]||'';
+        if(t) i===2?cardText(ctx,draw,t,x,yy,SETF,CARD.ink2,'left'):cardText(ctx,draw,t,x+colMax[i],yy,SETF,CARD.ink2,'right');
+        x+=colMax[i];
+        if(i<nCols-1){ if(seg[i+1]) cardText(ctx,draw,'×',x+sepW/2,yy,SETF,CARD.ink3,'center'); x+=sepW; }
+      }
+    }
     if(d.exercises.length){
       y+=48;
       cardText(ctx,draw,'訓練內容',P,y,cardFont(24,500,CARD.mono),CARD.acc);
@@ -4534,7 +4551,7 @@ function drawReportCard(){
       y+=44;
       d.exercises.forEach((ex,i)=>{
         const top=y;
-        const numW=56, rightW=300, nameW=IW-numW-rightW-20;
+        const numW=56, nameW=IW-numW-setsW-24;
         // 編號
         if(draw){ cardRoundRect(ctx,P,y+2,40,40,20,ex.pr?CARD.green:CARD.accBg); }
         cardText(ctx,draw,String(i+1),P+20,y+8,cardFont(22,500,CARD.mono),ex.pr?'#fff':CARD.acc,'center');
@@ -4542,7 +4559,7 @@ function drawReportCard(){
         if(ex.zh) lh+=cardLines(ctx,draw,ex.en,P+numW,y+lh+2,nameW,21,400,CARD.ink3,1.4)+2;
         // 組數重量（右側）
         let rh=0;
-        ex.sets.forEach(st=>{ cardText(ctx,draw,st,W-P,y+rh+2,cardFont(27,400),CARD.ink2,'right'); rh+=38; });
+        ex.sets.forEach(seg=>{ drawSetRow(seg,y+rh+2); rh+=38; });
         y+=Math.max(lh,rh);
         if(ex.note){ y+=8; y+=cardLines(ctx,draw,'└ '+ex.note,P+numW,y,IW-numW,22,400,CARD.ink3,1.5); }
         y+=22;
