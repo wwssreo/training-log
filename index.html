@@ -97,6 +97,33 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
 .ex-item.added{color:var(--acc-light);background:var(--acc-bg)}
 .ex-ico{font-size:16px;color:var(--text3);flex-shrink:0;margin-left:8px}
 .ex-item.added .ex-ico{color:var(--green)}
+/* 學員學過的動作：反黑 */
+.ex-item.learned{background:var(--text);color:#F5F1EA;border-bottom-color:#3A3024}
+.ex-item.learned:active{background:#3A3024}
+.ex-item.learned .ex-ico{color:#C9BFAE}
+.ex-item.learned.added{background:#2E2619;color:#F5F1EA;box-shadow:inset 3px 0 0 var(--green-b)}
+.ex-item.learned.added .ex-ico{color:var(--green-b)}
+.ex-tag{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.04em;padding:1px 6px;border-radius:2px;margin-left:8px;white-space:nowrap;border:1px solid rgba(245,241,234,.35);color:#E6DDCC}
+.ex-name{display:flex;align-items:center;min-width:0;flex:1}
+.learned-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font-size:11px;color:var(--text3)}
+.learned-key{display:inline-block;width:10px;height:10px;background:var(--text);border-radius:1px;vertical-align:-1px;margin-right:5px}
+.learned-tgl{padding:4px 10px;border:1px solid var(--border2);border-radius:2px;background:var(--bg3);color:var(--text2);cursor:pointer;font-size:11px;white-space:nowrap;font-family:'Noto Sans TC',sans-serif}
+.learned-tgl.on{background:var(--text);color:#F5F1EA;border-color:var(--text)}
+/* 動作上下移動 */
+.mv-btns{display:flex;border:1px solid var(--border2);border-radius:2px;overflow:hidden;background:var(--bg3)}
+.mv-btn{width:28px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text2);cursor:pointer;user-select:none;-webkit-user-select:none}
+.mv-btn+.mv-btn{border-left:1px solid var(--border2)}
+.mv-btn:active{background:var(--bg4)}
+.mv-btn.dis{color:var(--border2);pointer-events:none}
+.wlog-order{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--acc-bg);color:var(--acc);font-family:"DM Mono",monospace;font-size:10px;margin-right:6px;vertical-align:2px;font-weight:500}
+.wlog.moved{animation:mvflash 1s ease-out}
+@keyframes mvflash{0%{box-shadow:0 0 0 2px var(--acc-light)}100%{box-shadow:0 0 0 0 transparent}}
+/* 本機自動備份 */
+.snap-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.snap-row:last-child{border-bottom:none}
+.snap-time{font-family:'DM Mono',monospace;font-size:12px;color:var(--text)}
+.snap-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.snap-btn{padding:6px 10px;border-radius:2px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap}
 .hist-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:2px;font-size:10px;font-family:'DM Mono',monospace;margin-left:5px;vertical-align:middle;letter-spacing:.04em}
 .hist-best{background:var(--purple-bg);border:1px solid var(--purple-b);color:var(--purple)}
 .hist-none{background:var(--acc-bg);color:var(--acc-light);border:1px solid var(--border2)}
@@ -254,6 +281,7 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
         <div class="sec">選擇動作</div>
         <div class="msc" id="msc"></div>
         <input type="text" id="ex-search" placeholder="搜尋動作…" oninput="renderExList()" style="margin-bottom:0">
+        <div class="learned-bar" id="learned-bar-plan"></div>
         <div class="ex-list" id="ex-list"></div>
         <!-- 自訂動作 -->
         <div style="margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:8px 10px">
@@ -326,6 +354,7 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
         <div id="class-ex-panel" style="display:none;margin-bottom:10px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:10px">
           <div class="msc" id="msc-class"></div>
           <input type="text" id="ex-search-class" placeholder="搜尋動作…" oninput="renderClassExList()" style="margin-bottom:0;font-size:13px">
+          <div class="learned-bar" id="learned-bar-class"></div>
           <div class="ex-list" id="ex-list-class" style="max-height:200px"></div>
           <!-- 自訂動作 -->
           <div style="margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:8px 10px">
@@ -659,6 +688,20 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
   <!-- ── Tab：備份還原 ── -->
   <div id="stc-backup" style="padding:0 1.2rem 5rem;margin-top:.8rem">
 
+    <!-- 本機自動備份 -->
+    <div class="card" style="border-left:3px solid var(--acc)">
+      <div class="sec">🛟 本機自動備份</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:8px">
+        每次資料有變動、完成課程，都會自動在這支手機存一份完整備份，保留最近 30 份。<b>不用網路、不用登入，不會斷線。</b>
+      </div>
+      <div id="snap-status" style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px"></div>
+      <div id="snap-list"></div>
+      <button class="snap-btn" style="width:100%;margin-top:10px;padding:9px" onclick="snapNow()">立即存一份</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.7">
+        誤刪學員或課程時，點「還原」就能補回來。刪除 App 或換手機時本機備份會一起消失，所以請同時開啟下面的 Google Drive 雲端備份。
+      </div>
+    </div>
+
     <!-- 刪除 App 還原說明 -->
     <div class="card" style="border-left:3px solid var(--green);background:var(--green-bg,#E8EFE9)">
       <div style="font-size:11px;color:var(--green);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">📱 刪除 App 後如何還原？</div>
@@ -684,7 +727,8 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
       <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.7;padding:8px 10px;background:var(--green-bg,#E8EFE9);border-radius:3px;border-left:3px solid var(--green)">
         ✓ 換手機、重裝 App、更新版本後，用同一個 Google 帳號一鍵還原<br>
         ✓ 備份存在你自己的 Drive，只有你能存取<br>
-        ✓ 自動備份開啟後，完全不需要手動操作
+        ✓ 自動備份開啟後，完全不需要手動操作<br>
+        ✓ 授權到期時，在你按備份或完成課程的那一下自動續約，不會再斷線
       </div>
 
       <!-- 連線狀態 -->
@@ -708,10 +752,10 @@ h1,h2,h3,strong,.h-title,.nb-name,.ed-title,.tab.on,.flabel,.lbl,.wlog-name{font
       <div id="gdrive-connected" style="display:none">
         <div id="gdrive-last-backup-time" style="display:none;font-size:11px;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:8px;padding:4px 0"></div>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <button class="gdrive-btn" style="background:var(--green);color:#fff;flex:1" onclick="gdriveSaveBackup()">
+          <button class="gdrive-btn" style="background:var(--green);color:#fff;flex:1" onclick="gdriveBackupNow()">
             ↑ 立即備份
           </button>
-          <button class="gdrive-btn" style="background:var(--acc);color:#fff;flex:1" onclick="gdriveLoadBackup()">
+          <button class="gdrive-btn" style="background:var(--acc);color:#fff;flex:1" onclick="gdriveRestoreNow()">
             ↓ 從 Drive 還原
           </button>
         </div>
@@ -999,7 +1043,7 @@ function load(){
   });
   persist();
 }
-function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(notebooks));}catch(e){alert('儲存失敗，瀏覽器空間可能不足');}}
+function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(notebooks));}catch(e){alert('儲存失敗，瀏覽器空間可能不足');}try{snapSchedule();}catch(e){}}
 // ── 節流版儲存：連續輸入時延遲寫入，減少每個按鍵都完整序列化的成本 ──
 let _persistTimer=null;
 function persistSoon(){clearTimeout(_persistTimer);_persistTimer=setTimeout(()=>{_persistTimer=null;persist();},400);}
@@ -1288,10 +1332,10 @@ function checkBackupAlert(){
   if(lastFailFlag === '1'){
     el.style.display = 'block';
     el.innerHTML = makeAlert('warn',
-      '⚡ 上次備份失敗',
-      '請確認網路連線，並手動備份一次。',
-      '前往備份',
-      'openBackupScreen()'
+      '☁️ 有新資料還沒上傳到雲端',
+      '資料已經存在本機和本機自動備份裡，點一下就能補傳到 Google Drive。',
+      '點一下上傳',
+      'quickBackupFromHome()'
     );
     return;
   }
@@ -1339,25 +1383,16 @@ function makeAlert(type, title, desc, btnText, btnAction){
   </div>`;
 }
 
-async function quickBackupFromHome(){
-  // 從首頁直接觸發備份，不用進設定頁
-  if(!_gdriveToken){
-    // token 沒準備好，等一下
-    let waited = 0;
-    while(!_gdriveToken && waited < 6000){
-      await new Promise(r=>setTimeout(r,400));
-      waited += 400;
-    }
-  }
-  if(!_gdriveToken){
-    alert('無法連接 Google Drive\n請進入「設定」重新連結後再備份。');
-    return;
-  }
-  const ok = await gdriveSaveBackup(false);
-  if(ok){
-    localStorage.removeItem('_gdrive_last_fail');
-    checkBackupAlert(); // 更新橫幅
-  }
+function quickBackupFromHome(){
+  // 從首頁直接觸發備份，不用進設定頁；授權到期就在這一下點擊裡續約
+  if(localStorage.getItem('_gdrive_ever_authed') !== '1'){ openBackupScreen(); return; }
+  gdriveWithToken((ok, code) => {
+    if(!ok){ alert('雲端備份沒有完成：' + gdriveTokenErrMsg(code)); return; }
+    gdriveSaveBackup(true).then(r => {
+      if(r){ localStorage.removeItem('_gdrive_last_fail'); checkBackupAlert(); alert('✅ 已備份到 Google Drive'); }
+      else alert('雲端備份失敗，請確認網路後再試一次');
+    });
+  });
 }
 
 function filterStudents(q){
@@ -1744,15 +1779,10 @@ function gdriveInit(){
     _gdriveToken = savedToken;
     gdriveUpdateUI(true);
   } else if(everAuthed){
-    // 曾經授權過但 token 過期 → 靜默背景刷新，不彈出任何視窗
-    // 先顯示「正在重新連結...」，等靜默刷新完成再更新
+    // 曾經授權過、只是 1 小時的授權到期：仍然算「已連結」
+    // 下次按備份（或完成課程）時，在那一下點擊裡自動續約，不會斷線
     _gdriveToken = null;
-    const st=document.getElementById('gdrive-status-text');
-    const sb=document.getElementById('gdrive-status-box');
-    if(st) st.textContent='正在重新連結 Google Drive...';
-    if(sb) sb.className='gdrive-status info';
-    // 等 Google API 腳本載入完成再執行（最多等 5 秒）
-    gdriveSilentRefresh(0);
+    gdriveUpdateUI(true);
   } else {
     // 從未授權過，顯示未連結
     _gdriveToken = null;
@@ -1762,6 +1792,9 @@ function gdriveInit(){
 
 // ── 靜默刷新：背景重新取得 token，不彈出任何視窗 ──
 function gdriveSilentRefresh(attempt){
+  // v2：不再於背景續約，改為點擊當下續約（見 gdriveWithToken）
+  if(localStorage.getItem('_gdrive_ever_authed') === '1') gdriveUpdateUI(true);
+  return;
   if(attempt > 10){ gdriveUpdateUI(false); return; } // 最多等 5 秒
   if(typeof google === 'undefined' || !google.accounts){
     // Google API 還沒載入，等 500ms 再試
@@ -1877,6 +1910,76 @@ function gdriveCheckClientId(){
   return GDRIVE_CLIENT_ID;
 }
 
+// ── 授權是否還在 1 小時有效期內 ──
+function gdriveTokenValid(){
+  const exp = parseInt(localStorage.getItem('_gdrive_token_exp') || '0');
+  if(!_gdriveToken){
+    const t = localStorage.getItem('_gdrive_token');
+    if(t && Date.now() < exp - 60000) _gdriveToken = t;
+  }
+  return !!_gdriveToken && Date.now() < exp - 60000;
+}
+
+// ── 點擊當下續約：必須在使用者點擊的那一刻同步呼叫，iPhone 才允許開 Google 視窗 ──
+// 已同意過的帳號，視窗會一閃就自動關掉，不需要再登入
+let _gdriveClient = null;
+let _gdrivePendingCb = null;
+function gdriveGetClient(){
+  if(_gdriveClient) return _gdriveClient;
+  if(typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) return null;
+  _gdriveClient = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPE,
+    callback: (resp) => {
+      const cb = _gdrivePendingCb; _gdrivePendingCb = null;
+      if(resp.error || !resp.access_token){ cb && cb(false, resp.error); return; }
+      _gdriveToken = resp.access_token;
+      const expMs = Date.now() + (resp.expires_in || 3600) * 1000;
+      localStorage.setItem('_gdrive_token', _gdriveToken);
+      localStorage.setItem('_gdrive_token_exp', String(expMs));
+      localStorage.setItem('_gdrive_ever_authed', '1');
+      cb && cb(true);
+    },
+    error_callback: (err) => {
+      const cb = _gdrivePendingCb; _gdrivePendingCb = null;
+      cb && cb(false, (err && err.type) || 'error');
+    }
+  });
+  return _gdriveClient;
+}
+function gdriveWithToken(cb){
+  if(gdriveTokenValid()){ cb(true); return; }
+  const client = gdriveGetClient();
+  if(!client){ cb(false, 'not_loaded'); return; }
+  _gdrivePendingCb = cb;
+  client.requestAccessToken({ prompt: '', hint: localStorage.getItem('_gdrive_email') || '' });
+}
+function gdriveMarkPending(){
+  localStorage.setItem('_gdrive_last_fail', '1');
+  checkBackupAlert();
+}
+function gdriveTokenErrMsg(code){
+  if(code === 'popup_failed_to_open') return '手機擋住了 Google 視窗，請再點一次';
+  if(code === 'popup_closed') return 'Google 視窗被關掉了，請再點一次';
+  if(code === 'not_loaded') return 'Google 服務還在載入，請確認網路後再點一次';
+  return '授權沒有完成，請再點一次';
+}
+// 設定頁「立即備份」
+function gdriveBackupNow(){
+  gdriveLog('正在備份...');
+  gdriveWithToken((ok, code) => {
+    if(!ok){ gdriveMarkPending(); gdriveLog(gdriveTokenErrMsg(code), 'err'); return; }
+    gdriveSaveBackup(false);
+  });
+}
+// 設定頁「從 Drive 還原」
+function gdriveRestoreNow(){
+  gdriveWithToken((ok, code) => {
+    if(!ok){ gdriveLog(gdriveTokenErrMsg(code), 'err'); return; }
+    gdriveLoadBackup();
+  });
+}
+
 // ── 登入授權 ──
 function gdriveSignIn(){
   const clientId = gdriveCheckClientId();
@@ -1929,6 +2032,7 @@ function gdriveSignOut(){
 
 // ── Token 有效性確認（過期就重新授權）──
 async function gdriveEnsureToken(){
+  return gdriveTokenValid(); // v2：續約只在點擊當下做（gdriveWithToken）
   const exp = parseInt(localStorage.getItem('_gdrive_token_exp') || '0');
   if(_gdriveToken && Date.now() < exp - 60000) return true; // 還有 1 分鐘以上
   // Token 過期，觸發靜默刷新
@@ -1969,12 +2073,11 @@ async function gdriveFindFile(){
 
 // ── 上傳備份到 Drive ──
 async function gdriveSaveBackup(silent = false){
-  if(!_gdriveToken){
-    if(!silent) alert('請先連結 Google Drive');
+  if(!gdriveTokenValid()){
+    gdriveMarkPending();
+    if(!silent) gdriveLog('授權需要續約，請再點一次「立即備份」', 'err');
     return false;
   }
-  const ok = await gdriveEnsureToken();
-  if(!ok){ if(!silent) gdriveLog('授權已過期，請重新連結', 'err'); return false; }
 
   if(!silent) gdriveLog('正在備份...');
 
@@ -2016,6 +2119,9 @@ async function gdriveSaveBackup(silent = false){
 
     if(!resp.ok){
       localStorage.setItem('_gdrive_last_fail','1');
+      if(resp.status === 401){ _gdriveToken = null; localStorage.removeItem('_gdrive_token_exp'); }
+      if(resp.status === 404){ _gdriveFileId = null; localStorage.removeItem('_gdrive_file_id'); }
+      checkBackupAlert();
       throw new Error('HTTP ' + resp.status);
     }
     const result = await resp.json();
@@ -2047,9 +2153,7 @@ async function gdriveSaveBackup(silent = false){
 
 // ── 從 Drive 下載還原 ──
 async function gdriveLoadBackup(){
-  if(!_gdriveToken){ alert('請先連結 Google Drive'); return; }
-  const ok = await gdriveEnsureToken();
-  if(!ok){ gdriveLog('授權已過期，請重新連結', 'err'); return; }
+  if(!gdriveTokenValid()){ gdriveLog('授權需要續約，請再點一次「從 Drive 還原」', 'err'); return; }
 
   gdriveLog('正在從 Drive 讀取備份...');
   const fileId = await gdriveFindFile();
@@ -2095,7 +2199,16 @@ function gdriveToggleAuto(enabled){
 }
 
 // ── 自動備份觸發（在 saveAndHome 完成課程時呼叫）──
-async function gdriveAutoBackupIfEnabled(){
+function gdriveAutoBackupIfEnabled(){
+  _gdriveAutoBackup = localStorage.getItem('_gdrive_auto') === '1';
+  if(!_gdriveAutoBackup) return;
+  if(localStorage.getItem('_gdrive_ever_authed') !== '1') return;
+  gdriveWithToken(ok => {
+    if(!ok){ gdriveMarkPending(); return; }
+    gdriveSaveBackup(true).then(r => { if(!r) gdriveMarkPending(); });
+  });
+}
+async function gdriveAutoBackupOld(){
   if(!_gdriveAutoBackup) return;
   // 如果 token 還沒準備好，但曾經授權過 → 等 token 刷新完再備份
   if(!_gdriveToken){
@@ -2147,12 +2260,133 @@ function buildBackupJson(){
   return JSON.stringify(backup,null,2);
 }
 
+// ══════════════════════════════════════════
+// ── 本機自動備份（不需網路、不需登入、不會斷線）──
+// 每次資料變動後自動存一份完整快照到手機（IndexedDB），保留最近 30 份
+// ══════════════════════════════════════════
+const SNAP_DB = 'ct_snapshots', SNAP_STORE = 'snaps', SNAP_MAX = 30;
+const SNAP_MIN_GAP = 10 * 60 * 1000; // 一般存檔：至少隔 10 分鐘才存新快照
+let _snapTimer = null, _snapPersisted = null, _snapLastHash = null;
+function snapOpen(){
+  return new Promise((resolve, reject) => {
+    if(!window.indexedDB){ reject(new Error('no indexedDB')); return; }
+    const req = indexedDB.open(SNAP_DB, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(SNAP_STORE, { keyPath: 'ts' }); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function snapTx(mode, fn){
+  return snapOpen().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(SNAP_STORE, mode);
+    const st = tx.objectStore(SNAP_STORE);
+    let out;
+    Promise.resolve(fn(st)).then(v => { out = v; });
+    tx.oncomplete = () => { db.close(); resolve(out); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  }));
+}
+function snapAll(){
+  return snapTx('readonly', st => new Promise(res => {
+    const r = st.getAll(); r.onsuccess = () => res((r.result || []).sort((a,b)=>b.ts-a.ts));
+  }));
+}
+function snapHash(str){
+  let h = 5381; for(let i=0;i<str.length;i++){ h = ((h<<5)+h + str.charCodeAt(i)) | 0; } return h;
+}
+// reason：快照來源；minGap：距離上一份至少多久才存（0 = 有變動就存）
+async function snapSave(reason, minGap){
+  try{
+    const core = JSON.stringify([notebooks, dietData, clientList, typeof pkgData!=='undefined'?pkgData:null, localStorage.getItem('_custom_ex')]);
+    const hash = snapHash(core);
+    const list = await snapAll();
+    const last = list[0];
+    if(last && last.hash === hash) return false;               // 資料沒變，不重複存
+    if(minGap && last && Date.now() - last.ts < minGap) return false;
+    if(!notebooks.length && !clientList.length) return false;   // 空資料不存，避免蓋掉有用的快照
+    const json = buildBackupJson();
+    const rec = {
+      ts: Date.now(), reason: reason || '自動', hash,
+      students: clientList.length,
+      sessions: notebooks.filter(n=>n&&n.done&&!n.isAssess).length,
+      bytes: json.length, json
+    };
+    await snapTx('readwrite', st => { st.put(rec); });
+    const all = await snapAll();
+    if(all.length > SNAP_MAX){
+      await snapTx('readwrite', st => { all.slice(SNAP_MAX).forEach(r => st.delete(r.ts)); });
+    }
+    _snapLastHash = hash;
+    if(document.getElementById('s-backup')?.classList.contains('active')) renderSnapList();
+    return true;
+  }catch(e){ return false; }
+}
+function snapSchedule(){
+  clearTimeout(_snapTimer);
+  _snapTimer = setTimeout(() => snapSave('自動', SNAP_MIN_GAP), 8000);
+}
+function snapFmt(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'}) + ' ' +
+         d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+async function renderSnapList(){
+  const box = document.getElementById('snap-list');
+  const st = document.getElementById('snap-status');
+  if(!box) return;
+  let list = [];
+  try{ list = await snapAll(); }catch(e){
+    box.innerHTML = '<div style="font-size:12px;color:var(--red);padding:6px 0">這個瀏覽器不支援本機自動備份</div>';
+    return;
+  }
+  if(st){
+    const persisted = _snapPersisted === true ? '・已設為永久保存' : '';
+    st.textContent = list.length ? `共 ${list.length} 份・最新 ${snapFmt(list[0].ts)}${persisted}` : '還沒有快照，資料一有變動就會自動建立';
+  }
+  if(!list.length){ box.innerHTML=''; return; }
+  const rows = list.slice(0, _snapShowAll ? SNAP_MAX : 5);
+  box.innerHTML = rows.map(r => `<div class="snap-row">
+      <div>
+        <div class="snap-time">${snapFmt(r.ts)}</div>
+        <div class="snap-meta">${escPlanTxt(r.reason)}・${r.students} 位學員・${r.sessions} 堂課</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="snap-btn" onclick="snapDownload(${r.ts})">下載</button>
+        <button class="snap-btn" onclick="snapRestore(${r.ts})">還原</button>
+      </div>
+    </div>`).join('') + (list.length > 5 ? `<div style="text-align:center;padding-top:8px"><span class="snap-btn" style="display:inline-block" onclick="_snapShowAll=!_snapShowAll;renderSnapList()">${_snapShowAll?'收起':'顯示全部 '+list.length+' 份'}</span></div>` : '');
+}
+let _snapShowAll = false;
+async function snapGet(ts){
+  return snapTx('readonly', st => new Promise(res => { const r = st.get(ts); r.onsuccess = () => res(r.result); }));
+}
+async function snapRestore(ts){
+  const r = await snapGet(ts);
+  if(!r){ alert('找不到這份快照'); return; }
+  const ta = document.getElementById('import-json');
+  ta.value = r.json;
+  importBackup(); // 合併還原：只補回缺少的資料，現有資料不會被刪
+}
+async function snapDownload(ts){
+  const r = await snapGet(ts);
+  if(!r){ alert('找不到這份快照'); return; }
+  const d = new Date(r.ts);
+  const name = `CT_backup_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.json`;
+  downloadFile(name, r.json);
+}
+async function snapNow(){
+  const ok = await snapSave('手動', 0);
+  await renderSnapList();
+  alert(ok ? '✅ 已存一份本機備份' : '資料跟最新一份快照相同，不需要重複存');
+}
+
 // ── 備份 / 匯入邏輯 ──
 // ══════════════════════════════════════════
 
 function openBackupScreen(){
   show('s-backup');
   document.getElementById('backup-preview-wrap').style.display='none';
+  renderSnapList();
   // 初始化 Google Drive 狀態
   setTimeout(gdriveInit, 100);
 }
@@ -2420,6 +2654,7 @@ function renderMuscleScroller(containerId, activeKey){
     btn.textContent=m;
     btn.onclick=()=>{
       selMuscle=m;
+      _learnedOnly=false;
       document.querySelectorAll('#'+containerId+' .mbtn').forEach(b=>b.classList.toggle('on',b===btn));
       // 點分類時清空搜尋框，確保分類篩選生效
       if(containerId==='msc'){
@@ -2436,6 +2671,71 @@ function renderMuscleScroller(containerId, activeKey){
   });
 }
 
+// ── 學員學過的動作（已完成課程中做過的）──
+let _learnedOnly=false;
+function curPlanStudent(){
+  return (document.getElementById('f-student')?.value||curNB?.student||'').trim();
+}
+function learnedMap(student){
+  const m=new Map();
+  const s=(student||'').trim().toLowerCase();
+  if(!s) return m;
+  notebooks.forEach(nb=>{
+    if(!nb||!nb.done||nb.isAssess) return;
+    if(curNB&&nb.id===curNB.id) return;
+    if((nb.student||'').trim().toLowerCase()!==s) return;
+    const seen=new Set();
+    (nb.exercises||[]).forEach(e=>{
+      if(!e||!e.name||seen.has(e.name)) return;
+      seen.add(e.name);
+      m.set(e.name,(m.get(e.name)||0)+1);
+    });
+  });
+  return m;
+}
+function exNameHtml(ex){
+  const main=escPlanTxt(ex.split('（')[0]);
+  const sub=ex.includes('（')?'<span style="font-size:11px;opacity:.6;font-weight:300">（'+escPlanTxt(ex.split('（')[1])+'</span>':'';
+  return main+sub;
+}
+function renderLearnedBar(barId, learned, student){
+  const bar=document.getElementById(barId);
+  if(!bar) return;
+  if(!student){bar.innerHTML='<span>填入學員姓名後，學過的動作會反黑標示</span>';return;}
+  if(!learned.size){bar.innerHTML=`<span>${escPlanTxt(student)} 還沒有完成過的課程動作</span>`;return;}
+  bar.innerHTML=`<span><span class="learned-key"></span>反黑＝${escPlanTxt(student)} 學過（${learned.size} 個）</span>
+    <span class="learned-tgl${_learnedOnly?' on':''}" onclick="toggleLearnedOnly()">${_learnedOnly?'✓ 只看學過':'只看學過'}</span>`;
+}
+function toggleLearnedOnly(){
+  _learnedOnly=!_learnedOnly;
+  renderExList();
+  if(document.getElementById('ex-list-class')) renderClassExList();
+}
+function pickerExercises(search, learned){
+  const all=[...new Set(Object.values(EX).flat())];
+  if(search) return all.filter(e=>e.toLowerCase().includes(search));
+  if(_learnedOnly&&learned.size){
+    // 學過但不在動作庫裡的（例如舊的自訂動作）也列出來
+    const extra=[...learned.keys()].filter(n=>!all.includes(n));
+    return all.filter(e=>learned.has(e)).concat(extra);
+  }
+  return EX[selMuscle]||[];
+}
+function fillPickerList(list, exercises, learned, onPick){
+  const added=(curNB?.exercises||[]).map(e=>e.name);
+  list.innerHTML='';
+  if(!exercises.length){list.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text3)">無符合結果</div>';return;}
+  exercises.forEach(ex=>{
+    const div=document.createElement('div');
+    const isAdded=added.includes(ex);
+    const cnt=learned.get(ex)||0;
+    div.className='ex-item'+(isAdded?' added':'')+(cnt?' learned':'');
+    div.innerHTML=`<span class="ex-name"><span>${exNameHtml(ex)}</span>${cnt?`<span class="ex-tag">學過 ${cnt} 次</span>`:''}</span><span class="ex-ico">${isAdded?'✓':'＋'}</span>`;
+    div.onclick=()=>onPick(ex);
+    list.appendChild(div);
+  });
+}
+
 function renderExList(){
   selMuscle=selMuscle||Object.keys(EX)[0];
   renderMuscleScroller('msc',selMuscle);
@@ -2443,20 +2743,10 @@ function renderExList(){
   const search=(document.getElementById('ex-search')?.value||'').toLowerCase();
   const list=document.getElementById('ex-list');
   if(!list)return;
-  const added=(curNB?.exercises||[]).map(e=>e.name);
-  let exercises=search
-    ?Object.values(EX).flat().filter(e=>e.toLowerCase().includes(search))
-    :(EX[selMuscle]||[]);
-  list.innerHTML='';
-  if(!exercises.length){list.innerHTML='<div style="padding:12px;font-size:12px;color:var(--text3)">無符合結果</div>';return;}
-  exercises.forEach(ex=>{
-    const div=document.createElement('div');
-    const isAdded=added.includes(ex);
-    div.className='ex-item'+(isAdded?' added':'');
-    div.innerHTML=`<span>${ex}</span><span class="ex-ico">${isAdded?'✓':'＋'}</span>`;
-    div.onclick=()=>toggleExercise(ex);
-    list.appendChild(div);
-  });
+  const student=curPlanStudent();
+  const learned=learnedMap(student);
+  renderLearnedBar('learned-bar-plan',learned,student);
+  fillPickerList(list,pickerExercises(search,learned),learned,ex=>toggleExercise(ex));
 }
 
 function renderClassExList(){
@@ -2465,19 +2755,10 @@ function renderClassExList(){
   const search=(document.getElementById('ex-search-class')?.value||'').toLowerCase();
   const list=document.getElementById('ex-list-class');
   if(!list)return;
-  const added=(curNB?.exercises||[]).map(e=>e.name);
-  let exercises=search
-    ?Object.values(EX).flat().filter(e=>e.toLowerCase().includes(search))
-    :(EX[selMuscle]||[]);
-  list.innerHTML='';
-  exercises.forEach(ex=>{
-    const div=document.createElement('div');
-    const isAdded=added.includes(ex);
-    div.className='ex-item'+(isAdded?' added':'');
-    div.innerHTML=`<span>${ex}</span><span class="ex-ico">${isAdded?'✓':'＋'}</span>`;
-    div.onclick=()=>{toggleExercise(ex);renderClassExList();renderClassLog();};
-    list.appendChild(div);
-  });
+  const student=(curNB?.student||'').trim();
+  const learned=learnedMap(student);
+  renderLearnedBar('learned-bar-class',learned,student);
+  fillPickerList(list,pickerExercises(search,learned),learned,ex=>{toggleExercise(ex);renderClassExList();renderClassLog();});
 }
 
 function toggleClassExPanel(){
@@ -2517,6 +2798,7 @@ function renderPlanLog(){
   exs.forEach((ex,ei)=>{
     const div=document.createElement('div');
     div.className='wlog';
+    div.dataset.ei=ei;
     const lifetimeBest=getLifetimeBestByReps(student,ex.name,curNB.id);
     const isNew=!hasEverDone(student,ex.name);
     const prevSets=getLastSessionSets(student,ex.name,curTs,curNB.id);
@@ -2583,9 +2865,10 @@ function renderPlanLog(){
     div.innerHTML=`
       <div class="wlog-top">
         <div class="wlog-name" style="flex:1">
-          <span class="wlog-name-text">${ex.name.split('（')[0]}<span style="font-size:11px;color:var(--text3);font-weight:300"> ${ex.name.includes('（')?'（'+ex.name.split('（')[1]:''}</span></span>
+          <span class="wlog-name-text"><span class="wlog-order">${ei+1}</span>${ex.name.split('（')[0]}<span style="font-size:11px;color:var(--text3);font-weight:300"> ${ex.name.includes('（')?'（'+ex.name.split('（')[1]:''}</span></span>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <span class="mv-btns"><span class="mv-btn${ei===0?' dis':''}" onclick="moveEx(${ei},-1,'plan')" title="上移">↑</span><span class="mv-btn${ei===exs.length-1?' dis':''}" onclick="moveEx(${ei},1,'plan')" title="下移">↓</span></span>
           <span onclick="openReplaceModal(${ei},'plan')" style="font-size:11px;color:var(--acc-light);cursor:pointer;padding:3px 7px;border:1px solid var(--border2);border-radius:2px;font-family:'Noto Sans TC',sans-serif;background:var(--bg3)">替換</span>
           <span class="wlog-del" onclick="toggleExercise('${ex.name.replace(/'/g,"\\'")}')">✕</span>
         </div>
@@ -2848,10 +3131,11 @@ function renderClassLog(){
     div.innerHTML=`
       <div class="wlog-top">
         <div class="wlog-name" style="flex:1">
-          <span class="wlog-name-text">${ex.name.split('（')[0]}<span style="font-size:11px;color:var(--text3);font-weight:300"> ${ex.name.includes('（')?'（'+ex.name.split('（')[1]:''}</span></span>
+          <span class="wlog-name-text"><span class="wlog-order">${ei+1}</span>${ex.name.split('（')[0]}<span style="font-size:11px;color:var(--text3);font-weight:300"> ${ex.name.includes('（')?'（'+ex.name.split('（')[1]:''}</span></span>
           <div class="wlog-badges">${badgeHtml}</div>
         </div>
-        <div style="display:flex;gap:6px;align-items:flex-start;flex-shrink:0">
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <span class="mv-btns"><span class="mv-btn${ei===0?' dis':''}" onclick="moveEx(${ei},-1,'class')" title="上移">↑</span><span class="mv-btn${ei===exs.length-1?' dis':''}" onclick="moveEx(${ei},1,'class')" title="下移">↓</span></span>
           <span onclick="openReplaceModal(${ei},'class')" style="font-size:11px;color:var(--acc-light);cursor:pointer;padding:3px 7px;border:1px solid var(--border2);border-radius:2px;font-family:'Noto Sans TC',sans-serif;background:var(--bg3)">替換</span>
           <span class="wlog-del" onclick="removeExFromClass(${ei})">✕</span>
         </div>
@@ -3041,6 +3325,23 @@ function delSet(ei,si){
   curNB.exercises[ei].sets.splice(si,1);
   if(!curNB.exercises[ei].sets.length) curNB.exercises[ei].sets=[{sets:'',reps:'',weight:''}];
   persist();renderClassLog();
+}
+
+function moveEx(ei,dir,where){
+  const exs=curNB?.exercises;
+  if(!exs) return;
+  const to=ei+dir;
+  if(to<0||to>=exs.length) return;
+  const t=exs[ei]; exs[ei]=exs[to]; exs[to]=t;
+  persist();
+  const cid=where==='plan'?'plan-log':'class-log';
+  if(where==='plan') renderPlanLog(); else renderClassLog();
+  const card=document.querySelector('#'+cid+' > [data-ei="'+to+'"]')||document.querySelectorAll('#'+cid+' > .wlog')[to];
+  if(card){
+    card.classList.remove('moved'); void card.offsetWidth; card.classList.add('moved');
+    const r=card.getBoundingClientRect();
+    if(r.top<70||r.bottom>window.innerHeight) card.scrollIntoView({block:'center',behavior:'smooth'});
+  }
 }
 
 function removeExFromClass(ei){
@@ -3265,6 +3566,7 @@ window.addEventListener('pagehide',flushAutoSave);
 
 function onStudentChange(){
   if(curNB){curNB.student=document.getElementById('f-student').value.trim();persist();}
+  renderExList();
   renderPlanLog();
   renderLastSessionRef();
 }
@@ -3406,8 +3708,9 @@ function saveAndHome(){
   if(!curNB.date) curNB.date=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
   if(curNB.student&&!clientList.includes(curNB.student)){clientList.push(curNB.student);saveClientList();}
   persist();
-  // 觸發 Google Drive 自動備份（若已開啟）
+  // 觸發 Google Drive 自動備份（若已開啟）——必須在點擊當下同步呼叫，才能續約授權
   gdriveAutoBackupIfEnabled();
+  snapSave('完成課程', 0);
   const s=curNB.student;
   curNB=null;
   if(s){
@@ -4723,16 +5026,12 @@ function renderReplaceList(){
     list.innerHTML='<div style="padding:12px;text-align:center;font-size:12px;color:var(--text3)">沒有符合的動作</div>';
     return;
   }
+  const _rl=learnedMap((curNB?.student||curPlanStudent()||'').trim());
   filtered.forEach(name=>{
     const row=document.createElement('div');
-    row.style.cssText='padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);font-family:Noto Sans TC,sans-serif';
-    row.textContent=name.split('（')[0];
-    if(name.includes('（')){
-      const sub=document.createElement('span');
-      sub.style.cssText='font-size:11px;color:var(--text3)';
-      sub.textContent='（'+name.split('（')[1];
-      row.appendChild(sub);
-    }
+    const cnt=_rl.get(name)||0;
+    row.className='ex-item'+(cnt?' learned':'');
+    row.innerHTML=`<span class="ex-name"><span>${exNameHtml(name)}</span>${cnt?`<span class="ex-tag">學過 ${cnt} 次</span>`:''}</span>`;
     row.addEventListener('click',()=>doReplace(name));
     list.appendChild(row);
   });
@@ -5334,8 +5633,14 @@ document.getElementById('home-date').textContent=new Date().toLocaleDateString('
     // Token 過期，靜默在背景刷新
     _gdriveFileId = localStorage.getItem('_gdrive_file_id') || null;
     _gdriveAutoBackup = localStorage.getItem('_gdrive_auto') === '1';
-    gdriveSilentRefresh(0);
+    // v2：不在背景續約（iPhone 會擋），等下次點擊備份或完成課程時再續約
   }
+})();
+
+// ── 本機自動備份：開 App 時請瀏覽器把資料標成「永久保存」，並補一份快照 ──
+(function snapStartup(){
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().then(v=>{ _snapPersisted = v; }); }catch(e){}
+  setTimeout(()=>snapSave('開啟 App', 12*3600*1000), 1500);
 })();
 
 // Event delegation for student card buttons
