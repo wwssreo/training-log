@@ -4345,9 +4345,13 @@ function cardWrap(ctx, text, maxW){
 function cardRender(drawFn){
   const m=document.createElement('canvas').getContext('2d');
   const h=Math.ceil(drawFn(m,false));
+  // 2 倍解析度（2160 寬），iPhone 上看才會清楚；超長報告自動降一點避免超過 iPhone 畫布上限
+  const S=Math.max(1,Math.min(2,Math.sqrt(16000000/(CARD.W*h))));
   const c=document.createElement('canvas');
-  c.width=CARD.W; c.height=h;
+  c.width=Math.round(CARD.W*S); c.height=Math.round(h*S);
   const ctx=c.getContext('2d');
+  ctx.scale(S,S);
+  ctx.fillStyle=CARD.bg; ctx.fillRect(0,0,CARD.W,h);
   drawFn(ctx,true);
   return c;
 }
@@ -4374,7 +4378,6 @@ function cardToday(){
 }
 function cardHeader(ctx, draw, kicker, title, sub){
   const P=CARD.PAD; let y=P;
-  if(draw){ ctx.fillStyle=CARD.bg; ctx.fillRect(0,0,CARD.W,ctx.canvas.height); }
   cardText(ctx,draw,kicker,P,y,cardFont(22,500,CARD.mono),CARD.acc); y+=46;
   y+=cardLines(ctx,draw,title,P,y,CARD.W-P*2,64,600,CARD.ink,1.25,CARD.serif)+6;
   if(sub){ y+=cardLines(ctx,draw,sub,P,y,CARD.W-P*2,26,400,CARD.ink3,1.5); }
