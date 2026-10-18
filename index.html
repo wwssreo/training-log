@@ -4312,19 +4312,49 @@ function updateDietPlan(ts){
 
 
 // ══════════════════════════════════════════
-// ── 圖片卡片（學會的動作 / 課程報告）──
-// 用 canvas 畫成 1080 寬的圖片，可直接分享到 LINE 或存到相簿
+// ── 圖片卡片（學會的動作 / 課程報告）v2 ──
+// 對齊原則：所有文字都用「實際量到的字形大小」定位，不依賴各瀏覽器對 top 基準線的解讀，
+// 所以 iPhone 和電腦畫出來的位置一致；膠囊、圓圈裡的字一律上下置中。
 // ══════════════════════════════════════════
 const CARD = {
   W:1080, PAD:72,
-  bg:'#F2EEE7', paper:'#FBF9F5', ink:'#1E1810', ink2:'#5A4E3C', ink3:'#9A8870',
-  line:'#DDD5C8', acc:'#5C4A30', accBg:'#EAE4D8',
-  green:'#4D7A5A', greenBg:'#E3ECE5', amber:'#8B6914', amberBg:'#F2EAD6', red:'#8B3A2E', redBg:'#F2E5E2',
+  bg:'#F2EEE7', paper:'#FBF9F5', ink:'#1E1810', ink2:'#4F4433', ink3:'#998770',
+  line:'#E0D8CB', acc:'#5C4A30', accBg:'#E9E2D5',
+  green:'#4D7A5A', greenBg:'#E2EBE4', amber:'#8B6914', amberBg:'#F3EAD3', red:'#8B3A2E', redBg:'#F3E4E0',
   sans:"'Noto Sans TC','PingFang TC','Noto Sans CJK TC','Noto Sans CJK HK','Heiti TC',sans-serif",
   serif:"'Noto Serif TC','Songti TC','Noto Serif CJK TC',serif",
   mono:"'DM Mono','SF Mono',Menlo,monospace"
 };
 function cardFont(px, weight, fam){ return `${weight||400} ${px}px ${fam||CARD.sans}`; }
+// 中文字框（以「國」為準）：上緣到基準線 a、基準線到下緣 d
+const _gboxCache={};
+function gbox(ctx,font){
+  if(_gboxCache[font]) return _gboxCache[font];
+  ctx.font=font;
+  const m=ctx.measureText('國');
+  const px=parseFloat(font.split(' ')[1])||20;
+  const r={a:m.actualBoundingBoxAscent||px*0.86, d:m.actualBoundingBoxDescent||px*0.1};
+  r.h=r.a+r.d;
+  return (_gboxCache[font]=r);
+}
+// 依基準線畫字
+function tBase(ctx,draw,txt,x,base,font,color,align){
+  ctx.font=font;
+  if(draw){ ctx.fillStyle=color; ctx.textAlign=align||'left'; ctx.textBaseline='alphabetic'; ctx.fillText(txt,x,base); }
+  return ctx.measureText(txt).width;
+}
+// 字的上緣（中文字框）對齊 top
+function tTop(ctx,draw,txt,x,top,font,color,align){
+  return tBase(ctx,draw,txt,x,top+gbox(ctx,font).a,font,color,align);
+}
+// 在 midY 上下置中；exact=true 用這段文字自己的外框（適合純數字），否則用中文字框
+function tMid(ctx,draw,txt,x,midY,font,color,align,exact){
+  ctx.font=font;
+  let a,d;
+  if(exact){ const m=ctx.measureText(txt); a=m.actualBoundingBoxAscent; d=m.actualBoundingBoxDescent; }
+  else { const g=gbox(ctx,font); a=g.a; d=g.d; }
+  return tBase(ctx,draw,txt,x,midY+(a-d)/2,font,color,align);
+}
 // 依寬度斷行（中文逐字、英文以單字為單位）
 function cardWrap(ctx, text, maxW){
   const out=[];
@@ -4341,11 +4371,25 @@ function cardWrap(ctx, text, maxW){
   });
   return out;
 }
-// 兩段式繪製：先量高度，再畫
+// 多行文字，回傳「視覺高度」（第一行字頂到最後一行字底）
+function tLines(ctx,draw,txt,x,top,maxW,px,weight,color,lh,fam){
+  const font=cardFont(px,weight,fam);
+  ctx.font=font;
+  const lines=cardWrap(ctx,txt,maxW);
+  const g=gbox(ctx,font), pitch=px*(lh||1.6);
+  lines.forEach((ln,i)=>tTop(ctx,draw,ln,x,top+i*pitch,font,color));
+  return lines.length?(lines.length-1)*pitch+g.h:0;
+}
+// 單行放不下就縮小字級
+function fitPx(ctx,txt,maxW,px,weight,minPx,fam){
+  let p=px;
+  while(p>minPx){ ctx.font=cardFont(p,weight,fam); if(ctx.measureText(txt).width<=maxW) break; p-=1; }
+  return p;
+}
+// 兩段式繪製：先量高度，再畫；2 倍解析度
 function cardRender(drawFn){
   const m=document.createElement('canvas').getContext('2d');
   const h=Math.ceil(drawFn(m,false));
-  // 2 倍解析度（2160 寬），iPhone 上看才會清楚；超長報告自動降一點避免超過 iPhone 畫布上限
   const S=Math.max(1,Math.min(2,Math.sqrt(16000000/(CARD.W*h))));
   const c=document.createElement('canvas');
   c.width=Math.round(CARD.W*S); c.height=Math.round(h*S);
@@ -4356,42 +4400,46 @@ function cardRender(drawFn){
   return c;
 }
 function cardRoundRect(ctx,x,y,w,h,r,fill,stroke){
+  r=Math.min(r,h/2,w/2);
   ctx.beginPath();
   ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
   if(fill){ctx.fillStyle=fill;ctx.fill();}
-  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
-}
-function cardText(ctx, draw, txt, x, y, font, color, align){
-  ctx.font=font;
-  if(draw){ ctx.fillStyle=color; ctx.textAlign=align||'left'; ctx.textBaseline='top'; ctx.fillText(txt,x,y); }
-  return ctx.measureText(txt).width;
-}
-function cardLines(ctx, draw, txt, x, y, maxW, px, weight, color, lh, fam){
-  ctx.font=cardFont(px,weight,fam);
-  const lines=cardWrap(ctx,txt,maxW);
-  lines.forEach((ln,i)=>{ if(draw){ ctx.fillStyle=color; ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText(ln,x,y+i*px*lh); } });
-  return lines.length*px*lh;
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke();}
 }
 function cardToday(){
   const d=new Date();
   return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
 }
 function cardHeader(ctx, draw, kicker, title, sub){
-  const P=CARD.PAD; let y=P;
-  cardText(ctx,draw,kicker,P,y,cardFont(22,500,CARD.mono),CARD.acc); y+=46;
-  y+=cardLines(ctx,draw,title,P,y,CARD.W-P*2,64,600,CARD.ink,1.25,CARD.serif)+6;
-  if(sub){ y+=cardLines(ctx,draw,sub,P,y,CARD.W-P*2,26,400,CARD.ink3,1.5); }
-  y+=28;
-  if(draw){ ctx.fillStyle=CARD.ink; ctx.fillRect(P,y,CARD.W-P*2,3); }
+  const P=CARD.PAD, IW=CARD.W-P*2; let y=P;
+  const fk=cardFont(21,500,CARD.mono);
+  tTop(ctx,draw,kicker,P,y,fk,CARD.acc); y+=gbox(ctx,fk).h+26;
+  y+=tLines(ctx,draw,title,P,y,IW,62,600,CARD.ink,1.3,CARD.serif);
+  if(sub){ y+=20; y+=tLines(ctx,draw,sub,P,y,IW,25,400,CARD.ink3,1.5); }
+  y+=34;
+  if(draw){ ctx.fillStyle=CARD.ink; ctx.fillRect(P,y,IW,3); }
   return y+3;
 }
+// 區塊標題：左邊標題、右邊數量（同一條基準線），下面一條細線
+function sectionHead(ctx,draw,y,label,right){
+  const P=CARD.PAD, W=CARD.W;
+  const fL=cardFont(27,600), fR=cardFont(22,400);
+  const base=y+gbox(ctx,fL).a;
+  tBase(ctx,draw,label,P,base,fL,CARD.acc);
+  if(right) tBase(ctx,draw,right,W-P,base,fR,CARD.ink3,'right');
+  y=base+gbox(ctx,fL).d+16;
+  if(draw){ ctx.fillStyle=CARD.line; ctx.fillRect(P,y,W-P*2,2); }
+  return y+2;
+}
 function cardFooter(ctx, draw, y){
-  const P=CARD.PAD; y+=36;
-  if(draw){ ctx.fillStyle=CARD.line; ctx.fillRect(P,y,CARD.W-P*2,2); }
-  y+=24;
-  cardText(ctx,draw,'COACH · TOOL',P,y,cardFont(20,500,CARD.mono),CARD.ink3);
-  cardText(ctx,draw,cardToday(),CARD.W-P,y,cardFont(20,400,CARD.mono),CARD.ink3,'right');
-  return y+20+P;
+  const P=CARD.PAD, W=CARD.W; y+=56;
+  if(draw){ ctx.fillStyle=CARD.line; ctx.fillRect(P,y,W-P*2,2); }
+  y+=26;
+  const f=cardFont(19,500,CARD.mono);
+  const base=y+gbox(ctx,f).a;
+  tBase(ctx,draw,'COACH · TOOL',P,base,f,CARD.ink3);
+  tBase(ctx,draw,cardToday(),W-P,base,f,CARD.ink3,'right');
+  return base+gbox(ctx,f).d+P;
 }
 
 // ── 學會的動作 ──
@@ -4404,35 +4452,37 @@ function learnedGroups(learned){
   if(other.length) groups.set('其他',other);
   return groups;
 }
+// 一格動作：固定高度，中文＋英文整塊上下置中
+function drawExTile(ctx,draw,name,x,y,w,h){
+  const {zh,en}=splitExName(name);
+  const main=zh||en, sub=zh?en:'';
+  if(draw) cardRoundRect(ctx,x,y,w,h,14,CARD.paper,CARD.line);
+  const tx=x+40, tw=w-40-22;
+  const p1=fitPx(ctx,main,tw,30,500,21), f1=cardFont(p1,500);
+  const p2=sub?fitPx(ctx,sub,tw,20,400,15):0, f2=sub?cardFont(p2,400):'';
+  const g1=gbox(ctx,f1), g2=sub?gbox(ctx,f2):{h:0};
+  const inner=10;
+  const blockH=g1.h+(sub?inner+g2.h:0);
+  const top=y+(h-blockH)/2;
+  if(draw) cardRoundRect(ctx,x+20,top,5,blockH,2.5,CARD.green);
+  tTop(ctx,draw,main,tx,top,f1,CARD.ink);
+  if(sub) tTop(ctx,draw,sub,tx,top+g1.h+inner,f2,CARD.ink3);
+}
 function drawLearnedCard(student){
   const learned=learnedMap(student);
   const groups=learnedGroups(learned);
   return cardRender((ctx,draw)=>{
-    const P=CARD.PAD, W=CARD.W, colGap=36, colW=(W-P*2-colGap)/2;
-    let y=cardHeader(ctx,draw,'MY EXERCISE LIBRARY',`${student} 學會的動作`,`已經學會 ${learned.size} 個動作，持續累積中`);
+    const P=CARD.PAD, IW=CARD.W-P*2, gap=18, colW=(IW-gap)/2, tileH=104;
+    let y=cardHeader(ctx,draw,'MY EXERCISE LIBRARY',`${student} 學會的動作`,
+      `已經學會 ${learned.size} 個動作・涵蓋 ${groups.size} 個部位`);
     groups.forEach((arr,cat)=>{
-      y+=46;
-      // 分類標題
-      ctx.font=cardFont(28,500);
-      const tw=ctx.measureText(cat).width;
-      if(draw){ cardRoundRect(ctx,P,y,tw+36,48,24,CARD.acc); }
-      cardText(ctx,draw,cat,P+18,y+9,cardFont(28,500),'#FAF6EE');
-      cardText(ctx,draw,`${arr.length} 個`,P+tw+52,y+12,cardFont(24,400,CARD.mono),CARD.ink3);
-      y+=70;
-      // 兩欄動作
+      y+=56;
+      y=sectionHead(ctx,draw,y,cat,`${arr.length} 個`);
+      y+=22;
       for(let i=0;i<arr.length;i+=2){
-        let rowH=0;
-        [arr[i],arr[i+1]].forEach((n,ci)=>{
-          if(!n) return;
-          const {zh,en}=splitExName(n);
-          const x=P+ci*(colW+colGap);
-          let h=0;
-          if(draw){ ctx.fillStyle=CARD.green; ctx.fillRect(x,y+8,6,28); }
-          h+=cardLines(ctx,draw,zh||en,x+22,y,colW-22,32,500,CARD.ink,1.35);
-          if(zh) h+=cardLines(ctx,draw,en,x+22,y+h+2,colW-22,22,400,CARD.ink3,1.4)+2;
-          rowH=Math.max(rowH,h);
-        });
-        y+=rowH+26;
+        drawExTile(ctx,draw,arr[i],P,y,colW,tileH);
+        if(arr[i+1]) drawExTile(ctx,draw,arr[i+1],P+colW+gap,y,colW,tileH);
+        y+=tileH+(i+2<arr.length?gap:0);
       }
     });
     return cardFooter(ctx,draw,y);
@@ -4480,10 +4530,12 @@ function reportData(nbArg){
   });
   return d;
 }
-function statusTone(v){
-  if(!v) return null;
-  if(/好|充足|良好|正常/.test(v)) return [CARD.green,CARD.greenBg];
-  if(/普通|略|輕微|疲/.test(v)) return [CARD.amber,CARD.amberBg];
+
+function statusTone(k,v){
+  if(!v) return [CARD.acc,CARD.accBg];
+  if(k==='強度') return [CARD.acc,CARD.accBg];
+  if(/進步|好|充足|良好|正常|極佳/.test(v)) return [CARD.green,CARD.greenBg];
+  if(/持平|普通|略|輕微|疲/.test(v)) return [CARD.amber,CARD.amberBg];
   return [CARD.red,CARD.redBg];
 }
 function drawReportCard(nbArg){
@@ -4493,135 +4545,160 @@ function drawReportCard(nbArg){
     const sub=[d.date, d.name&&d.name!==d.date?d.name:'', d.type].filter(Boolean).join('　·　');
     let y=cardHeader(ctx,draw,'TRAINING REPORT',`${d.student} 的訓練報告`,sub);
 
-    // 今日狀態
-    if(d.stars||d.sleep||d.food||d.body){
-      y+=36;
+    // ── 今日狀態：星星＋狀態膠囊 ──
+    const pills=[['睡眠',d.sleep],['飲食',d.food],['身體',d.body],['強度',d.intensity],['表現',d.prog]].filter(p=>p[1]);
+    if(d.stars||pills.length||d.condition){
+      y+=44;
       if(d.stars){
-        cardText(ctx,draw,'★'.repeat(d.stars)+'☆'.repeat(5-d.stars),P,y,cardFont(34,400),CARD.amber);
-        cardText(ctx,draw,SLAB[d.stars]||'',P+200,y+6,cardFont(26,400),CARD.ink2);
-        y+=56;
+        const fs=cardFont(38,400), fl=cardFont(26,500);
+        const mid=y+22;
+        const sw=tMid(ctx,draw,'★'.repeat(d.stars)+'☆'.repeat(5-d.stars),P,mid,fs,CARD.amber,'left',true);
+        tMid(ctx,draw,SLAB[d.stars]||'',P+sw+20,mid,fl,CARD.ink2);
+        y+=44;
       }
-      let x=P;
-      [['睡眠',d.sleep],['飲食',d.food],['身體',d.body]].forEach(([k,v])=>{
-        if(!v) return;
-        const [fg,bg]=statusTone(v);
-        const label=`${k}｜${v}`;
-        ctx.font=cardFont(24,400);
-        const w=ctx.measureText(label).width+32;
-        if(x+w>W-P){ x=P; y+=56; }
-        if(draw) cardRoundRect(ctx,x,y,w,44,22,bg);
-        cardText(ctx,draw,label,x+16,y+9,cardFont(24,400),fg);
-        x+=w+12;
-      });
-      if(d.sleep||d.food||d.body) y+=44;
-      if(d.condition){ y+=16; y+=cardLines(ctx,draw,d.condition,P,y,IW,24,400,CARD.ink3,1.6); }
+      if(pills.length){
+        if(d.stars) y+=22;
+        const ph=50, fp=cardFont(24,500), gapX=12, gapY=12;
+        let x=P;
+        pills.forEach(([k,v])=>{
+          const label=`${k}｜${v.replace(/\s+/g,' ')}`;
+          ctx.font=fp;
+          const w=Math.ceil(ctx.measureText(label).width)+40;
+          if(x>P && x+w>W-P){ x=P; y+=ph+gapY; }
+          const [fg,bg]=statusTone(k,v);
+          if(draw) cardRoundRect(ctx,x,y,w,ph,ph/2,bg);
+          tMid(ctx,draw,label,x+w/2,y+ph/2,fp,fg,'center');
+          x+=w+gapX;
+        });
+        y+=ph;
+      }
+      if(d.condition){ y+=22; y+=tLines(ctx,draw,d.condition,P,y,IW,24,400,CARD.ink3,1.6); }
     }
 
-    // 今日進步（放最前面，最有成就感）
+    // ── 今日進步 ──
     if(d.prs.length){
-      y+=40;
-      const inner=[]; ctx.font=cardFont(28,500);
-      let h=34+36;
-      d.prs.forEach(t=>{ const ls=cardWrap(ctx,t,IW-90); inner.push(ls); h+=ls.length*28*1.45+14; });
-      h+=20;
-      if(draw) cardRoundRect(ctx,P,y,IW,h,16,CARD.greenBg);
-      cardText(ctx,draw,'今日進步',P+32,y+30,cardFont(24,500,CARD.mono),CARD.green);
-      cardText(ctx,draw,`${d.prs.length} 項新紀錄`,W-P-32,y+30,cardFont(22,400),CARD.green,'right');
-      let yy=y+30+36+14;
-      inner.forEach(ls=>{
-        cardText(ctx,draw,'▲',P+32,yy+2,cardFont(24,500),CARD.green);
-        ls.forEach((ln,i)=>cardText(ctx,draw,ln,P+68,yy+i*28*1.45,cardFont(28,500),CARD.ink));
-        yy+=ls.length*28*1.45+14;
+      y+=44;
+      const pad=34, fH=cardFont(24,600), fI=cardFont(28,500), pitch=28*1.55, mk=46;
+      ctx.font=fI;
+      const items=d.prs.map(t=>cardWrap(ctx,t,IW-pad*2-mk));
+      const gI=gbox(ctx,fI);
+      const itemsH=items.reduce((s,ls,i)=>s+(ls.length-1)*pitch+gI.h+(i?18:0),0);
+      const headH=gbox(ctx,fH).h;
+      const h=pad+headH+24+itemsH+pad;
+      if(draw) cardRoundRect(ctx,P,y,IW,h,18,CARD.greenBg);
+      const hb=y+pad+gbox(ctx,fH).a;
+      tBase(ctx,draw,'今日進步',P+pad,hb,fH,CARD.green);
+      tBase(ctx,draw,`${d.prs.length} 項新紀錄`,W-P-pad,hb,cardFont(22,400),CARD.green,'right');
+      let yy=y+pad+headH+24;
+      items.forEach((ls,i)=>{
+        if(i) yy+=18;
+        tMid(ctx,draw,'▲',P+pad,yy+gI.h/2,cardFont(20,500),CARD.green,'left',true);
+        ls.forEach((ln,j)=>tTop(ctx,draw,ln,P+pad+mk,yy+j*pitch,fI,CARD.ink));
+        yy+=(ls.length-1)*pitch+gI.h;
       });
       y+=h;
     }
 
-    // 訓練內容
-    // 組數 / 次數 / 重量 三欄對齊：先量每一欄全報告最寬的字
-    const SETF=cardFont(27,400), SEP=' × ';
-    ctx.font=SETF;
-    const colMax=[0,0,0];
-    d.exercises.forEach(ex=>ex.sets.forEach(seg=>seg.forEach((t,i)=>{colMax[i]=Math.max(colMax[i],ctx.measureText(t).width);})));
-    const sepW=ctx.measureText(SEP).width;
-    const nCols=colMax[2]>0?3:2;
-    const setsW=colMax.slice(0,nCols).reduce((a,b)=>a+b,0)+sepW*(nCols-1);
-    function drawSetRow(seg,yy){
-      let x=W-P-setsW;
-      for(let i=0;i<nCols;i++){
-        const t=seg[i]||'';
-        if(t) i===2?cardText(ctx,draw,t,x,yy,SETF,CARD.ink2,'left'):cardText(ctx,draw,t,x+colMax[i],yy,SETF,CARD.ink2,'right');
-        x+=colMax[i];
-        if(i<nCols-1){ if(seg[i+1]) cardText(ctx,draw,'×',x+sepW/2,yy,SETF,CARD.ink3,'center'); x+=sepW; }
-      }
-    }
+    // ── 訓練內容 ──
     if(d.exercises.length){
-      y+=48;
-      cardText(ctx,draw,'訓練內容',P,y,cardFont(24,500,CARD.mono),CARD.acc);
-      cardText(ctx,draw,`${d.exercises.length} 個動作`,W-P,y,cardFont(22,400),CARD.ink3,'right');
-      y+=44;
+      y+=56;
+      y=sectionHead(ctx,draw,y,'訓練內容',`${d.exercises.length} 個動作`);
+      y+=32;
+      // 組數／次數／重量：三欄各自靠右對齊，整張報告共用同一組欄寬
+      const fS=cardFont(27,400), fX=cardFont(24,400);
+      ctx.font=fS;
+      const colMax=[0,0,0];
+      d.exercises.forEach(ex=>ex.sets.forEach(seg=>seg.forEach((t,i)=>{colMax[i]=Math.max(colMax[i],ctx.measureText(t).width);})));
+      const nCols=colMax[2]>0?3:2, sepW=40;
+      const tableW=colMax.slice(0,nCols).reduce((a,b)=>a+b,0)+sepW*(nCols-1);
+      const tableX=W-P-tableW, rowPitch=46;
+      const numD=46, nameX=P+numD+22, nameW=tableX-nameX-28;
+      const fN=cardFont(30,600), gN=gbox(ctx,fN), namePitch=30*1.45;
+      const gS=gbox(ctx,fS);
       d.exercises.forEach((ex,i)=>{
         const top=y;
-        const numW=56, nameW=IW-numW-setsW-24;
-        // 編號
-        if(draw){ cardRoundRect(ctx,P,y+2,40,40,20,ex.pr?CARD.green:CARD.accBg); }
-        cardText(ctx,draw,String(i+1),P+20,y+8,cardFont(22,500,CARD.mono),ex.pr?'#fff':CARD.acc,'center');
-        let lh=cardLines(ctx,draw,ex.zh||ex.en,P+numW,y,nameW,30,500,CARD.ink,1.35);
-        if(ex.zh) lh+=cardLines(ctx,draw,ex.en,P+numW,y+lh+2,nameW,21,400,CARD.ink3,1.4)+2;
-        // 組數重量（右側）
-        let rh=0;
-        ex.sets.forEach(seg=>{ drawSetRow(seg,y+rh+2); rh+=38; });
-        y+=Math.max(lh,rh);
-        if(ex.note){ y+=8; y+=cardLines(ctx,draw,'└ '+ex.note,P+numW,y,IW-numW,22,400,CARD.ink3,1.5); }
-        y+=22;
-        if(draw && i<d.exercises.length-1){ ctx.fillStyle=CARD.line; ctx.fillRect(P+numW,y,IW-numW,1.5); }
-        y+=22;
+        // 名稱（可換行）
+        ctx.font=fN;
+        const nl=cardWrap(ctx,ex.zh||ex.en,nameW);
+        nl.forEach((ln,j)=>tTop(ctx,draw,ln,nameX,top+j*namePitch,fN,CARD.ink));
+        let ly=top+(nl.length-1)*namePitch+gN.h;
+        // 編號圓圈：對齊第一行名稱的中心
+        const cy=top+gN.h/2;
+        if(draw){ ctx.beginPath(); ctx.arc(P+numD/2,cy,numD/2,0,Math.PI*2); ctx.fillStyle=ex.pr?CARD.green:CARD.accBg; ctx.fill(); }
+        tMid(ctx,draw,String(i+1),P+numD/2,cy,cardFont(22,600),ex.pr?'#fff':CARD.acc,'center',true);
+        if(ex.zh&&ex.en){ ly+=12; ly+=tLines(ctx,draw,ex.en,nameX,ly,nameW,20,400,CARD.ink3,1.45); }
+        // 組數表：第一列與名稱同一條基準線
+        const base0=top+gN.a;
+        ex.sets.forEach((seg,k)=>{
+          const base=base0+k*rowPitch;
+          let x=tableX;
+          for(let c=0;c<nCols;c++){
+            x+=colMax[c];
+            if(seg[c]) tBase(ctx,draw,seg[c],x,base,fS,CARD.ink2,'right');
+            if(c<nCols-1){ if(seg[c+1]) tBase(ctx,draw,'×',x+sepW/2,base,fX,CARD.ink3,'center'); x+=sepW; }
+          }
+        });
+        const setsBottom=base0+(ex.sets.length-1)*rowPitch+gS.d;
+        y=Math.max(ly,setsBottom);
+        // 備註：與名稱同一條左邊線
+        if(ex.note){
+          y+=20;
+          const nh=tLines(ctx,draw,ex.note,nameX+18,y,W-P-nameX-18,23,400,CARD.ink2,1.6);
+          if(draw) cardRoundRect(ctx,nameX,y-2,4,nh+4,2,CARD.line);
+          y+=nh;
+        }
+        if(i<d.exercises.length-1){
+          y+=30;
+          if(draw){ ctx.fillStyle=CARD.line; ctx.fillRect(nameX,y,W-P-nameX,1.5); }
+          y+=30;
+        }
       });
-      if(d.intensity||d.prog){
-        const t=[d.intensity?'整體強度：'+d.intensity:'', d.prog?'運動表現：'+d.prog:''].filter(Boolean).join('　　');
-        y+=cardLines(ctx,draw,t,P+56,y,IW-56,24,400,CARD.ink2,1.5);
-      }
     }
 
-    // 教練回饋
+    // ── 教練回饋 ──
     const blocks=[['表現亮點',d.good],['需要加強',d.improve],['教練觀察',d.obs],['下一堂方向',d.next],['飲食 / 恢復',d.diet]].filter(b=>b[1]);
     if(blocks.length){
-      y+=48;
-      cardText(ctx,draw,'教練回饋',P,y,cardFont(24,500,CARD.mono),CARD.acc); y+=46;
-      blocks.forEach(([k,v])=>{
-        if(draw){ ctx.fillStyle=CARD.acc; ctx.fillRect(P,y+6,4,26); }
-        cardText(ctx,draw,k,P+20,y,cardFont(26,500),CARD.ink);
-        y+=42;
-        y+=cardLines(ctx,draw,v,P+20,y,IW-20,27,400,CARD.ink2,1.6)+26;
+      y+=64;
+      y=sectionHead(ctx,draw,y,'教練回饋','');
+      y+=32;
+      const fT=cardFont(26,600), gT=gbox(ctx,fT), tx=P+24;
+      blocks.forEach(([k,v],i)=>{
+        if(i) y+=36;
+        if(draw) cardRoundRect(ctx,P,y+gT.h/2-5,10,10,2,CARD.acc);
+        tTop(ctx,draw,k,tx,y,fT,CARD.ink);
+        y+=gT.h+16;
+        y+=tLines(ctx,draw,v,tx,y,W-P-tx,27,400,CARD.ink2,1.65);
       });
     }
 
-    // 給學員的話
+    // ── 給學員的話 ──
     if(d.msg){
-      y+=24;
-      ctx.font=cardFont(30,400,CARD.serif);
-      const ls=cardWrap(ctx,d.msg,IW-80);
-      const h=36+34+ls.length*30*1.65+36;
-      if(draw) cardRoundRect(ctx,P,y,IW,h,16,CARD.paper,CARD.line);
-      cardText(ctx,draw,`給 ${d.student} 的話`,P+40,y+36,cardFont(22,500,CARD.mono),CARD.acc);
-      ls.forEach((ln,i)=>cardText(ctx,draw,ln,P+40,y+36+44+i*30*1.65,cardFont(30,400,CARD.serif),CARD.ink));
+      y+=52;
+      const pad=40, fM=cardFont(30,400,CARD.serif), fL=cardFont(22,600), pitch=30*1.7;
+      ctx.font=fM;
+      const ls=cardWrap(ctx,d.msg,IW-pad*2);
+      const gM=gbox(ctx,fM), gL=gbox(ctx,fL);
+      const h=pad+gL.h+22+(ls.length-1)*pitch+gM.h+pad;
+      if(draw) cardRoundRect(ctx,P,y,IW,h,18,CARD.paper,CARD.line);
+      tTop(ctx,draw,`給 ${d.student} 的話`,P+pad,y+pad,fL,CARD.acc);
+      ls.forEach((ln,i)=>tTop(ctx,draw,ln,P+pad,y+pad+gL.h+22+i*pitch,fM,CARD.ink));
       y+=h;
     }
 
-    // 下次
-    if(d.freq||d.nextbook){
+    // ── 建議頻率／下次預約 ──
+    const tail=[['建議頻率',d.freq],['下次預約',d.nextbook]].filter(t=>t[1]);
+    if(tail.length){
       y+=40;
-      let x=P;
-      [['建議頻率',d.freq],['下次預約',d.nextbook]].forEach(([k,v])=>{
-        if(!v) return;
-        const w=(IW-20)/2;
-        if(draw) cardRoundRect(ctx,x,y,w,104,12,CARD.accBg);
-        cardText(ctx,draw,k,x+28,y+20,cardFont(20,500,CARD.mono),CARD.ink3);
-        ctx.font=cardFont(28,500);
-        const ln=cardWrap(ctx,v,w-56)[0]||'';
-        cardText(ctx,draw,ln,x+28,y+52,cardFont(28,500),CARD.ink);
-        x+=w+20;
+      const gap=18, w=(IW-gap*(tail.length-1))/tail.length, h=112, pad=30;
+      const fK=cardFont(20,500), fV=cardFont(28,600);
+      tail.forEach(([k,v],i)=>{
+        const x=P+i*(w+gap);
+        if(draw) cardRoundRect(ctx,x,y,w,h,14,CARD.accBg);
+        tTop(ctx,draw,k,x+pad,y+28,fK,CARD.ink3);
+        const pv=fitPx(ctx,v,w-pad*2,28,600,20);
+        tTop(ctx,draw,v,x+pad,y+28+gbox(ctx,fK).h+16,cardFont(pv,600),CARD.ink);
       });
-      y+=104;
+      y+=h;
     }
     return cardFooter(ctx,draw,y);
   });
